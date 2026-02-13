@@ -38,6 +38,18 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 	UPROPERTY(BlueprintReadWrite, Category = "Discord")
 	FString GameSourceLabel;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	bool bEnableServerNotifications = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString NotificationChannelId;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString ServerStartMessage;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString ServerStopMessage;
+
 	FDiscordBotConfig()
 		: BotToken(TEXT(""))
 		, ChannelId(TEXT(""))
@@ -46,6 +58,10 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 		, GameNameFormat(TEXT("**[{username}]** {message}"))
 		, DiscordSourceLabel(TEXT("Discord"))
 		, GameSourceLabel(TEXT("Game"))
+		, bEnableServerNotifications(false)
+		, NotificationChannelId(TEXT(""))
+		, ServerStartMessage(TEXT("🟢 **Server Started** - The Satisfactory server is now online!"))
+		, ServerStopMessage(TEXT("🔴 **Server Stopped** - The Satisfactory server is now offline."))
 	{}
 };
 
@@ -66,6 +82,9 @@ public:
 	/** Send a message to the configured Discord channel */
 	void SendMessage(const FString& Username, const FString& Message);
 
+	/** Send a notification message to the notification channel (or chat channel if not configured) */
+	void SendNotification(const FString& Message);
+
 	/** Start polling for new messages from Discord */
 	void StartPolling();
 
@@ -84,6 +103,9 @@ private:
 
 	/** Handle response from sending a message */
 	void OnSendMessageResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	/** Handle response from sending a notification */
+	void OnSendNotificationResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 	/** Handle response from polling messages */
 	void OnPollMessagesResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);

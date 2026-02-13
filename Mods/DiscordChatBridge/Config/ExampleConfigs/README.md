@@ -40,6 +40,12 @@ This directory contains ready-to-use configuration file examples for different c
 - **Discord:** `🏭 [SERVER] **PlayerName**: Hello!`
 - Professional branding for community servers
 
+### `server-notifications.ini` - With Server Status Notifications 🔔
+- Includes all features plus server start/stop notifications
+- **Notifications:** `🟢 Satisfactory Server Online!` / `🔴 Server Offline`
+- Supports separate notification channel
+- Perfect for dedicated servers with status updates
+
 ## Need More?
 
 Check out [EXAMPLES.md](../EXAMPLES.md) in the parent directory for:

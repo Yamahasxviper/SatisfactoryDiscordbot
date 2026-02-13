@@ -51,11 +51,30 @@ void ADiscordChatSubsystem::BeginPlay()
 	if (DiscordAPI && DiscordAPI->IsInitialized())
 	{
 		DiscordAPI->StartPolling();
+		
+		// Send server start notification if enabled
+		if (BotConfig.bEnableServerNotifications)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Sending server start notification"));
+			DiscordAPI->SendNotification(BotConfig.ServerStartMessage);
+		}
 	}
 }
 
 void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// Send server stop notification if enabled
+	if (DiscordAPI && DiscordAPI->IsInitialized() && BotConfig.bEnableServerNotifications)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Sending server stop notification"));
+		DiscordAPI->SendNotification(BotConfig.ServerStopMessage);
+		
+		// Give the HTTP request a moment to complete before stopping
+		// Note: In a real scenario, you might want to wait for the response,
+		// but for simplicity we'll just add a small delay
+		FPlatformProcess::Sleep(0.5f);
+	}
+	
 	// Stop polling
 	if (DiscordAPI)
 	{
@@ -87,6 +106,10 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		FString GameNameFormat;
 		FString DiscordSourceLabel;
 		FString GameSourceLabel;
+		bool bEnableServerNotifications = false;
+		FString NotificationChannelId;
+		FString ServerStartMessage;
+		FString ServerStopMessage;
 		
 		// Load settings from Config/DefaultDiscordChatBridge.ini
 		GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
@@ -96,6 +119,10 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		GConfig->GetString(*ConfigSection, TEXT("GameNameFormat"), GameNameFormat, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("DiscordSourceLabel"), DiscordSourceLabel, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("GameSourceLabel"), GameSourceLabel, GGameIni);
+		GConfig->GetBool(*ConfigSection, TEXT("EnableServerNotifications"), bEnableServerNotifications, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("NotificationChannelId"), NotificationChannelId, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("ServerStartMessage"), ServerStartMessage, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("ServerStopMessage"), ServerStopMessage, GGameIni);
 		
 		if (!BotToken.IsEmpty() && !ChannelId.IsEmpty())
 		{
@@ -121,8 +148,23 @@ void ADiscordChatSubsystem::LoadConfiguration()
 				BotConfig.GameSourceLabel = GameSourceLabel;
 			}
 			
-			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs"), 
-				*ChannelId, PollInterval);
+			// Load server notification settings
+			BotConfig.bEnableServerNotifications = bEnableServerNotifications;
+			if (!NotificationChannelId.IsEmpty())
+			{
+				BotConfig.NotificationChannelId = NotificationChannelId;
+			}
+			if (!ServerStartMessage.IsEmpty())
+			{
+				BotConfig.ServerStartMessage = ServerStartMessage;
+			}
+			if (!ServerStopMessage.IsEmpty())
+			{
+				BotConfig.ServerStopMessage = ServerStopMessage;
+			}
+			
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s"), 
+				*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"));
 		}
 		else
 		{

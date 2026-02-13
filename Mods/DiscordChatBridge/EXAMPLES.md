@@ -401,6 +401,104 @@ GameNameFormat=<{username}> {message}
 
 ---
 
+## Server Notifications 🔔
+
+The Discord Chat Bridge now supports server start and stop notifications!
+
+### Basic Setup
+
+Enable notifications in your configuration:
+
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+BotToken=YOUR_BOT_TOKEN_HERE
+ChannelId=YOUR_CHANNEL_ID
+
+; Enable server notifications
+EnableServerNotifications=true
+
+; Use default messages or customize below
+ServerStartMessage=🟢 **Server Started** - The Satisfactory server is now online!
+ServerStopMessage=🔴 **Server Stopped** - The Satisfactory server is now offline.
+```
+
+**Result:**
+- When server starts: `🟢 **Server Started** - The Satisfactory server is now online!`
+- When server stops: `🔴 **Server Stopped** - The Satisfactory server is now offline.`
+
+### Separate Notification Channel
+
+Send notifications to a different channel (e.g., a dedicated status channel):
+
+```ini
+; Chat messages go to this channel
+ChannelId=YOUR_CHAT_CHANNEL_ID
+
+; Enable notifications
+EnableServerNotifications=true
+
+; Notifications go to this channel
+NotificationChannelId=YOUR_STATUS_CHANNEL_ID
+
+; Custom messages
+ServerStartMessage=✅ Factory is ONLINE! 🏭 Time to automate!
+ServerStopMessage=⛔ Factory is OFFLINE 🔧 Maintenance in progress...
+```
+
+**Benefits:**
+- Keep status updates separate from chat
+- Easy for players to check server status
+- No spam in the main chat channel
+
+### Creative Notification Examples
+
+#### Minimalist
+```ini
+ServerStartMessage=Server Online
+ServerStopMessage=Server Offline
+```
+
+#### Enthusiastic
+```ini
+ServerStartMessage=🎉 **LET'S BUILD!** The factory awaits! 🏭⚙️
+ServerStopMessage=😴 **Naptime!** Server's taking a break. Back soon! 💤
+```
+
+#### Professional
+```ini
+ServerStartMessage=🟢 **[ONLINE]** Satisfactory Server - All systems operational
+ServerStopMessage=🔴 **[OFFLINE]** Satisfactory Server - Scheduled maintenance
+```
+
+#### Fun & Creative
+```ini
+ServerStartMessage=🚀 **BLAST OFF!** The conveyor belts are rolling! Let's automate! 🤖
+ServerStopMessage=🛑 **FACTORY SHUTDOWN** - Time for the machines to rest! 😴
+```
+
+#### With Timestamps (Discord auto-adds these)
+```ini
+ServerStartMessage=🟢 Server is now ONLINE!
+ServerStopMessage=🔴 Server has gone OFFLINE
+```
+
+### Tips for Notifications
+
+1. **Keep it concise** - Players will see these frequently
+2. **Use emojis** - Visual indicators are helpful (🟢🔴✅❌🏭)
+3. **Be clear** - Make the status obvious at a glance
+4. **Test both messages** - Make sure they look good in Discord
+5. **Consider your audience** - Match your server's tone/style
+
+### Important Notes
+
+- ⚠️ **Server stop notification** may not be sent if the server crashes unexpectedly
+- 🔑 **Bot permissions** - Make sure your bot has "Send Messages" in the notification channel
+- 🔄 **Testing** - Restart your server to test the start notification
+- 📝 **One channel is fine** - You don't need a separate notification channel (it's optional)
+
+---
+
 ## Need More Help?
 
 - Check [README.md](README.md) for full documentation
