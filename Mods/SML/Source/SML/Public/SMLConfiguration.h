@@ -17,6 +17,25 @@ public:
      * Whether to enable funchook logging
      */
     bool bEnableFunchookLogging;
+
+    /**
+     * Format string for displaying Discord names in in-game chat
+     * Use {name} as placeholder for the actual name
+     * Example: "[Discord] {name}" will display as "[Discord] Username"
+     */
+    FString InGameChatNameFormat;
+
+    /**
+     * Format string for displaying in-game names in Discord
+     * Use {name} as placeholder for the actual name
+     * Example: "[Game] {name}" will display as "[Game] PlayerName"
+     */
+    FString DiscordNameFormat;
+
+    /**
+     * Whether to enable name formatting for chat and Discord integration
+     */
+    bool bEnableNameFormatting;
 public:
     /** Deserializes configuration from JSON object */
     static void ReadFromJson(const TSharedPtr<class FJsonObject>& Json, FSMLConfiguration& OutConfiguration, bool* OutIsMissingSections = NULL);

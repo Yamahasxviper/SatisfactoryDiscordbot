@@ -2,7 +2,10 @@
 #include "Dom/JsonObject.h"
 
 FSMLConfiguration::FSMLConfiguration() :
-    bEnableFunchookLogging(false) {
+    bEnableFunchookLogging(false),
+    InGameChatNameFormat(TEXT("{name}")),
+    DiscordNameFormat(TEXT("{name}")),
+    bEnableNameFormatting(false) {
 }
 
 void FSMLConfiguration::ReadFromJson(const TSharedPtr<FJsonObject>& Json, FSMLConfiguration& OutConfiguration, bool* OutIsMissingSections) {
@@ -24,6 +27,24 @@ void FSMLConfiguration::ReadFromJson(const TSharedPtr<FJsonObject>& Json, FSMLCo
         bIsMissingSectionsInternal = true;
     }
 
+    if (Json->HasTypedField<EJson::String>(TEXT("inGameChatNameFormat"))) {
+        OutConfiguration.InGameChatNameFormat = Json->GetStringField(TEXT("inGameChatNameFormat"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
+    if (Json->HasTypedField<EJson::String>(TEXT("discordNameFormat"))) {
+        OutConfiguration.DiscordNameFormat = Json->GetStringField(TEXT("discordNameFormat"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
+    if (Json->HasTypedField<EJson::Boolean>(TEXT("enableNameFormatting"))) {
+        OutConfiguration.bEnableNameFormatting = Json->GetBoolField(TEXT("enableNameFormatting"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
     if (OutIsMissingSections) {
         *OutIsMissingSections = bIsMissingSectionsInternal;
     }
@@ -37,4 +58,10 @@ void FSMLConfiguration::WriteToJson(const TSharedPtr<FJsonObject>& OutJson, cons
     OutJson->SetArrayField(TEXT("disabledChatCommands"), DisabledChatCommands);
 
     OutJson->SetBoolField(TEXT("enableFunchookLogging"), Configuration.bEnableFunchookLogging);
+
+    OutJson->SetStringField(TEXT("inGameChatNameFormat"), Configuration.InGameChatNameFormat);
+
+    OutJson->SetStringField(TEXT("discordNameFormat"), Configuration.DiscordNameFormat);
+
+    OutJson->SetBoolField(TEXT("enableNameFormatting"), Configuration.bEnableNameFormatting);
 }
