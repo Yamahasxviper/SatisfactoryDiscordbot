@@ -23,7 +23,7 @@ To build this project locally in Visual Studio or with MSBuild, you need:
 
 **Error MSB3073: Build.bat exited with code 6**
 
-This error typically occurs when the Wwise plugin is not properly installed. The project's PreBuildSteps require the Wwise plugin to be present in `Plugins\Wwise\` directory before building.
+This error typically occurs when the Wwise plugin is not properly installed. The project's PreBuildSteps require the Wwise plugin to be present in `Plugins/Wwise/` directory before building.
 
 **Solutions:**
 - The Wwise plugin is not publicly available and must be obtained through the project's CI process or from the Satisfactory modding community
