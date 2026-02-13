@@ -12,6 +12,11 @@ defaults:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      # Process names to kill during cleanup to prevent file locking issues
+      BUILD_PROCESS_PATTERN: "dotnet|MSBuild|UnrealBuildTool|ShaderCompileWorker|UnrealEditor"
+      # Time to wait after killing processes to ensure file handles are released
+      CLEANUP_SLEEP_SECONDS: 2
     steps:
       - name: Check for permission to run CI
         env:
@@ -24,8 +29,8 @@ jobs:
 
       - name: Kill lingering processes
         run: |
-          Get-Process | Where-Object { $_.Name -match "dotnet|MSBuild|UnrealBuildTool|ShaderCompileWorker|UnrealEditor" } | Stop-Process -Force -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 2
+          Get-Process | Where-Object { $_.Name -match "$env:BUILD_PROCESS_PATTERN" } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds $env:CLEANUP_SLEEP_SECONDS
 
       - name: Cleanup
         run: Remove-Item * -Recurse -Force -Confirm:$false -ErrorAction Ignore
@@ -75,5 +80,5 @@ jobs:
       - name: Final cleanup of build processes
         if: always()
         run: |
-          Get-Process | Where-Object { $_.Name -match "dotnet|MSBuild|UnrealBuildTool|ShaderCompileWorker|UnrealEditor" } | Stop-Process -Force -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 2
+          Get-Process | Where-Object { $_.Name -match "$env:BUILD_PROCESS_PATTERN" } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds $env:CLEANUP_SLEEP_SECONDS
