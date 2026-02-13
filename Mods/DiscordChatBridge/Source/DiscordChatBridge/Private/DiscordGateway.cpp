@@ -140,8 +140,6 @@ void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonOb
 	// Get event name and data
 	FString EventName;
 	JsonObject->TryGetStringField(TEXT("t"), EventName);
-	
-	TSharedPtr<FJsonObject> Data = JsonObject->GetObjectField(TEXT("d"));
 
 	UE_LOG(LogTemp, Verbose, TEXT("DiscordGateway: Received opcode %d, event: %s"), Opcode, *EventName);
 
@@ -149,7 +147,17 @@ void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonOb
 	switch (static_cast<EDiscordGatewayOpcode>(Opcode))
 	{
 	case EDiscordGatewayOpcode::Hello:
-		HandleHello(Data);
+		{
+			TSharedPtr<FJsonObject> Data = JsonObject->GetObjectField(TEXT("d"));
+			if (Data.IsValid())
+			{
+				HandleHello(Data);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Missing data field in HELLO message"));
+			}
+		}
 		break;
 
 	case EDiscordGatewayOpcode::HeartbeatAck:
@@ -159,13 +167,21 @@ void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonOb
 	case EDiscordGatewayOpcode::Dispatch:
 		if (EventName == TEXT("READY"))
 		{
-			HandleReady(Data);
+			TSharedPtr<FJsonObject> Data = JsonObject->GetObjectField(TEXT("d"));
+			if (Data.IsValid())
+			{
+				HandleReady(Data);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Missing data field in READY message"));
+			}
 		}
 		break;
 
 	case EDiscordGatewayOpcode::InvalidSession:
 		{
-			bool CanResume = Data->GetBoolField(TEXT("d"));
+			bool CanResume = JsonObject->GetBoolField(TEXT("d"));
 			HandleInvalidSession(CanResume);
 		}
 		break;
