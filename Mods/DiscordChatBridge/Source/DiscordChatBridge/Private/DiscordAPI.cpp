@@ -49,6 +49,7 @@ void UDiscordAPI::SendMessage(const FString& Username, const FString& Message)
 	// Create JSON payload with configurable format
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 	FString FormattedMessage = BotConfig.GameNameFormat;
+	FormattedMessage = FormattedMessage.Replace(TEXT("{source}"), *BotConfig.GameSourceLabel);
 	FormattedMessage = FormattedMessage.Replace(TEXT("{username}"), *Username);
 	FormattedMessage = FormattedMessage.Replace(TEXT("{message}"), *Message);
 	JsonObject->SetStringField(TEXT("content"), FormattedMessage);

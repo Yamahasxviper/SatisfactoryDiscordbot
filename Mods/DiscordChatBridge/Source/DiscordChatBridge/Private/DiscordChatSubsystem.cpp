@@ -85,6 +85,8 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		float PollInterval = 2.0f;
 		FString DiscordNameFormat;
 		FString GameNameFormat;
+		FString DiscordSourceLabel;
+		FString GameSourceLabel;
 		
 		// Load settings from Config/DefaultDiscordChatBridge.ini
 		GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
@@ -92,6 +94,8 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		GConfig->GetFloat(*ConfigSection, TEXT("PollIntervalSeconds"), PollInterval, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("DiscordNameFormat"), DiscordNameFormat, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("GameNameFormat"), GameNameFormat, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("DiscordSourceLabel"), DiscordSourceLabel, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("GameSourceLabel"), GameSourceLabel, GGameIni);
 		
 		if (!BotToken.IsEmpty() && !ChannelId.IsEmpty())
 		{
@@ -107,6 +111,14 @@ void ADiscordChatSubsystem::LoadConfiguration()
 			if (!GameNameFormat.IsEmpty())
 			{
 				BotConfig.GameNameFormat = GameNameFormat;
+			}
+			if (!DiscordSourceLabel.IsEmpty())
+			{
+				BotConfig.DiscordSourceLabel = DiscordSourceLabel;
+			}
+			if (!GameSourceLabel.IsEmpty())
+			{
+				BotConfig.GameSourceLabel = GameSourceLabel;
 			}
 			
 			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs"), 
@@ -184,6 +196,7 @@ void ADiscordChatSubsystem::ForwardDiscordMessageToGame(const FString& Username,
 	
 	// Format the sender name using the configured format
 	FString FormattedSender = BotConfig.DiscordNameFormat;
+	FormattedSender = FormattedSender.Replace(TEXT("{source}"), *BotConfig.DiscordSourceLabel);
 	FormattedSender = FormattedSender.Replace(TEXT("{username}"), *Username);
 	
 	// Create a chat message struct
