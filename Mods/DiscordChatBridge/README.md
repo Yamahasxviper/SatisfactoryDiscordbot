@@ -21,6 +21,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - 📖 [Setup Guide](SETUP_GUIDE.md) - Detailed step-by-step instructions
 - 🎨 [**Configuration Examples**](EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
 - ⚙️ [Default Configuration](Config/DefaultDiscordChatBridge.ini) - Template configuration file
+- 🔧 [Dependency Explanation](DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
 
 ## Prerequisites
 
