@@ -12,6 +12,26 @@ It also serves as the Unreal project used for developing mods.
 
 Learn how to set up and use this repo on the [modding documentation](https://docs.ficsit.app/).
 
+## Building Locally
+
+To build this project locally in Visual Studio or with MSBuild, you need:
+
+1. **Unreal Engine 5.3.2-CSS** - The custom Satisfactory version of Unreal Engine
+2. **Wwise Plugin** - Required audio middleware plugin
+
+### Common Build Errors
+
+**Error MSB3073: Build.bat exited with code 6**
+
+This error typically occurs when the Wwise plugin is not properly installed. The project's PreBuildSteps require the Wwise plugin to be present in `Plugins\Wwise\` directory before building.
+
+**Solutions:**
+- The Wwise plugin is not publicly available and must be obtained through the project's CI process or from the Satisfactory modding community
+- Refer to the [modding documentation](https://docs.ficsit.app/) for detailed setup instructions
+- Ensure all repository files are properly cloned (the build script requires `Mods/WwisePatches/` files)
+
+For CI builds, the Wwise plugin is automatically downloaded by the GitHub Actions workflow.
+
 ## Discord Chat Bridge Mod
 
 This repository includes the **Discord Chat Bridge** mod, which provides two-way chat integration between Satisfactory in-game chat and Discord.
