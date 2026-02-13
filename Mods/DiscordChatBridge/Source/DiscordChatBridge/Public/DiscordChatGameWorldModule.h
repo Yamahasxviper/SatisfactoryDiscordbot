@@ -10,4 +10,7 @@ UCLASS()
 class DISCORDCHATBRIDGE_API UDiscordChatGameWorldModule : public UGameWorldModule
 {
 	GENERATED_BODY()
+
+public:
+	UDiscordChatGameWorldModule();
 };
