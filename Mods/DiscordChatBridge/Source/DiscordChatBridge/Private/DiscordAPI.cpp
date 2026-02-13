@@ -21,11 +21,17 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 
 	if (bIsInitialized)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Initialized with channel ID: %s"), *BotConfig.ChannelId);
+		if (BotConfig.LogVerbosity >= 3)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Initialized with channel ID: %s"), *BotConfig.ChannelId);
+		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to initialize - missing bot token or channel ID"));
+		if (BotConfig.LogVerbosity >= 2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to initialize - missing bot token or channel ID"));
+		}
 	}
 }
 
@@ -48,7 +54,10 @@ void UDiscordAPI::SendMessage(const FString& Username, const FString& Message)
 
 	// Create JSON payload
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-	FString FormattedMessage = FString::Printf(TEXT("**[%s]** %s"), *Username, *Message);
+	
+	// If Username is empty, assume Message is already formatted
+	// Otherwise, use the old format for backward compatibility
+	FString FormattedMessage = Username.IsEmpty() ? Message : FString::Printf(TEXT("**[%s]** %s"), *Username, *Message);
 	JsonObject->SetStringField(TEXT("content"), FormattedMessage);
 
 	FString JsonString;
@@ -60,11 +69,17 @@ void UDiscordAPI::SendMessage(const FString& Username, const FString& Message)
 
 	if (HttpRequest->ProcessRequest())
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("DiscordAPI: Sending message from %s"), *Username);
+		if (BotConfig.LogVerbosity >= 4)
+		{
+			UE_LOG(LogTemp, Verbose, TEXT("DiscordAPI: Sending message"));
+		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to process send message request"));
+		if (BotConfig.LogVerbosity >= 1)
+		{
+			UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to process send message request"));
+		}
 	}
 }
 
@@ -75,17 +90,26 @@ void UDiscordAPI::OnSendMessageResponse(FHttpRequestPtr Request, FHttpResponsePt
 		int32 ResponseCode = Response->GetResponseCode();
 		if (ResponseCode >= 200 && ResponseCode < 300)
 		{
-			UE_LOG(LogTemp, Verbose, TEXT("DiscordAPI: Message sent successfully"));
+			if (BotConfig.LogVerbosity >= 4)
+			{
+				UE_LOG(LogTemp, Verbose, TEXT("DiscordAPI: Message sent successfully"));
+			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to send message - Response code: %d, Body: %s"), 
-				ResponseCode, *Response->GetContentAsString());
+			if (BotConfig.LogVerbosity >= 2)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to send message - Response code: %d, Body: %s"), 
+					ResponseCode, *Response->GetContentAsString());
+			}
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to send message - Request failed"));
+		if (BotConfig.LogVerbosity >= 1)
+		{
+			UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to send message - Request failed"));
+		}
 	}
 }
 
@@ -93,18 +117,27 @@ void UDiscordAPI::StartPolling()
 {
 	if (!bIsInitialized)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Cannot start polling - API not initialized"));
+		if (BotConfig.LogVerbosity >= 2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Cannot start polling - API not initialized"));
+		}
 		return;
 	}
 
 	if (bIsPolling)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Already polling"));
+		if (BotConfig.LogVerbosity >= 2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Already polling"));
+		}
 		return;
 	}
 
 	bIsPolling = true;
-	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Started polling for messages"));
+	if (BotConfig.LogVerbosity >= 3)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Started polling for messages"));
+	}
 
 	// Get the world for timer manager
 	UWorld* World = GetWorld();
@@ -128,7 +161,10 @@ void UDiscordAPI::StopPolling()
 	}
 
 	bIsPolling = false;
-	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Stopped polling for messages"));
+	if (BotConfig.LogVerbosity >= 3)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Stopped polling for messages"));
+	}
 
 	UWorld* World = GetWorld();
 	if (World)
@@ -161,7 +197,10 @@ void UDiscordAPI::PollMessages()
 
 	if (!HttpRequest->ProcessRequest())
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to process poll messages request"));
+		if (BotConfig.LogVerbosity >= 1)
+		{
+			UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to process poll messages request"));
+		}
 	}
 }
 
@@ -169,14 +208,20 @@ void UDiscordAPI::OnPollMessagesResponse(FHttpRequestPtr Request, FHttpResponseP
 {
 	if (!bWasSuccessful || !Response.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to poll messages - Request failed"));
+		if (BotConfig.LogVerbosity >= 2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to poll messages - Request failed"));
+		}
 		return;
 	}
 
 	int32 ResponseCode = Response->GetResponseCode();
 	if (ResponseCode < 200 || ResponseCode >= 300)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to poll messages - Response code: %d"), ResponseCode);
+		if (BotConfig.LogVerbosity >= 2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to poll messages - Response code: %d"), ResponseCode);
+		}
 		return;
 	}
 
@@ -187,7 +232,10 @@ void UDiscordAPI::OnPollMessagesResponse(FHttpRequestPtr Request, FHttpResponseP
 	
 	if (!FJsonSerializer::Deserialize(Reader, JsonArray))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to parse messages JSON"));
+		if (BotConfig.LogVerbosity >= 2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to parse messages JSON"));
+		}
 		return;
 	}
 

@@ -26,10 +26,34 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 	UPROPERTY(BlueprintReadWrite, Category = "Discord")
 	float PollIntervalSeconds = 2.0f;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	bool bEnableGameToDiscord = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	bool bEnableDiscordToGame = true;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString GameMessageFormat;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString DiscordMessageFormat;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FLinearColor DiscordMessageColor;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	int32 LogVerbosity = 3;
+
 	FDiscordBotConfig()
 		: BotToken(TEXT(""))
 		, ChannelId(TEXT(""))
 		, PollIntervalSeconds(2.0f)
+		, bEnableGameToDiscord(true)
+		, bEnableDiscordToGame(true)
+		, GameMessageFormat(TEXT("**[{username}]** {message}"))
+		, DiscordMessageFormat(TEXT("[Discord] {username}"))
+		, DiscordMessageColor(FLinearColor(0.447f, 0.627f, 0.957f))
+		, LogVerbosity(3)
 	{}
 };
 
