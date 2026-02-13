@@ -1,0 +1,13 @@
+{
+  "disabledChatCommands": [],
+  "enableFunchookLogging": false,
+  "chatCommandPrefix": "/",
+  "chatCommandCooldown": 0,
+  "maxChatMessageLength": 0,
+  "enableChatLogging": false,
+  "enableDiscordIntegration": false,
+  "discordWebhookURL": "",
+  "discordBotToken": "",
+  "discordChannelID": "",
+  "discordMessageFormat": "**{player}**: {message}"
+}
