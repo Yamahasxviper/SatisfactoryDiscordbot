@@ -12,6 +12,8 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ Server-side only (no client installation required)
 - ✅ **Customizable name formats** - Choose from multiple style presets or create your own!
 - ✅ **Server start and stop notifications** - Get notified when the server goes online or offline with custom channel support!
+- ✅ **Player count status updates** - Automatically post player count to Discord with customizable format and interval!
+- ✅ **Discord Gateway bot presence** ⭐ NEW! - True "Playing with X players" status via WebSocket!
 
 ## Quick Links
 
@@ -185,6 +187,198 @@ ServerStartMessage=🟢 **Satisfactory Server Online!** Ready to build! 🏭
 ServerStopMessage=🔴 **Satisfactory Server Offline** - Scheduled maintenance 🔧
 ```
 
+### Player Count Status Updates
+
+Keep your Discord community informed about server activity with automatic player count updates!
+
+#### Enabling Player Count Updates
+
+Set `EnableBotActivity=true` in your configuration file to enable this feature.
+
+#### Update Interval
+
+Configure how often the player count is updated (in seconds):
+- **ActivityUpdateIntervalSeconds**: Time between updates (default: 60 seconds)
+- **Recommended**: 60-300 seconds to avoid spam
+
+#### Status Channel
+
+By default, player count updates are posted to the same channel as chat messages. You can optionally configure a separate status channel:
+
+- **Same as chat channel** (default): Leave `BotActivityChannelId` empty
+- **Separate status channel**: Set `BotActivityChannelId` to a different channel ID (e.g., for a dedicated server status channel)
+
+Make sure your bot has "Send Messages" permission in the status channel.
+
+#### Customizing Status Messages
+
+You can customize the format of player count messages using the `BotActivityFormat` setting:
+
+- **Default**: `🎮 **Players Online:** {playercount}`
+- **Placeholder**: `{playercount}` will be replaced with the actual number of players
+- **Examples**:
+  - `🎮 **Players Online:** {playercount}`
+  - `👥 Current Players: {playercount}`
+  - `Server has {playercount} player(s) online`
+  - `🏭 Building with {playercount} engineers!`
+
+#### Example Configuration
+
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+BotToken=YOUR_BOT_TOKEN_HERE
+ChannelId=YOUR_CHAT_CHANNEL_ID
+
+; Enable player count updates
+EnableBotActivity=true
+
+; Update every 2 minutes
+ActivityUpdateIntervalSeconds=120.0
+
+; Optional: Use a separate channel for status updates
+BotActivityChannelId=YOUR_STATUS_CHANNEL_ID
+
+; Custom status message format
+BotActivityFormat=🎮 **Players Online:** {playercount} | 🏭 Let's build!
+```
+
+### Discord Gateway Bot Presence ⭐ NEW!
+
+For a true Discord bot presence (shows "Playing with X players" next to the bot's name in the member list), you can now enable Discord Gateway WebSocket support!
+
+#### What is Gateway Mode?
+
+Discord Gateway is a WebSocket-based connection that enables real-time bot presence updates. Instead of posting messages to a channel, your bot's status will show directly in Discord as:
+
+```
+🤖 YourBotName - Playing with 5 players
+```
+
+This appears:
+- Next to the bot's name in the member list
+- In the bot's user profile
+- Exactly like official game integrations
+
+#### Enabling Gateway Mode
+
+Set `UseGatewayForPresence=true` in your configuration:
+
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+BotToken=YOUR_BOT_TOKEN_HERE
+ChannelId=YOUR_CHAT_CHANNEL_ID
+
+; Enable bot activity updates
+EnableBotActivity=true
+
+; ⭐ Enable Gateway for true bot presence
+UseGatewayForPresence=true
+
+; Customize presence text (optional)
+GatewayPresenceFormat=with {playercount} players
+
+; Customize activity type (optional, 0=Playing, 3=Watching, etc.)
+GatewayActivityType=0
+
+; How often to update presence
+ActivityUpdateIntervalSeconds=60.0
+```
+
+#### Gateway vs REST API Comparison
+
+| Feature | REST API Mode<br>(UseGatewayForPresence=false) | Gateway Mode<br>(UseGatewayForPresence=true) |
+|---------|-------------------------------------------|----------------------------------------|
+| **Display** | Channel messages | Bot presence status |
+| **Visibility** | In chat channel | In member list & profile |
+| **Format** | Customizable via BotActivityFormat | Customizable via GatewayPresenceFormat |
+| **Activity Type** | N/A | Customizable (Playing, Watching, etc.) |
+| **Connection** | HTTP requests only | Persistent WebSocket |
+| **Resources** | Minimal | Slightly higher |
+| **Reliability** | High (stateless) | High (auto-reconnects) |
+| **Discord Feel** | Posts messages | Native integration |
+
+#### Customizing Gateway Presence
+
+When using Gateway mode, you can customize both the presence text and activity type:
+
+**GatewayPresenceFormat** - Text that appears in the presence
+- Use `{playercount}` placeholder for number of players
+- Default: `with {playercount} players`
+- Examples:
+  - `with {playercount} players` → "Playing with 5 players"
+  - `{playercount} online` → "Playing 5 online"
+  - `Satisfactory | {playercount} building` → "Playing Satisfactory | 5 building"
+
+**GatewayActivityType** - Type of activity shown
+- `0` = Playing (default) - Shows as "Playing [text]"
+- `1` = Streaming - Shows as "Streaming [text]"
+- `2` = Listening - Shows as "Listening to [text]"
+- `3` = Watching - Shows as "Watching [text]"
+- `5` = Competing - Shows as "Competing in [text]"
+
+**Example Configurations:**
+
+```ini
+# Default: "Playing with 5 players"
+GatewayActivityType=0
+GatewayPresenceFormat=with {playercount} players
+
+# "Watching 5 players"
+GatewayActivityType=3
+GatewayPresenceFormat={playercount} players
+
+# "Competing in Satisfactory"
+GatewayActivityType=5
+GatewayPresenceFormat=Satisfactory
+```
+
+#### Requirements for Gateway Mode
+
+1. **Bot Permissions in Discord Developer Portal**:
+   - Navigate to your bot in Discord Developer Portal
+   - Go to "Bot" settings
+   - Enable **"Presence Intent"** (required for Gateway)
+   - Enable **"Message Content Intent"** (for reading messages)
+
+2. **Configuration**:
+   - Set `EnableBotActivity=true`
+   - Set `UseGatewayForPresence=true`
+   - Configure `GatewayPresenceFormat` (optional, has default)
+   - Configure `GatewayActivityType` (optional, default is 0 = Playing)
+   - Configure `ActivityUpdateIntervalSeconds` (60-300 seconds recommended)
+
+#### Gateway Connection Details
+
+When Gateway is enabled, the mod will:
+1. Establish WebSocket connection to `wss://gateway.discord.gg`
+2. Send IDENTIFY payload with your bot token
+3. Maintain connection with periodic heartbeats (~40 seconds)
+4. Send PRESENCE_UPDATE when player count changes
+5. Auto-reconnect if connection drops
+
+#### Troubleshooting Gateway Mode
+
+**Bot presence doesn't show:**
+- Check server logs for "Gateway connected successfully"
+- Verify "Presence Intent" is enabled in Discord Developer Portal
+- Ensure `EnableBotActivity=true` and `UseGatewayForPresence=true`
+- Wait up to `ActivityUpdateIntervalSeconds` for first update
+
+**Connection keeps dropping:**
+- Check server logs for error messages
+- Verify bot token is correct
+- Ensure server has stable internet connection
+- Gateway will automatically attempt to reconnect
+
+**Bot shows offline:**
+- Gateway connection may be disconnected
+- Check logs for WebSocket errors
+- Verify firewall allows WebSocket connections
+
+#### Example Configuration
+
+See `Config/ExampleConfigs/gateway-presence.ini` for a complete example configuration with Gateway mode enabled.
+
 ## Usage
 
 Once configured and the server is running:
@@ -192,6 +386,9 @@ Once configured and the server is running:
 - **In-game to Discord**: Any message typed in the Satisfactory chat will appear in Discord as `**[PlayerName]** message text`
 - **Discord to in-game**: Any message typed in the configured Discord channel will appear in-game with a blue "[Discord] Username" prefix
 - **Server Notifications** (if enabled): The bot will send a notification to Discord when the server starts or stops
+- **Player Count Updates** (if enabled): 
+  - REST API mode: Posts to channel periodically
+  - Gateway mode: Updates bot presence in real-time
 
 ## Troubleshooting
 
@@ -224,6 +421,15 @@ Once configured and the server is running:
 4. Ensure your bot has "Send Messages" permission in the notification channel
 5. Note that the server stop notification may not be sent if the server crashes unexpectedly
 
+### Player count updates not appearing
+
+1. Verify that `EnableBotActivity` is set to `true` in your configuration
+2. Check the server logs for player count update messages
+3. If using a separate status channel, verify the `BotActivityChannelId` is correct
+4. Ensure your bot has "Send Messages" permission in the status channel
+5. Check that `ActivityUpdateIntervalSeconds` is set to a reasonable value (60-300 seconds recommended)
+6. The first update should appear immediately when the server starts
+
 ## Development
 
 This mod is built using the Satisfactory Mod Loader (SML) framework.
@@ -245,11 +451,13 @@ DiscordChatBridge/
 │       ├── Public/
 │       │   ├── DiscordChatBridgeModule.h
 │       │   ├── DiscordAPI.h              # Discord API wrapper
+│       │   ├── DiscordGateway.h          # Discord Gateway WebSocket client
 │       │   ├── DiscordChatSubsystem.h    # Main chat bridge subsystem
 │       │   └── DiscordChatGameInstanceModule.h
 │       ├── Private/
 │       │   ├── DiscordChatBridgeModule.cpp
 │       │   ├── DiscordAPI.cpp
+│       │   ├── DiscordGateway.cpp        # Gateway WebSocket implementation
 │       │   ├── DiscordChatSubsystem.cpp
 │       │   └── DiscordChatGameInstanceModule.cpp
 │       └── DiscordChatBridge.Build.cs
@@ -260,6 +468,9 @@ DiscordChatBridge/
 
 - **Polling Interval**: The mod polls Discord for new messages at a configurable interval (default: 2 seconds)
 - **Message Loop Prevention**: Bot messages are automatically ignored to prevent infinite loops
+- **Discord API Version**: Uses Discord API v10 (REST) and Gateway v10 (WebSocket)
+- **Gateway Connection**: WebSocket to wss://gateway.discord.gg with automatic heartbeat and reconnection
+- **Presence Updates**: Opcode 3 (PRESENCE_UPDATE) with activity type 0 (Playing)
 - **Server-side Only**: The mod runs only on the server, no client installation needed
 - **Discord API Version**: Uses Discord API v10
 

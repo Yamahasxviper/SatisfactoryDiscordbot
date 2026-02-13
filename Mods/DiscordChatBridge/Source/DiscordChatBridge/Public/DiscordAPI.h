@@ -6,6 +6,9 @@
 #include "Http.h"
 #include "DiscordAPI.generated.h"
 
+// Forward declarations
+class UDiscordGateway;
+
 DECLARE_DELEGATE_OneParam(FOnDiscordMessageReceived, const FString& /* Message */);
 DECLARE_DELEGATE_TwoParams(FOnDiscordMessageReceived_Full, const FString& /* Username */, const FString& /* Message */);
 
@@ -50,6 +53,27 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 	UPROPERTY(BlueprintReadWrite, Category = "Discord")
 	FString ServerStopMessage;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	bool bEnableBotActivity = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString BotActivityFormat;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	float ActivityUpdateIntervalSeconds = 60.0f;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString BotActivityChannelId;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	bool bUseGatewayForPresence = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString GatewayPresenceFormat;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	int32 GatewayActivityType = 0;
+
 	FDiscordBotConfig()
 		: BotToken(TEXT(""))
 		, ChannelId(TEXT(""))
@@ -62,6 +86,13 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 		, NotificationChannelId(TEXT(""))
 		, ServerStartMessage(TEXT("🟢 **Server Started** - The Satisfactory server is now online!"))
 		, ServerStopMessage(TEXT("🔴 **Server Stopped** - The Satisfactory server is now offline."))
+		, bEnableBotActivity(false)
+		, BotActivityFormat(TEXT("🎮 **Players Online:** {playercount}"))
+		, ActivityUpdateIntervalSeconds(60.0f)
+		, BotActivityChannelId(TEXT(""))
+		, bUseGatewayForPresence(false)
+		, GatewayPresenceFormat(TEXT("with {playercount} players"))
+		, GatewayActivityType(0)
 	{}
 };
 
@@ -91,6 +122,15 @@ public:
 	/** Stop polling for messages */
 	void StopPolling();
 
+	/** Start updating bot activity status */
+	void StartActivityUpdates();
+
+	/** Stop updating bot activity status */
+	void StopActivityUpdates();
+
+	/** Update bot activity status with player count */
+	void UpdateBotActivity(int32 PlayerCount);
+
 	/** Check if the API is initialized and ready */
 	bool IsInitialized() const { return bIsInitialized; }
 
@@ -110,11 +150,25 @@ private:
 	/** Handle response from polling messages */
 	void OnPollMessagesResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
+	/** Handle response from updating bot activity */
+	void OnUpdateActivityResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	/** Gateway event handlers */
+	void OnGatewayConnected();
+	void OnGatewayDisconnected(const FString& Reason);
+
 	/** Discord bot configuration */
 	FDiscordBotConfig BotConfig;
 
+	/** Discord Gateway connection (for bot presence) */
+	UPROPERTY()
+	UDiscordGateway* Gateway;
+
 	/** Timer handle for message polling */
 	FTimerHandle PollTimerHandle;
+
+	/** Timer handle for activity updates */
+	FTimerHandle ActivityUpdateTimerHandle;
 
 	/** ID of the last message we've seen */
 	FString LastMessageId;
@@ -124,4 +178,7 @@ private:
 
 	/** Whether we're currently polling */
 	bool bIsPolling;
+
+	/** Whether we're currently updating activity */
+	bool bIsUpdatingActivity;
 };

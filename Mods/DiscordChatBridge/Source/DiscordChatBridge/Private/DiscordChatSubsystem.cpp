@@ -4,6 +4,8 @@
 #include "FGChatManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
 
 ADiscordChatSubsystem::ADiscordChatSubsystem()
 	: LastProcessedMessageIndex(0)
@@ -58,6 +60,27 @@ void ADiscordChatSubsystem::BeginPlay()
 			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Sending server start notification"));
 			DiscordAPI->SendNotification(BotConfig.ServerStartMessage);
 		}
+		
+		// Start bot activity updates if enabled
+		if (BotConfig.bEnableBotActivity)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Starting bot activity updates"));
+			DiscordAPI->StartActivityUpdates();
+			
+			// Set up timer to periodically update activity
+			UWorld* World = GetWorld();
+			if (World)
+			{
+				World->GetTimerManager().SetTimer(
+					ActivityTimerHandle,
+					this,
+					&ADiscordChatSubsystem::UpdateBotActivity,
+					BotConfig.ActivityUpdateIntervalSeconds,
+					true,
+					0.0f  // Start immediately
+				);
+			}
+		}
 	}
 }
 
@@ -79,6 +102,14 @@ void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (DiscordAPI)
 	{
 		DiscordAPI->StopPolling();
+		DiscordAPI->StopActivityUpdates();
+	}
+	
+	// Clear activity timer
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(ActivityTimerHandle);
 	}
 	
 	// Unbind from chat manager
@@ -110,6 +141,13 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		FString NotificationChannelId;
 		FString ServerStartMessage;
 		FString ServerStopMessage;
+		bool bEnableBotActivity = false;
+		FString BotActivityFormat;
+		float ActivityUpdateIntervalSeconds = 60.0f;
+		FString BotActivityChannelId;
+		bool bUseGatewayForPresence = false;
+		FString GatewayPresenceFormat;
+		int32 GatewayActivityType = 0;
 		
 		// Load settings from Config/DefaultDiscordChatBridge.ini
 		GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
@@ -123,6 +161,13 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		GConfig->GetString(*ConfigSection, TEXT("NotificationChannelId"), NotificationChannelId, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("ServerStartMessage"), ServerStartMessage, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("ServerStopMessage"), ServerStopMessage, GGameIni);
+		GConfig->GetBool(*ConfigSection, TEXT("EnableBotActivity"), bEnableBotActivity, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("BotActivityFormat"), BotActivityFormat, GGameIni);
+		GConfig->GetFloat(*ConfigSection, TEXT("ActivityUpdateIntervalSeconds"), ActivityUpdateIntervalSeconds, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("BotActivityChannelId"), BotActivityChannelId, GGameIni);
+		GConfig->GetBool(*ConfigSection, TEXT("UseGatewayForPresence"), bUseGatewayForPresence, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("GatewayPresenceFormat"), GatewayPresenceFormat, GGameIni);
+		GConfig->GetInt(*ConfigSection, TEXT("GatewayActivityType"), GatewayActivityType, GGameIni);
 		
 		if (!BotToken.IsEmpty() && !ChannelId.IsEmpty())
 		{
@@ -163,8 +208,26 @@ void ADiscordChatSubsystem::LoadConfiguration()
 				BotConfig.ServerStopMessage = ServerStopMessage;
 			}
 			
-			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s"), 
-				*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"));
+			// Load bot activity settings
+			BotConfig.bEnableBotActivity = bEnableBotActivity;
+			BotConfig.bUseGatewayForPresence = bUseGatewayForPresence;
+			if (!BotActivityFormat.IsEmpty())
+			{
+				BotConfig.BotActivityFormat = BotActivityFormat;
+			}
+			BotConfig.ActivityUpdateIntervalSeconds = ActivityUpdateIntervalSeconds;
+			if (!BotActivityChannelId.IsEmpty())
+			{
+				BotConfig.BotActivityChannelId = BotActivityChannelId;
+			}
+			if (!GatewayPresenceFormat.IsEmpty())
+			{
+				BotConfig.GatewayPresenceFormat = GatewayPresenceFormat;
+			}
+			BotConfig.GatewayActivityType = GatewayActivityType;
+			
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
+				*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
 		}
 		else
 		{
@@ -253,3 +316,33 @@ void ADiscordChatSubsystem::ForwardDiscordMessageToGame(const FString& Username,
 	
 	UE_LOG(LogTemp, Verbose, TEXT("DiscordChatSubsystem: Forwarded Discord message to game"));
 }
+
+void ADiscordChatSubsystem::UpdateBotActivity()
+{
+	if (!DiscordAPI || !DiscordAPI->IsInitialized())
+	{
+		return;
+	}
+
+	int32 PlayerCount = GetPlayerCount();
+	DiscordAPI->UpdateBotActivity(PlayerCount);
+}
+
+int32 ADiscordChatSubsystem::GetPlayerCount() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0;
+	}
+
+	AGameStateBase* GameState = World->GetGameState();
+	if (!GameState)
+	{
+		return 0;
+	}
+
+	// Get the number of player states, which represents connected players
+	return GameState->PlayerArray.Num();
+}
+

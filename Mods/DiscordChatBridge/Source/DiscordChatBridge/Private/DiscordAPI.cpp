@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Discord Chat Bridge Contributors
 
 #include "DiscordAPI.h"
+#include "DiscordGateway.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Json.h"
@@ -9,8 +10,10 @@
 #include "Engine/World.h"
 
 UDiscordAPI::UDiscordAPI()
-	: bIsInitialized(false)
+	: Gateway(nullptr)
+	, bIsInitialized(false)
 	, bIsPolling(false)
+	, bIsUpdatingActivity(false)
 {
 }
 
@@ -22,6 +25,20 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 	if (bIsInitialized)
 	{
 		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Initialized with channel ID: %s"), *BotConfig.ChannelId);
+
+		// Initialize Gateway if enabled
+		if (BotConfig.bUseGatewayForPresence)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway presence enabled, creating Gateway connection"));
+			Gateway = NewObject<UDiscordGateway>(this);
+			if (Gateway)
+			{
+				Gateway->Initialize(BotConfig.BotToken);
+				Gateway->OnConnected.BindUObject(this, &UDiscordAPI::OnGatewayConnected);
+				Gateway->OnDisconnected.BindUObject(this, &UDiscordAPI::OnGatewayDisconnected);
+				Gateway->Connect();
+			}
+		}
 	}
 	else
 	{
@@ -293,3 +310,143 @@ void UDiscordAPI::OnPollMessagesResponse(FHttpRequestPtr Request, FHttpResponseP
 		}
 	}
 }
+
+void UDiscordAPI::StartActivityUpdates()
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Cannot start activity updates - API not initialized"));
+		return;
+	}
+
+	if (!BotConfig.bEnableBotActivity)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Bot activity is disabled in config"));
+		return;
+	}
+
+	if (bIsUpdatingActivity)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Already updating activity"));
+		return;
+	}
+
+	bIsUpdatingActivity = true;
+	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Started bot activity updates"));
+}
+
+void UDiscordAPI::StopActivityUpdates()
+{
+	if (!bIsUpdatingActivity)
+	{
+		return;
+	}
+
+	bIsUpdatingActivity = false;
+	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Stopped bot activity updates"));
+
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(ActivityUpdateTimerHandle);
+	}
+
+	// Disconnect Gateway if active
+	if (Gateway)
+	{
+		Gateway->Disconnect();
+	}
+}
+
+void UDiscordAPI::UpdateBotActivity(int32 PlayerCount)
+{
+	if (!bIsInitialized || !BotConfig.bEnableBotActivity)
+	{
+		return;
+	}
+
+	// Format the activity message
+	FString ActivityMessage = BotConfig.BotActivityFormat;
+	ActivityMessage = ActivityMessage.Replace(TEXT("{playercount}"), *FString::FromInt(PlayerCount));
+
+	// Use Gateway for presence if enabled and connected
+	if (BotConfig.bUseGatewayForPresence && Gateway && Gateway->IsConnected())
+	{
+		// Update bot presence via Gateway using configurable format and activity type
+		FString PresenceText = BotConfig.GatewayPresenceFormat;
+		PresenceText = PresenceText.Replace(TEXT("{playercount}"), *FString::FromInt(PlayerCount));
+		
+		Gateway->UpdatePresence(PresenceText, BotConfig.GatewayActivityType);
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Updated bot presence via Gateway: Type=%d, Text=%s"), 
+			BotConfig.GatewayActivityType, *PresenceText);
+		return;
+	}
+
+	// Fallback to REST API (post to channel)
+	// Determine which channel to use for activity status
+	FString TargetChannelId = BotConfig.BotActivityChannelId.IsEmpty() ? BotConfig.ChannelId : BotConfig.BotActivityChannelId;
+
+	// Create the HTTP request to post player count status
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
+	
+	FString Url = FString::Printf(TEXT("https://discord.com/api/v10/channels/%s/messages"), *TargetChannelId);
+	HttpRequest->SetURL(Url);
+	HttpRequest->SetVerb(TEXT("POST"));
+	HttpRequest->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bot %s"), *BotConfig.BotToken));
+	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+	// Create JSON payload
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	JsonObject->SetStringField(TEXT("content"), ActivityMessage);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+
+	HttpRequest->SetContentAsString(JsonString);
+	HttpRequest->OnProcessRequestComplete().BindUObject(this, &UDiscordAPI::OnUpdateActivityResponse);
+
+	if (HttpRequest->ProcessRequest())
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Posting player count status: %s"), *ActivityMessage);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to process activity status request"));
+	}
+}
+
+void UDiscordAPI::OnUpdateActivityResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (bWasSuccessful && Response.IsValid())
+	{
+		int32 ResponseCode = Response->GetResponseCode();
+		if (ResponseCode >= 200 && ResponseCode < 300)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Bot activity updated successfully"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to update bot activity - Response code: %d, Body: %s"), 
+				ResponseCode, *Response->GetContentAsString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to update bot activity - Request failed"));
+	}
+}
+
+void UDiscordAPI::OnGatewayConnected()
+{
+	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway connected successfully"));
+}
+
+void UDiscordAPI::OnGatewayDisconnected(const FString& Reason)
+{
+	UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway disconnected: %s"), *Reason);
+	
+	// Optionally implement auto-reconnect logic here
+	// For now, just log the disconnection
+}
+
