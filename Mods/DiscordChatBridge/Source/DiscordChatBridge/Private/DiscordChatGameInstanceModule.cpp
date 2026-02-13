@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Discord Chat Bridge Contributors
 
 #include "DiscordChatGameInstanceModule.h"
-#include "DiscordChatSubsystem.h"
 
 void UDiscordChatGameInstanceModule::DispatchLifecycleEvent(ELifecyclePhase Phase)
 {
@@ -9,9 +8,6 @@ void UDiscordChatGameInstanceModule::DispatchLifecycleEvent(ELifecyclePhase Phas
 	
 	if (Phase == ELifecyclePhase::CONSTRUCTION)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatBridge: Registering subsystem"));
-		
-		// Register the Discord chat subsystem
-		ModSubsystems.Add(ADiscordChatSubsystem::StaticClass());
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatBridge: GameInstanceModule initialized"));
 	}
 }
