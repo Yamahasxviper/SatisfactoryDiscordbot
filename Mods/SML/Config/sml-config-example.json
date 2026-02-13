@@ -1,0 +1,22 @@
+{
+  "_comment": "SML Configuration - Discord and In-Game Chat Settings",
+  "disabledChatCommands": [],
+  "enableFunchookLogging": false,
+  
+  "_discord_integration_comment": "===== Discord Integration Settings =====",
+  "enableDiscordIntegration": false,
+  "discordWebhookURL": "",
+  "discordBotToken": "",
+  "discordChannelID": "",
+  
+  "_chat_settings_comment": "===== In-Game Chat Settings =====",
+  "relayChatToDiscord": true,
+  "relayDiscordToChat": true,
+  "chatToDiscordPrefix": "[Game] ",
+  "chatToDiscordSuffix": "",
+  "discordToChatPrefix": "[Discord] ",
+  "discordToChatSuffix": "",
+  "filterSystemMessages": true,
+  "includePlayerNameInDiscord": true,
+  "discordMessageFormat": "**{PlayerName}**: {Message}"
+}
