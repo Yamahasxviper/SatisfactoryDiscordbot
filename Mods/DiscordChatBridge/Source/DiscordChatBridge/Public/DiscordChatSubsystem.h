@@ -61,4 +61,7 @@ private:
 
 	/** Index of last processed game message */
 	int32 LastProcessedMessageIndex;
+
+	/** Timer handle for activity updates */
+	FTimerHandle ActivityTimerHandle;
 };

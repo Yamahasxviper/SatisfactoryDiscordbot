@@ -72,7 +72,7 @@ void ADiscordChatSubsystem::BeginPlay()
 			if (World)
 			{
 				World->GetTimerManager().SetTimer(
-					FTimerHandle(),
+					ActivityTimerHandle,
 					this,
 					&ADiscordChatSubsystem::UpdateBotActivity,
 					BotConfig.ActivityUpdateIntervalSeconds,
@@ -103,6 +103,13 @@ void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		DiscordAPI->StopPolling();
 		DiscordAPI->StopActivityUpdates();
+	}
+	
+	// Clear activity timer
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(ActivityTimerHandle);
 	}
 	
 	// Unbind from chat manager
