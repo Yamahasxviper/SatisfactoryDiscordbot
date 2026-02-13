@@ -42,7 +42,13 @@ Create/edit this file on your server:
 BotToken=paste_your_bot_token_here
 ChannelId=paste_your_channel_id_here
 PollIntervalSeconds=2.0
+
+; Optional: Customize how messages appear (see EXAMPLES.md for more styles)
+DiscordNameFormat=[Discord] {username}
+GameNameFormat=**[{username}]** {message}
 ```
+
+**Want different formatting?** Check out [EXAMPLES.md](EXAMPLES.md) for emoji styles, minimal styles, and more!
 
 ### 5. Start Server
 

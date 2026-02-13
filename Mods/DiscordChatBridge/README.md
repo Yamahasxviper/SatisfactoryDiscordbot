@@ -10,6 +10,14 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ Custom message formatting with player names
 - ✅ Prevents message loops by ignoring bot messages
 - ✅ Server-side only (no client installation required)
+- ✅ **Customizable name formats** - Choose from multiple style presets or create your own!
+
+## Quick Links
+
+- 🚀 [Quick Start Guide](QUICKSTART.md) - Get up and running in 5 minutes
+- 📖 [Setup Guide](SETUP_GUIDE.md) - Detailed step-by-step instructions
+- 🎨 [**Configuration Examples**](EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
+- ⚙️ [Default Configuration](Config/DefaultDiscordChatBridge.ini) - Template configuration file
 
 ## Prerequisites
 
