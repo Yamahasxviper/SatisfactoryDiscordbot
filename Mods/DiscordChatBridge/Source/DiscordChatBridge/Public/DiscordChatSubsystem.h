@@ -41,6 +41,12 @@ protected:
 	/** Forward message from Discord to game */
 	void ForwardDiscordMessageToGame(const FString& Username, const FString& Message);
 
+	/** Update bot activity status with current player count */
+	void UpdateBotActivity();
+
+	/** Get current player count */
+	int32 GetPlayerCount() const;
+
 private:
 	/** Discord API instance */
 	UPROPERTY()

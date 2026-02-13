@@ -12,6 +12,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ Server-side only (no client installation required)
 - ✅ **Customizable name formats** - Choose from multiple style presets or create your own!
 - ✅ **Server start and stop notifications** - Get notified when the server goes online or offline with custom channel support!
+- ✅ **Player count status updates** - Automatically post player count to Discord with customizable format and interval!
 
 ## Quick Links
 
@@ -185,6 +186,65 @@ ServerStartMessage=🟢 **Satisfactory Server Online!** Ready to build! 🏭
 ServerStopMessage=🔴 **Satisfactory Server Offline** - Scheduled maintenance 🔧
 ```
 
+### Player Count Status Updates
+
+Keep your Discord community informed about server activity with automatic player count updates!
+
+#### Enabling Player Count Updates
+
+Set `EnableBotActivity=true` in your configuration file to enable this feature.
+
+#### Update Interval
+
+Configure how often the player count is updated (in seconds):
+- **ActivityUpdateIntervalSeconds**: Time between updates (default: 60 seconds)
+- **Recommended**: 60-300 seconds to avoid spam
+
+#### Status Channel
+
+By default, player count updates are posted to the same channel as chat messages. You can optionally configure a separate status channel:
+
+- **Same as chat channel** (default): Leave `BotActivityChannelId` empty
+- **Separate status channel**: Set `BotActivityChannelId` to a different channel ID (e.g., for a dedicated server status channel)
+
+Make sure your bot has "Send Messages" permission in the status channel.
+
+#### Customizing Status Messages
+
+You can customize the format of player count messages using the `BotActivityFormat` setting:
+
+- **Default**: `🎮 **Players Online:** {playercount}`
+- **Placeholder**: `{playercount}` will be replaced with the actual number of players
+- **Examples**:
+  - `🎮 **Players Online:** {playercount}`
+  - `👥 Current Players: {playercount}`
+  - `Server has {playercount} player(s) online`
+  - `🏭 Building with {playercount} engineers!`
+
+#### Example Configuration
+
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+BotToken=YOUR_BOT_TOKEN_HERE
+ChannelId=YOUR_CHAT_CHANNEL_ID
+
+; Enable player count updates
+EnableBotActivity=true
+
+; Update every 2 minutes
+ActivityUpdateIntervalSeconds=120.0
+
+; Optional: Use a separate channel for status updates
+BotActivityChannelId=YOUR_STATUS_CHANNEL_ID
+
+; Custom status message format
+BotActivityFormat=🎮 **Players Online:** {playercount} | 🏭 Let's build!
+```
+
+#### Note on Implementation
+
+The current implementation posts player count updates as messages to a Discord channel. For a true "Playing with X players" status in the bot's profile (like you see with game integrations), Discord Gateway WebSocket would be required, which is not currently implemented in this REST API-based mod. The message-based approach provides the same information in a visible and configurable way.
+
 ## Usage
 
 Once configured and the server is running:
@@ -192,6 +252,7 @@ Once configured and the server is running:
 - **In-game to Discord**: Any message typed in the Satisfactory chat will appear in Discord as `**[PlayerName]** message text`
 - **Discord to in-game**: Any message typed in the configured Discord channel will appear in-game with a blue "[Discord] Username" prefix
 - **Server Notifications** (if enabled): The bot will send a notification to Discord when the server starts or stops
+- **Player Count Updates** (if enabled): The bot will periodically post the current player count to the configured channel
 
 ## Troubleshooting
 
@@ -223,6 +284,15 @@ Once configured and the server is running:
 3. If using a separate notification channel, verify the `NotificationChannelId` is correct
 4. Ensure your bot has "Send Messages" permission in the notification channel
 5. Note that the server stop notification may not be sent if the server crashes unexpectedly
+
+### Player count updates not appearing
+
+1. Verify that `EnableBotActivity` is set to `true` in your configuration
+2. Check the server logs for player count update messages
+3. If using a separate status channel, verify the `BotActivityChannelId` is correct
+4. Ensure your bot has "Send Messages" permission in the status channel
+5. Check that `ActivityUpdateIntervalSeconds` is set to a reasonable value (60-300 seconds recommended)
+6. The first update should appear immediately when the server starts
 
 ## Development
 
