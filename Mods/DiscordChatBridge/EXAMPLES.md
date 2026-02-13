@@ -8,8 +8,12 @@ All examples use these configuration settings in your `DiscordChatBridge.ini` fi
 
 | Setting | Purpose | Placeholders |
 |---------|---------|--------------|
-| `DiscordNameFormat` | How Discord usernames appear in Satisfactory | `{username}` |
-| `GameNameFormat` | How game messages appear in Discord | `{username}`, `{message}` |
+| `DiscordSourceLabel` | Label for Discord messages source | N/A (text value) |
+| `GameSourceLabel` | Label for game messages source | N/A (text value) |
+| `DiscordNameFormat` | How Discord usernames appear in Satisfactory | `{source}`, `{username}` |
+| `GameNameFormat` | How game messages appear in Discord | `{source}`, `{username}`, `{message}` |
+
+**New!** The `{source}` placeholder allows you to use the configured source labels in your message formats, making it easy to change where messages appear to come from (e.g., "Discord" → "Chat", "Game" → "Server").
 
 ---
 
@@ -21,7 +25,9 @@ All examples use these configuration settings in your `DiscordChatBridge.ini` fi
 
 **Configuration:**
 ```ini
-DiscordNameFormat=[Discord] {username}
+DiscordSourceLabel=Discord
+GameSourceLabel=Game
+DiscordNameFormat=[{source}] {username}
 GameNameFormat=**[{username}]** {message}
 ```
 
@@ -50,7 +56,9 @@ In Discord:
 
 **Configuration:**
 ```ini
-DiscordNameFormat={username} (from Discord)
+DiscordSourceLabel=Discord
+GameSourceLabel=Server
+DiscordNameFormat={username} (from {source})
 GameNameFormat={username}: {message}
 ```
 
@@ -79,16 +87,18 @@ In Discord:
 
 **Configuration:**
 ```ini
-DiscordNameFormat=📱 {username}
-GameNameFormat=🎮 **{username}**: {message}
+DiscordSourceLabel=💬
+GameSourceLabel=🎮
+DiscordNameFormat={source} {username}
+GameNameFormat={source} **{username}**: {message}
 ```
 
 **Example Output:**
 
 ```
 In Satisfactory Game:
-  📱 JohnDoe: Hey everyone, server restart in 5 minutes!
-  📱 Alice: Thanks for the heads up!
+  💬 JohnDoe: Hey everyone, server restart in 5 minutes!
+  💬 Alice: Thanks for the heads up!
 
 In Discord:
   🎮 **Steve**: Found a limestone deposit at coordinates 1234, 5678
@@ -99,11 +109,13 @@ In Discord:
 - Visual icons quickly identify message source
 - Fun and modern appearance
 - Emojis work in both Satisfactory and Discord
+- Source labels can be pure emoji for a clean look!
 
-**Emoji Ideas:**
-- 📱 (mobile phone) - Discord messages
+**Emoji Ideas for Source Labels:**
+- 💬 (speech bubble) - Discord/Chat messages
 - 🎮 (game controller) - Game messages
-- 💬 (speech bubble) - Chat messages
+- 📱 (mobile phone) - Discord messages
+- 🏭 (factory) - Satisfactory messages
 - 🌐 (globe) - External messages
 - 🏭 (factory) - Satisfactory messages
 
@@ -115,7 +127,9 @@ In Discord:
 
 **Configuration:**
 ```ini
-DiscordNameFormat=<{username}@Discord>
+DiscordSourceLabel=Discord
+GameSourceLabel=Game
+DiscordNameFormat=<{username}@{source}>
 GameNameFormat=<{username}> {message}
 ```
 
@@ -134,7 +148,7 @@ In Discord:
 **Why use this?**
 - Familiar to IRC/old-school chat users
 - Consistent angle bracket format
-- Clear username delineation
+- Clear username and source delineation
 
 ---
 
@@ -144,8 +158,10 @@ In Discord:
 
 **Configuration:**
 ```ini
-DiscordNameFormat=[DISCORD] {username}
-GameNameFormat=🏭 [SERVER] **{username}**: {message}
+DiscordSourceLabel=DISCORD
+GameSourceLabel=SERVER
+DiscordNameFormat=[{source}] {username}
+GameNameFormat=🏭 [{source}] **{username}**: {message}
 ```
 
 **Example Output:**
@@ -164,16 +180,48 @@ In Discord:
 - Professional appearance for community servers
 - Server branding with factory emoji
 - Clear message source identification
+- Easy to change source labels (e.g., DISCORD → CHAT, SERVER → FACTORY)
 
 ---
 
 ## Advanced Customization Ideas
 
-### Custom Prefixes
+### Using the {source} Placeholder
 
-You can create custom prefixes for your server:
+The `{source}` placeholder is powerful because it separates the source label from the format:
 
 ```ini
+; Change the source label without changing the format
+DiscordSourceLabel=Community Chat
+GameSourceLabel=Factory Server
+
+; Format stays the same
+DiscordNameFormat=[{source}] {username}
+; Results in: "[Community Chat] JohnDoe"
+```
+
+This makes it easy to:
+- Rebrand your server (Discord → Community, Game → MyServer)
+- Support multiple languages (Discord → ディスコード)
+- Use pure emoji as source labels (see Emoji Style above)
+- Match your community's terminology
+
+### Custom Source Labels
+
+You can create custom source labels for your server:
+
+```ini
+; Short abbreviations
+DiscordSourceLabel=DC
+GameSourceLabel=SF
+
+; Full names
+DiscordSourceLabel=Community Discord
+GameSourceLabel=Satisfactory Server
+
+; With emojis
+DiscordSourceLabel=💬 Discord
+GameSourceLabel=🏭 Factory
 DiscordNameFormat=[DC] {username}
 GameNameFormat=[GAME] {username}: {message}
 ```
@@ -218,13 +266,13 @@ GameNameFormat=`{username}`: {message}
 
 ## Comparison Table
 
-| Style | In-Game Appearance | Discord Appearance | Best For |
-|-------|-------------------|-------------------|----------|
-| **Default** | `[Discord] Name: msg` | `**[Name]** msg` | Most users |
-| **Minimal** | `Name (from Discord): msg` | `Name: msg` | Clean look |
-| **Emoji** | `📱 Name: msg` | `🎮 **Name**: msg` | Fun servers |
-| **IRC** | `<Name@Discord>: msg` | `<Name> msg` | Classic users |
-| **Server** | `[DISCORD] Name: msg` | `🏭 [SERVER] **Name**: msg` | Communities |
+| Style | Source Labels | In-Game Appearance | Discord Appearance | Best For |
+|-------|---------------|-------------------|-------------------|----------|
+| **Default** | Discord/Game | `[Discord] Name: msg` | `**[Name]** msg` | Most users |
+| **Minimal** | Discord/Server | `Name (from Discord): msg` | `Name: msg` | Clean look |
+| **Emoji** | 💬/🎮 | `💬 Name: msg` | `🎮 **Name**: msg` | Fun servers |
+| **IRC** | Discord/Game | `<Name@Discord>: msg` | `<Name> msg` | Classic users |
+| **Server** | DISCORD/SERVER | `[DISCORD] Name: msg` | `🏭 [SERVER] **Name**: msg` | Communities |
 
 ---
 
@@ -277,7 +325,9 @@ Copy one of these complete configurations to your `DiscordChatBridge.ini`:
 BotToken=YOUR_BOT_TOKEN_HERE
 ChannelId=YOUR_CHANNEL_ID_HERE
 PollIntervalSeconds=2.0
-DiscordNameFormat=[Discord] {username}
+DiscordSourceLabel=Discord
+GameSourceLabel=Game
+DiscordNameFormat=[{source}] {username}
 GameNameFormat=**[{username}]** {message}
 ```
 </details>
@@ -290,8 +340,10 @@ GameNameFormat=**[{username}]** {message}
 BotToken=YOUR_BOT_TOKEN_HERE
 ChannelId=YOUR_CHANNEL_ID_HERE
 PollIntervalSeconds=2.0
-DiscordNameFormat=📱 {username}
-GameNameFormat=🎮 **{username}**: {message}
+DiscordSourceLabel=💬
+GameSourceLabel=🎮
+DiscordNameFormat={source} {username}
+GameNameFormat={source} **{username}**: {message}
 ```
 </details>
 
@@ -303,7 +355,9 @@ GameNameFormat=🎮 **{username}**: {message}
 BotToken=YOUR_BOT_TOKEN_HERE
 ChannelId=YOUR_CHANNEL_ID_HERE
 PollIntervalSeconds=2.0
-DiscordNameFormat={username} (from Discord)
+DiscordSourceLabel=Discord
+GameSourceLabel=Server
+DiscordNameFormat={username} (from {source})
 GameNameFormat={username}: {message}
 ```
 </details>
@@ -316,7 +370,9 @@ GameNameFormat={username}: {message}
 BotToken=YOUR_BOT_TOKEN_HERE
 ChannelId=YOUR_CHANNEL_ID_HERE
 PollIntervalSeconds=2.0
-DiscordNameFormat=<{username}@Discord>
+DiscordSourceLabel=Discord
+GameSourceLabel=Game
+DiscordNameFormat=<{username}@{source}>
 GameNameFormat=<{username}> {message}
 ```
 </details>
