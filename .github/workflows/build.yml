@@ -39,12 +39,12 @@ jobs:
 
       - name: Clean cached build artifacts
         run: |
-          Remove-Item "SML\\SML\\Intermediate" -Recurse -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\Saved" -Recurse -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.sln" -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.vcxproj" -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.vcxproj.filters" -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.vcxproj.user" -Force -ErrorAction Ignore
+          Remove-Item "SML\\Intermediate" -Recurse -Force -ErrorAction Ignore
+          Remove-Item "SML\\Saved" -Recurse -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.sln" -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.vcxproj" -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.vcxproj.filters" -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.vcxproj.user" -Force -ErrorAction Ignore
           Remove-Item "$env:LOCALAPPDATA\\UnrealEngine\\*" -Recurse -Force -ErrorAction Ignore
           Remove-Item "$env:LOCALAPPDATA\\UnrealBuildTool\\*" -Recurse -Force -ErrorAction Ignore
 
@@ -57,9 +57,23 @@ jobs:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           gh release download --repo satisfactorymodding/UnrealEngine -p "UnrealEngine-CSS-Editor-Win64.7z.*"
+          if ($LASTEXITCODE -ne 0) { Write-Error "Failed to download UE"; exit $LASTEXITCODE }
+          
           7z x UnrealEngine-CSS-Editor-Win64.7z.001
+          if ($LASTEXITCODE -ne 0) { Write-Error "Failed to extract UE"; exit $LASTEXITCODE }
+          
           rm UnrealEngine-CSS-Editor-Win64.7z*
+          
+          # Verify critical files exist
+          if (-not (Test-Path "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll")) {
+            Write-Error "UnrealBuildTool.dll not found after extraction"
+            Write-Output "Checking Engine\Binaries\DotNET directory structure:"
+            Get-ChildItem -Path "Engine\Binaries\DotNET" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName | Format-Table
+            exit 1
+          }
+          
           .\\SetupScripts\\Register.bat
+          if ($LASTEXITCODE -ne 0) { Write-Error "Failed to register UE"; exit $LASTEXITCODE }
 
       - name: Download and Extract Wwise
       # TODO: Switch back to https://github.com/Backblaze/B2_Command_Line_Tool/releases/latest/download/b2-windows.exe once b2 fixes their signing
