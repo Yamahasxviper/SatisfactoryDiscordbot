@@ -26,10 +26,18 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 	UPROPERTY(BlueprintReadWrite, Category = "Discord")
 	float PollIntervalSeconds = 2.0f;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString DiscordNameFormat;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString GameNameFormat;
+
 	FDiscordBotConfig()
 		: BotToken(TEXT(""))
 		, ChannelId(TEXT(""))
 		, PollIntervalSeconds(2.0f)
+		, DiscordNameFormat(TEXT("[Discord] {username}"))
+		, GameNameFormat(TEXT("**[{username}]** {message}"))
 	{}
 };
 
