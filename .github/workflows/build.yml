@@ -67,7 +67,8 @@ jobs:
           # Verify critical files exist
           if (-not (Test-Path "Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.dll")) {
             Write-Error "UnrealBuildTool.dll not found after extraction"
-            Get-ChildItem -Recurse | Select-Object -First 20 | Format-Table
+            Write-Output "Checking Engine\Binaries\DotNET directory structure:"
+            Get-ChildItem -Path "Engine\Binaries\DotNET" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName | Format-Table
             exit 1
           }
           
