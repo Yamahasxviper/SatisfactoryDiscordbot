@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "HAL/PlatformProcess.h"
 
 ADiscordChatSubsystem::ADiscordChatSubsystem()
 	: LastProcessedMessageIndex(0)
