@@ -32,6 +32,22 @@ jobs:
       - name: Copy repo to working directory
         run: Copy-Item "$Env:GITHUB_WORKSPACE\\SML" -Destination "C:\\SML" -Recurse
 
+      - name: Kill lingering build processes
+        run: |
+          Get-Process | Where-Object {$_.ProcessName -match "dotnet|MSBuild|UnrealBuildTool|UnrealHeaderTool|ShaderCompileWorker|UnrealEditor"} | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
+
+      - name: Clean cached build artifacts
+        run: |
+          Remove-Item "SML\\SML\\Intermediate" -Recurse -Force -ErrorAction Ignore
+          Remove-Item "SML\\SML\\Saved" -Recurse -Force -ErrorAction Ignore
+          Remove-Item "SML\\SML\\*.sln" -Force -ErrorAction Ignore
+          Remove-Item "SML\\SML\\*.vcxproj" -Force -ErrorAction Ignore
+          Remove-Item "SML\\SML\\*.vcxproj.filters" -Force -ErrorAction Ignore
+          Remove-Item "SML\\SML\\*.vcxproj.user" -Force -ErrorAction Ignore
+          Remove-Item "$env:LOCALAPPDATA\\UnrealEngine\\*" -Recurse -Force -ErrorAction Ignore
+          Remove-Item "$env:LOCALAPPDATA\\UnrealBuildTool\\*" -Recurse -Force -ErrorAction Ignore
+
       - name: Create UE directory
         run: mkdir ue
 
