@@ -46,9 +46,12 @@ void UDiscordAPI::SendMessage(const FString& Username, const FString& Message)
 	HttpRequest->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bot %s"), *BotConfig.BotToken));
 	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
 
-	// Create JSON payload
+	// Create JSON payload with configurable format
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-	FString FormattedMessage = FString::Printf(TEXT("**[%s]** %s"), *Username, *Message);
+	FString FormattedMessage = BotConfig.GameNameFormat;
+	FormattedMessage = FormattedMessage.Replace(TEXT("{source}"), *BotConfig.GameSourceLabel);
+	FormattedMessage = FormattedMessage.Replace(TEXT("{username}"), *Username);
+	FormattedMessage = FormattedMessage.Replace(TEXT("{message}"), *Message);
 	JsonObject->SetStringField(TEXT("content"), FormattedMessage);
 
 	FString JsonString;

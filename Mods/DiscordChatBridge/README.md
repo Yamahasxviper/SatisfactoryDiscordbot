@@ -10,6 +10,14 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ Custom message formatting with player names
 - ✅ Prevents message loops by ignoring bot messages
 - ✅ Server-side only (no client installation required)
+- ✅ **Customizable name formats** - Choose from multiple style presets or create your own!
+
+## Quick Links
+
+- 🚀 [Quick Start Guide](QUICKSTART.md) - Get up and running in 5 minutes
+- 📖 [Setup Guide](SETUP_GUIDE.md) - Detailed step-by-step instructions
+- 🎨 [**Configuration Examples**](EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
+- ⚙️ [Default Configuration](Config/DefaultDiscordChatBridge.ini) - Template configuration file
 
 ## Prerequisites
 
@@ -56,11 +64,58 @@ ChannelId=YOUR_CHANNEL_ID_HERE
 
 ; How often to check Discord for new messages (in seconds)
 PollIntervalSeconds=2.0
+
+; Source labels (what appears as the message origin)
+DiscordSourceLabel=Discord
+GameSourceLabel=Game
+
+; Format for Discord usernames when displayed in game
+; Use {source} for the source label, {username} for the Discord username
+DiscordNameFormat=[{source}] {username}
+
+; Format for game player messages when sent to Discord
+; Use {source} for the source label, {username} for player name, {message} for content
+GameNameFormat=**[{username}]** {message}
 ```
 
 3. Replace `YOUR_BOT_TOKEN_HERE` with your bot token from the Discord Developer Portal
 4. Replace `YOUR_CHANNEL_ID_HERE` with your channel ID
-5. Save the file and restart your Satisfactory server
+5. Optionally customize the source labels and name formats (see Customization section below)
+6. Save the file and restart your Satisfactory server
+
+### Customization
+
+You can customize how player names appear in both Discord and in-game chat:
+
+#### Source Labels
+Control what appears as the message origin.
+- **DiscordSourceLabel**: Label for Discord messages (default: "Discord")
+- **GameSourceLabel**: Label for game messages (default: "Game")
+- **Examples**:
+  - `Discord` / `Game` → Standard labels
+  - `💬` / `🎮` → Pure emoji labels
+  - `Community` / `Server` → Custom branding
+  - `DC` / `SF` → Short abbreviations
+
+#### Discord Name Format
+Controls how Discord usernames appear in the Satisfactory game chat.
+- **Default**: `[{source}] {username}`
+- **Placeholders**: `{source}` for source label, `{username}` for Discord username
+- **Examples**:
+  - `[{source}] {username}` → Shows as "[Discord] JohnDoe"
+  - `<{username}@{source}>` → Shows as "<JohnDoe@Discord>"
+  - `{username} (from {source})` → Shows as "JohnDoe (from Discord)"
+  - `{source} {username}` → Shows as "💬 JohnDoe" (if using emoji source label)
+
+#### Game Name Format
+Controls how Satisfactory player messages appear in Discord.
+- **Default**: `**[{username}]** {message}`
+- **Placeholders**: `{source}` for source label, `{username}` for player name, `{message}` for message text
+- **Examples**:
+  - `**[{username}]** {message}` → Shows as "**[JohnDoe]** Hello world"
+  - `{username}: {message}` → Shows as "JohnDoe: Hello world"
+  - `[{username}] {message}` → Shows as "[JohnDoe] Hello world"
+  - `🎮 **{username}**: {message}` → Shows as "🎮 **JohnDoe**: Hello world"
 
 ## Usage
 
