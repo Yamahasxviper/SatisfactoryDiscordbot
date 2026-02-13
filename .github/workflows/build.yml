@@ -34,7 +34,7 @@ jobs:
 
       - name: Kill lingering build processes
         run: |
-          Get-Process | Where-Object {$_.ProcessName -match "dotnet|MSBuild|UnrealBuildTool|UnrealHeaderTool|ShaderCompileWorker|UnrealEditor"} | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process | Where-Object {$_.ProcessName -in @('dotnet','MSBuild','UnrealBuildTool','UnrealHeaderTool','ShaderCompileWorker','UnrealEditor')} | Stop-Process -Force -ErrorAction SilentlyContinue
           Start-Sleep -Seconds 2
 
       - name: Clean cached build artifacts
