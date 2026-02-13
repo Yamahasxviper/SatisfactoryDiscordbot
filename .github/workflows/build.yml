@@ -22,6 +22,11 @@ jobs:
           Write-Output "::error title=External Contributor PR::Pull requests made by users not in the organization intentionally can't access the CI secrets. Don't worry about the CI failure, the team will build the project locally to test it out anyways."
           exit 1
 
+      - name: Kill lingering processes
+        run: |
+          Get-Process | Where-Object { $_.Name -match "dotnet|MSBuild|UnrealBuildTool|ShaderCompileWorker|UnrealEditor" } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
+
       - name: Cleanup
         run: Remove-Item * -Recurse -Force -Confirm:$false -ErrorAction Ignore
 
@@ -66,3 +71,9 @@ jobs:
         with:
           name: sml
           path: C:\\SML\\SML\\Saved\\ArchivedPlugins\\SML\\*.zip
+
+      - name: Final cleanup of build processes
+        if: always()
+        run: |
+          Get-Process | Where-Object { $_.Name -match "dotnet|MSBuild|UnrealBuildTool|ShaderCompileWorker|UnrealEditor" } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
