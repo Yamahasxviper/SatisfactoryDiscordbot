@@ -39,12 +39,12 @@ jobs:
 
       - name: Clean cached build artifacts
         run: |
-          Remove-Item "SML\\SML\\Intermediate" -Recurse -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\Saved" -Recurse -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.sln" -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.vcxproj" -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.vcxproj.filters" -Force -ErrorAction Ignore
-          Remove-Item "SML\\SML\\*.vcxproj.user" -Force -ErrorAction Ignore
+          Remove-Item "SML\\Intermediate" -Recurse -Force -ErrorAction Ignore
+          Remove-Item "SML\\Saved" -Recurse -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.sln" -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.vcxproj" -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.vcxproj.filters" -Force -ErrorAction Ignore
+          Remove-Item "SML\\*.vcxproj.user" -Force -ErrorAction Ignore
           Remove-Item "$env:LOCALAPPDATA\\UnrealEngine\\*" -Recurse -Force -ErrorAction Ignore
           Remove-Item "$env:LOCALAPPDATA\\UnrealBuildTool\\*" -Recurse -Force -ErrorAction Ignore
 
