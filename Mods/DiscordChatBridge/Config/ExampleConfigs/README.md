@@ -46,6 +46,14 @@ This directory contains ready-to-use configuration file examples for different c
 - Supports separate notification channel
 - Perfect for dedicated servers with status updates
 
+### `player-count.ini` - With Player Count Status Updates 🎮
+- Includes all features plus automatic player count updates
+- **Status Updates:** `🎮 Players Online: 5`
+- Posts player count to Discord at regular intervals
+- Configurable update frequency and message format
+- Optional separate status channel
+- Perfect for keeping your community informed about server activity
+
 ## Need More?
 
 Check out [EXAMPLES.md](../EXAMPLES.md) in the parent directory for:
