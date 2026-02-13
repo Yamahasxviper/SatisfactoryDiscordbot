@@ -92,6 +92,68 @@ void UDiscordAPI::OnSendMessageResponse(FHttpRequestPtr Request, FHttpResponsePt
 	}
 }
 
+void UDiscordAPI::SendNotification(const FString& Message)
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Cannot send notification - API not initialized"));
+		return;
+	}
+
+	// Determine which channel to use for notifications
+	FString TargetChannelId = BotConfig.NotificationChannelId.IsEmpty() ? BotConfig.ChannelId : BotConfig.NotificationChannelId;
+
+	// Create the HTTP request
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
+	
+	FString Url = FString::Printf(TEXT("https://discord.com/api/v10/channels/%s/messages"), *TargetChannelId);
+	HttpRequest->SetURL(Url);
+	HttpRequest->SetVerb(TEXT("POST"));
+	HttpRequest->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bot %s"), *BotConfig.BotToken));
+	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+	// Create JSON payload for notification
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	JsonObject->SetStringField(TEXT("content"), Message);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+
+	HttpRequest->SetContentAsString(JsonString);
+	HttpRequest->OnProcessRequestComplete().BindUObject(this, &UDiscordAPI::OnSendNotificationResponse);
+
+	if (HttpRequest->ProcessRequest())
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Sending notification to channel %s"), *TargetChannelId);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to process send notification request"));
+	}
+}
+
+void UDiscordAPI::OnSendNotificationResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (bWasSuccessful && Response.IsValid())
+	{
+		int32 ResponseCode = Response->GetResponseCode();
+		if (ResponseCode >= 200 && ResponseCode < 300)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Notification sent successfully"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to send notification - Response code: %d, Body: %s"), 
+				ResponseCode, *Response->GetContentAsString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to send notification - Request failed"));
+	}
+}
+
 void UDiscordAPI::StartPolling()
 {
 	if (!bIsInitialized)

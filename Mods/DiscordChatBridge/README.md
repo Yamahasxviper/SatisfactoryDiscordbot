@@ -11,6 +11,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ Prevents message loops by ignoring bot messages
 - ✅ Server-side only (no client installation required)
 - ✅ **Customizable name formats** - Choose from multiple style presets or create your own!
+- ✅ **Server start and stop notifications** - Get notified when the server goes online or offline with custom channel support!
 
 ## Quick Links
 
@@ -76,12 +77,26 @@ DiscordNameFormat=[{source}] {username}
 ; Format for game player messages when sent to Discord
 ; Use {source} for the source label, {username} for player name, {message} for content
 GameNameFormat=**[{username}]** {message}
+
+; ========== Server Status Notifications ==========
+; Enable server start and stop notifications
+EnableServerNotifications=false
+
+; Discord Channel ID for server notifications (optional, uses ChannelId if empty)
+NotificationChannelId=
+
+; Message format for server start notification
+ServerStartMessage=🟢 **Server Started** - The Satisfactory server is now online!
+
+; Message format for server stop notification
+ServerStopMessage=🔴 **Server Stopped** - The Satisfactory server is now offline.
 ```
 
 3. Replace `YOUR_BOT_TOKEN_HERE` with your bot token from the Discord Developer Portal
 4. Replace `YOUR_CHANNEL_ID_HERE` with your channel ID
 5. Optionally customize the source labels and name formats (see Customization section below)
-6. Save the file and restart your Satisfactory server
+6. Optionally enable server notifications (see Server Notifications section below)
+7. Save the file and restart your Satisfactory server
 
 ### Customization
 
@@ -117,12 +132,66 @@ Controls how Satisfactory player messages appear in Discord.
   - `[{username}] {message}` → Shows as "[JohnDoe] Hello world"
   - `🎮 **{username}**: {message}` → Shows as "🎮 **JohnDoe**: Hello world"
 
+### Server Notifications
+
+Get notified in Discord when your Satisfactory server starts or stops!
+
+#### Enabling Server Notifications
+
+Set `EnableServerNotifications=true` in your configuration file to enable this feature.
+
+#### Notification Channel
+
+By default, server notifications are sent to the same channel as chat messages. You can optionally configure a separate notification channel:
+
+- **Same as chat channel** (default): Leave `NotificationChannelId` empty
+- **Separate notification channel**: Set `NotificationChannelId` to a different channel ID (e.g., for a dedicated server status channel)
+
+Make sure your bot has permissions in both channels if using separate channels.
+
+#### Customizing Notification Messages
+
+You can customize the messages sent when the server starts or stops:
+
+- **ServerStartMessage**: Message sent when the server starts
+  - Default: `🟢 **Server Started** - The Satisfactory server is now online!`
+  - Examples:
+    - `✅ Server is UP! Time to build! 🏭`
+    - `🟢 Production has resumed!`
+    - `Server online - Let's automate everything! 🤖`
+
+- **ServerStopMessage**: Message sent when the server stops
+  - Default: `🔴 **Server Stopped** - The Satisfactory server is now offline.`
+  - Examples:
+    - `❌ Server is DOWN for maintenance 🔧`
+    - `🔴 Production has stopped!`
+    - `Server offline - Back soon! 💤`
+
+#### Example Configuration
+
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+BotToken=YOUR_BOT_TOKEN_HERE
+ChannelId=YOUR_CHAT_CHANNEL_ID
+
+; Enable server notifications
+EnableServerNotifications=true
+
+; Optional: Use a separate channel for notifications
+NotificationChannelId=YOUR_NOTIFICATION_CHANNEL_ID
+
+; Custom notification messages
+ServerStartMessage=🟢 **Satisfactory Server Online!** Ready to build! 🏭
+ServerStopMessage=🔴 **Satisfactory Server Offline** - Scheduled maintenance 🔧
+```
+
 ## Usage
 
 Once configured and the server is running:
 
 - **In-game to Discord**: Any message typed in the Satisfactory chat will appear in Discord as `**[PlayerName]** message text`
 - **Discord to in-game**: Any message typed in the configured Discord channel will appear in-game with a blue "[Discord] Username" prefix
+- **Server Notifications** (if enabled): The bot will send a notification to Discord when the server starts or stops
 
 ## Troubleshooting
 
@@ -145,6 +214,15 @@ Once configured and the server is running:
   - Send Messages
   - Read Message History
   - Read Messages/View Channels
+- If using a separate notification channel, ensure the bot has permissions in both channels
+
+### Server notifications not appearing
+
+1. Verify that `EnableServerNotifications` is set to `true` in your configuration
+2. Check the server logs for notification-related messages
+3. If using a separate notification channel, verify the `NotificationChannelId` is correct
+4. Ensure your bot has "Send Messages" permission in the notification channel
+5. Note that the server stop notification may not be sent if the server crashes unexpectedly
 
 ## Development
 
