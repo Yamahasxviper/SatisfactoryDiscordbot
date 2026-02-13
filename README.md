@@ -12,6 +12,21 @@ It also serves as the Unreal project used for developing mods.
 
 Learn how to set up and use this repo on the [modding documentation](https://docs.ficsit.app/).
 
+## Discord Chat Bridge Mod
+
+This repository includes the **Discord Chat Bridge** mod, which provides two-way chat integration between Satisfactory in-game chat and Discord.
+
+### Features
+- Two-way chat synchronization between Satisfactory and Discord
+- Uses Discord Bot Token (no webhooks required)
+- Configurable through INI file
+- Server-side only (no client installation required)
+
+### Quick Links
+- [Mod README](Mods/DiscordChatBridge/README.md)
+- [Setup Guide](Mods/DiscordChatBridge/SETUP_GUIDE.md)
+- [Configuration](Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini)
+
 ## Discord Server
 
 Join our [discord server](https://discord.gg/QzcG9nX) to talk about SML and Satisfactory Modding in general.
