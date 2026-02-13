@@ -28,6 +28,22 @@
 			"Name": "SML",
 			"Enabled": true,
 			"SemVersion": "^3.11.3"
+		},
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
+		},
+		{
+			"Name": "ReplicationGraph",
+			"Enabled": true
+		},
+		{
+			"Name": "WebSockets",
+			"Enabled": true
 		}
 	]
 }
