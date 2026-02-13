@@ -1,0 +1,9 @@
+{
+  "disabledChatCommands": [
+    "example_mod:example_command"
+  ],
+  "enableFunchookLogging": false,
+  "inGameChatNameFormat": "{name}",
+  "discordNameFormat": "{name}",
+  "enableNameFormatting": false
+}
