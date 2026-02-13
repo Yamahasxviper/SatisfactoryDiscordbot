@@ -145,6 +145,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		FString BotActivityFormat;
 		float ActivityUpdateIntervalSeconds = 60.0f;
 		FString BotActivityChannelId;
+		bool bUseGatewayForPresence = false;
 		
 		// Load settings from Config/DefaultDiscordChatBridge.ini
 		GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
@@ -162,6 +163,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		GConfig->GetString(*ConfigSection, TEXT("BotActivityFormat"), BotActivityFormat, GGameIni);
 		GConfig->GetFloat(*ConfigSection, TEXT("ActivityUpdateIntervalSeconds"), ActivityUpdateIntervalSeconds, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("BotActivityChannelId"), BotActivityChannelId, GGameIni);
+		GConfig->GetBool(*ConfigSection, TEXT("UseGatewayForPresence"), bUseGatewayForPresence, GGameIni);
 		
 		if (!BotToken.IsEmpty() && !ChannelId.IsEmpty())
 		{
@@ -204,6 +206,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 			
 			// Load bot activity settings
 			BotConfig.bEnableBotActivity = bEnableBotActivity;
+			BotConfig.bUseGatewayForPresence = bUseGatewayForPresence;
 			if (!BotActivityFormat.IsEmpty())
 			{
 				BotConfig.BotActivityFormat = BotActivityFormat;
@@ -214,8 +217,8 @@ void ADiscordChatSubsystem::LoadConfiguration()
 				BotConfig.BotActivityChannelId = BotActivityChannelId;
 			}
 			
-			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s"), 
-				*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"));
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
+				*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
 		}
 		else
 		{

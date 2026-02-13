@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Discord Chat Bridge Contributors
 
 #include "DiscordAPI.h"
+#include "DiscordGateway.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Json.h"
@@ -9,7 +10,8 @@
 #include "Engine/World.h"
 
 UDiscordAPI::UDiscordAPI()
-	: bIsInitialized(false)
+	: Gateway(nullptr)
+	, bIsInitialized(false)
 	, bIsPolling(false)
 	, bIsUpdatingActivity(false)
 {
@@ -23,6 +25,20 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 	if (bIsInitialized)
 	{
 		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Initialized with channel ID: %s"), *BotConfig.ChannelId);
+
+		// Initialize Gateway if enabled
+		if (BotConfig.bUseGatewayForPresence)
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway presence enabled, creating Gateway connection"));
+			Gateway = NewObject<UDiscordGateway>(this);
+			if (Gateway)
+			{
+				Gateway->Initialize(BotConfig.BotToken);
+				Gateway->OnConnected.BindUObject(this, &UDiscordAPI::OnGatewayConnected);
+				Gateway->OnDisconnected.BindUObject(this, &UDiscordAPI::OnGatewayDisconnected);
+				Gateway->Connect();
+			}
+		}
 	}
 	else
 	{
@@ -334,6 +350,12 @@ void UDiscordAPI::StopActivityUpdates()
 	{
 		World->GetTimerManager().ClearTimer(ActivityUpdateTimerHandle);
 	}
+
+	// Disconnect Gateway if active
+	if (Gateway)
+	{
+		Gateway->Disconnect();
+	}
 }
 
 void UDiscordAPI::UpdateBotActivity(int32 PlayerCount)
@@ -347,6 +369,17 @@ void UDiscordAPI::UpdateBotActivity(int32 PlayerCount)
 	FString ActivityMessage = BotConfig.BotActivityFormat;
 	ActivityMessage = ActivityMessage.Replace(TEXT("{playercount}"), *FString::FromInt(PlayerCount));
 
+	// Use Gateway for presence if enabled and connected
+	if (BotConfig.bUseGatewayForPresence && Gateway && Gateway->IsConnected())
+	{
+		// Update bot presence via Gateway (shows as "Playing with X players")
+		FString PresenceName = FString::Printf(TEXT("with %d player%s"), PlayerCount, PlayerCount == 1 ? TEXT("") : TEXT("s"));
+		Gateway->UpdatePresence(PresenceName, 0); // 0 = Playing
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Updated bot presence via Gateway: %s"), *PresenceName);
+		return;
+	}
+
+	// Fallback to REST API (post to channel)
 	// Determine which channel to use for activity status
 	FString TargetChannelId = BotConfig.BotActivityChannelId.IsEmpty() ? BotConfig.ChannelId : BotConfig.BotActivityChannelId;
 
@@ -399,5 +432,18 @@ void UDiscordAPI::OnUpdateActivityResponse(FHttpRequestPtr Request, FHttpRespons
 	{
 		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to update bot activity - Request failed"));
 	}
+}
+
+void UDiscordAPI::OnGatewayConnected()
+{
+	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway connected successfully"));
+}
+
+void UDiscordAPI::OnGatewayDisconnected(const FString& Reason)
+{
+	UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway disconnected: %s"), *Reason);
+	
+	// Optionally implement auto-reconnect logic here
+	// For now, just log the disconnection
 }
 

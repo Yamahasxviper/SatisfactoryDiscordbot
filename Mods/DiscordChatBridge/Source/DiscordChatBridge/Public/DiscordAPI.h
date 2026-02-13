@@ -6,6 +6,9 @@
 #include "Http.h"
 #include "DiscordAPI.generated.h"
 
+// Forward declarations
+class UDiscordGateway;
+
 DECLARE_DELEGATE_OneParam(FOnDiscordMessageReceived, const FString& /* Message */);
 DECLARE_DELEGATE_TwoParams(FOnDiscordMessageReceived_Full, const FString& /* Username */, const FString& /* Message */);
 
@@ -62,6 +65,9 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 	UPROPERTY(BlueprintReadWrite, Category = "Discord")
 	FString BotActivityChannelId;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	bool bUseGatewayForPresence = false;
+
 	FDiscordBotConfig()
 		: BotToken(TEXT(""))
 		, ChannelId(TEXT(""))
@@ -78,6 +84,7 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 		, BotActivityFormat(TEXT("🎮 **Players Online:** {playercount}"))
 		, ActivityUpdateIntervalSeconds(60.0f)
 		, BotActivityChannelId(TEXT(""))
+		, bUseGatewayForPresence(false)
 	{}
 };
 
@@ -138,8 +145,16 @@ private:
 	/** Handle response from updating bot activity */
 	void OnUpdateActivityResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
+	/** Gateway event handlers */
+	void OnGatewayConnected();
+	void OnGatewayDisconnected(const FString& Reason);
+
 	/** Discord bot configuration */
 	FDiscordBotConfig BotConfig;
+
+	/** Discord Gateway connection (for bot presence) */
+	UPROPERTY()
+	UDiscordGateway* Gateway;
 
 	/** Timer handle for message polling */
 	FTimerHandle PollTimerHandle;
