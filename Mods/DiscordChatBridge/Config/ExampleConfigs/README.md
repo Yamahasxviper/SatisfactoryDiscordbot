@@ -54,6 +54,16 @@ This directory contains ready-to-use configuration file examples for different c
 - Optional separate status channel
 - Perfect for keeping your community informed about server activity
 
+### `gateway-presence.ini` - With Discord Gateway Bot Presence ⭐ NEW!
+- **TRUE Discord bot presence via WebSocket Gateway**
+- **Bot shows:** `Playing with 5 players` (next to bot name in member list)
+- Real-time presence updates
+- Professional Discord integration
+- Persistent WebSocket connection
+- More resource-intensive than REST-only mode
+- **Perfect for:** Servers wanting authentic Discord bot presence
+- **Requires:** Presence Intent enabled in Discord Developer Portal
+
 ## Need More?
 
 Check out [EXAMPLES.md](../EXAMPLES.md) in the parent directory for:
