@@ -63,10 +63,13 @@
 BotToken=YOUR_BOT_TOKEN_FROM_STEP_2
 ChannelId=YOUR_CHANNEL_ID_FROM_STEP_4
 PollIntervalSeconds=2.0
+DiscordNameFormat=[Discord] {username}
+GameNameFormat=**[{username}]** {message}
 ```
 
 3. Replace `YOUR_BOT_TOKEN_FROM_STEP_2` with the token you copied in Step 2
 4. Replace `YOUR_CHANNEL_ID_FROM_STEP_4` with the channel ID you copied in Step 4
+5. (Optional) Customize the name formats - see "Advanced Configuration" section below
 
 ### Step 7: Start Your Server
 
@@ -172,6 +175,72 @@ If you're getting rate limited by Discord:
    - The bot handles this gracefully but may delay some messages
 
 ## Advanced Configuration
+
+### Customizing Name Formats
+
+You can customize how player names are displayed in both Discord and in-game chat by modifying the configuration file.
+
+#### Discord Name Format
+
+Controls how Discord usernames appear in the Satisfactory game chat.
+
+**Setting**: `DiscordNameFormat`  
+**Default**: `[Discord] {username}`  
+**Placeholder**: `{username}` - Discord username
+
+**Examples**:
+```ini
+; Default format - adds [Discord] prefix
+DiscordNameFormat=[Discord] {username}
+; Result: "[Discord] JohnDoe: Hello!"
+
+; Simple brackets
+DiscordNameFormat=<{username}>
+; Result: "<JohnDoe>: Hello!"
+
+; Suffix style
+DiscordNameFormat={username} (Discord)
+; Result: "JohnDoe (Discord): Hello!"
+
+; With emoji
+DiscordNameFormat=📱 {username}
+; Result: "📱 JohnDoe: Hello!"
+```
+
+#### Game Name Format
+
+Controls how Satisfactory player messages appear in Discord.
+
+**Setting**: `GameNameFormat`  
+**Default**: `**[{username}]** {message}`  
+**Placeholders**: 
+- `{username}` - Player name from Satisfactory
+- `{message}` - The actual message content
+
+**Examples**:
+```ini
+; Default format - bold player name in brackets
+GameNameFormat=**[{username}]** {message}
+; Result in Discord: "**[JohnDoe]** Hello world"
+
+; Simple colon separator
+GameNameFormat={username}: {message}
+; Result in Discord: "JohnDoe: Hello world"
+
+; Plain brackets
+GameNameFormat=[{username}] {message}
+; Result in Discord: "[JohnDoe] Hello world"
+
+; With emoji and bold
+GameNameFormat=🎮 **{username}**: {message}
+; Result in Discord: "🎮 **JohnDoe**: Hello world"
+
+; Italics style
+GameNameFormat=_{username}_: {message}
+; Result in Discord: "_JohnDoe_: Hello world"
+```
+
+**Note**: After changing these settings, you must restart your Satisfactory server for the changes to take effect.
 
 ### Optimal Poll Interval
 
