@@ -372,10 +372,13 @@ void UDiscordAPI::UpdateBotActivity(int32 PlayerCount)
 	// Use Gateway for presence if enabled and connected
 	if (BotConfig.bUseGatewayForPresence && Gateway && Gateway->IsConnected())
 	{
-		// Update bot presence via Gateway (shows as "Playing with X players")
-		FString PresenceName = FString::Printf(TEXT("with %d player%s"), PlayerCount, PlayerCount == 1 ? TEXT("") : TEXT("s"));
-		Gateway->UpdatePresence(PresenceName, 0); // 0 = Playing
-		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Updated bot presence via Gateway: %s"), *PresenceName);
+		// Update bot presence via Gateway using configurable format and activity type
+		FString PresenceText = BotConfig.GatewayPresenceFormat;
+		PresenceText = PresenceText.Replace(TEXT("{playercount}"), *FString::FromInt(PlayerCount));
+		
+		Gateway->UpdatePresence(PresenceText, BotConfig.GatewayActivityType);
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Updated bot presence via Gateway: Type=%d, Text=%s"), 
+			BotConfig.GatewayActivityType, *PresenceText);
 		return;
 	}
 

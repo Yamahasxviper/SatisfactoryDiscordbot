@@ -146,6 +146,8 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		float ActivityUpdateIntervalSeconds = 60.0f;
 		FString BotActivityChannelId;
 		bool bUseGatewayForPresence = false;
+		FString GatewayPresenceFormat;
+		int32 GatewayActivityType = 0;
 		
 		// Load settings from Config/DefaultDiscordChatBridge.ini
 		GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
@@ -164,6 +166,8 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		GConfig->GetFloat(*ConfigSection, TEXT("ActivityUpdateIntervalSeconds"), ActivityUpdateIntervalSeconds, GGameIni);
 		GConfig->GetString(*ConfigSection, TEXT("BotActivityChannelId"), BotActivityChannelId, GGameIni);
 		GConfig->GetBool(*ConfigSection, TEXT("UseGatewayForPresence"), bUseGatewayForPresence, GGameIni);
+		GConfig->GetString(*ConfigSection, TEXT("GatewayPresenceFormat"), GatewayPresenceFormat, GGameIni);
+		GConfig->GetInt(*ConfigSection, TEXT("GatewayActivityType"), GatewayActivityType, GGameIni);
 		
 		if (!BotToken.IsEmpty() && !ChannelId.IsEmpty())
 		{
@@ -216,6 +220,11 @@ void ADiscordChatSubsystem::LoadConfiguration()
 			{
 				BotConfig.BotActivityChannelId = BotActivityChannelId;
 			}
+			if (!GatewayPresenceFormat.IsEmpty())
+			{
+				BotConfig.GatewayPresenceFormat = GatewayPresenceFormat;
+			}
+			BotConfig.GatewayActivityType = GatewayActivityType;
 			
 			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
 				*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));

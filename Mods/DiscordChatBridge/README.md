@@ -274,6 +274,12 @@ EnableBotActivity=true
 ; ⭐ Enable Gateway for true bot presence
 UseGatewayForPresence=true
 
+; Customize presence text (optional)
+GatewayPresenceFormat=with {playercount} players
+
+; Customize activity type (optional, 0=Playing, 3=Watching, etc.)
+GatewayActivityType=0
+
 ; How often to update presence
 ActivityUpdateIntervalSeconds=60.0
 ```
@@ -284,11 +290,47 @@ ActivityUpdateIntervalSeconds=60.0
 |---------|-------------------------------------------|----------------------------------------|
 | **Display** | Channel messages | Bot presence status |
 | **Visibility** | In chat channel | In member list & profile |
-| **Format** | Customizable via BotActivityFormat | Fixed: "Playing with X players" |
+| **Format** | Customizable via BotActivityFormat | Customizable via GatewayPresenceFormat |
+| **Activity Type** | N/A | Customizable (Playing, Watching, etc.) |
 | **Connection** | HTTP requests only | Persistent WebSocket |
 | **Resources** | Minimal | Slightly higher |
 | **Reliability** | High (stateless) | High (auto-reconnects) |
 | **Discord Feel** | Posts messages | Native integration |
+
+#### Customizing Gateway Presence
+
+When using Gateway mode, you can customize both the presence text and activity type:
+
+**GatewayPresenceFormat** - Text that appears in the presence
+- Use `{playercount}` placeholder for number of players
+- Default: `with {playercount} players`
+- Examples:
+  - `with {playercount} players` → "Playing with 5 players"
+  - `{playercount} online` → "Playing 5 online"
+  - `Satisfactory | {playercount} building` → "Playing Satisfactory | 5 building"
+
+**GatewayActivityType** - Type of activity shown
+- `0` = Playing (default) - Shows as "Playing [text]"
+- `1` = Streaming - Shows as "Streaming [text]"
+- `2` = Listening - Shows as "Listening to [text]"
+- `3` = Watching - Shows as "Watching [text]"
+- `5` = Competing - Shows as "Competing in [text]"
+
+**Example Configurations:**
+
+```ini
+# Default: "Playing with 5 players"
+GatewayActivityType=0
+GatewayPresenceFormat=with {playercount} players
+
+# "Watching 5 players"
+GatewayActivityType=3
+GatewayPresenceFormat={playercount} players
+
+# "Competing in Satisfactory"
+GatewayActivityType=5
+GatewayPresenceFormat=Satisfactory
+```
 
 #### Requirements for Gateway Mode
 
@@ -301,6 +343,8 @@ ActivityUpdateIntervalSeconds=60.0
 2. **Configuration**:
    - Set `EnableBotActivity=true`
    - Set `UseGatewayForPresence=true`
+   - Configure `GatewayPresenceFormat` (optional, has default)
+   - Configure `GatewayActivityType` (optional, default is 0 = Playing)
    - Configure `ActivityUpdateIntervalSeconds` (60-300 seconds recommended)
 
 #### Gateway Connection Details
