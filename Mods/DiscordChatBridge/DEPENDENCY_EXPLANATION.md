@@ -30,10 +30,11 @@ The WebSockets dependency is properly configured in three places:
 ```json
 {
     "Name": "WebSockets",
-    "Enabled": true
+    "Enabled": true,
+    "Optional": true
 }
 ```
-This enables the WebSockets plugin for the entire Unreal Engine project.
+This enables the WebSockets plugin for the entire Unreal Engine project. **Note:** It's marked as optional so the project can build even if WebSockets is not available in the engine installation. In that case, only the DiscordChatBridge mod will fail to load.
 
 #### b) Mod Plugin Level - `DiscordChatBridge.uplugin`
 ```json
