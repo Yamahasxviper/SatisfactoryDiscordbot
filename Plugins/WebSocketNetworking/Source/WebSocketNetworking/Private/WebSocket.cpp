@@ -193,10 +193,11 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	// Store protocol name in member variable to ensure lifetime
 	if (!Protocol.IsEmpty())
 	{
-		auto ProtocolAnsi = StringCast<ANSICHAR>(*Protocol);
-		int32 ProtocolLen = FCStringAnsi::Strlen(ProtocolAnsi.Get()) + 1;
+		// Store in variable to ensure StringCast lifetime
+		TStringConversion<TStringConvert<TCHAR, ANSICHAR>> ProtocolConv(*Protocol);
+		int32 ProtocolLen = FCStringAnsi::Strlen(ProtocolConv.Get()) + 1;
 		ProtocolNameStorage.SetNum(ProtocolLen);
-		FCStringAnsi::Strcpy(ProtocolNameStorage.GetData(), ProtocolLen, ProtocolAnsi.Get());
+		FCStringAnsi::Strcpy(ProtocolNameStorage.GetData(), ProtocolLen, ProtocolConv.Get());
 		Protocols[0].name = ProtocolNameStorage.GetData();
 	}
 	else
@@ -227,20 +228,29 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	Context = lws_create_context(&Info);
 	check(Context);
 
-	// Connect to server
-	auto HostAnsi = StringCast<ANSICHAR>(*Host);
-	auto PathAnsi = StringCast<ANSICHAR>(*Path);
+	// Store host and path strings in member variables to ensure lifetime
+	TStringConversion<TStringConvert<TCHAR, ANSICHAR>> HostConv(*Host);
+	TStringConversion<TStringConvert<TCHAR, ANSICHAR>> PathConv(*Path);
 	
+	int32 HostLen = FCStringAnsi::Strlen(HostConv.Get()) + 1;
+	HostNameStorage.SetNum(HostLen);
+	FCStringAnsi::Strcpy(HostNameStorage.GetData(), HostLen, HostConv.Get());
+	
+	int32 PathLen = FCStringAnsi::Strlen(PathConv.Get()) + 1;
+	PathStorage.SetNum(PathLen);
+	FCStringAnsi::Strcpy(PathStorage.GetData(), PathLen, PathConv.Get());
+	
+	// Connect to server
 	struct lws_client_connect_info ConnectInfo;
 	memset(&ConnectInfo, 0, sizeof(ConnectInfo));
 	
 	ConnectInfo.context = Context;
-	ConnectInfo.address = HostAnsi.Get();
+	ConnectInfo.address = HostNameStorage.GetData();
 	ConnectInfo.port = Port;
 	ConnectInfo.ssl_connection = bIsSecure ? LCCSCF_USE_SSL : 0;
-	ConnectInfo.path = PathAnsi.Get();
-	ConnectInfo.host = HostAnsi.Get();
-	ConnectInfo.origin = HostAnsi.Get();
+	ConnectInfo.path = PathStorage.GetData();
+	ConnectInfo.host = HostNameStorage.GetData();
+	ConnectInfo.origin = HostNameStorage.GetData();
 	ConnectInfo.protocol = Protocols[0].name;
 	ConnectInfo.pwsi = &Wsi;
 	ConnectInfo.userdata = this;

@@ -72,8 +72,10 @@ public:
 	/** libwebsocket Protocols that can be serviced by this implemenation*/
 	WebSocketInternalProtocol* Protocols;
 	
-	/** Stored protocol name string (for URL-based connections) */
+	/** Stored strings for URL-based connections (must persist for libwebsockets) */
 	TArray<char> ProtocolNameStorage;
+	TArray<char> HostNameStorage;
+	TArray<char> PathStorage;
 #else // ! USE_LIBWEBSOCKET -- HTML5 uses BSD network API
 	int SockFd;
 #endif
