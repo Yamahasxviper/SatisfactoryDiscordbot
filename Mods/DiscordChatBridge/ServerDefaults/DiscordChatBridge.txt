@@ -1,0 +1,133 @@
+# Discord Chat Bridge - Server Default Configuration
+# This file provides default settings that load automatically and persist across server restarts
+# Compatible with SML (Satisfactory Mod Loader)
+#
+# INSTRUCTIONS:
+# 1. Edit the values below to configure your Discord bot
+# 2. Settings are loaded automatically when the server starts
+# 3. Changes persist across server restarts via SML's configuration system
+#
+# Format: KEY=VALUE (one per line, no quotes needed)
+# Lines starting with # are comments and will be ignored
+
+# ===========================================================================================
+# REQUIRED SETTINGS - You MUST configure these for the mod to work
+# ===========================================================================================
+
+# Discord Bot Token - Get this from https://discord.com/developers/applications
+# Replace YOUR_BOT_TOKEN_HERE with your actual bot token
+# Example: BotToken=MTIzNDU2Nzg5MDEyMzQ1Njc4OTAuAbCdEf.gHiJkLmNoPqRsTuVwXyZ0123456789
+BotToken=YOUR_BOT_TOKEN_HERE
+
+# Discord Channel ID - Right-click on a channel in Discord and select "Copy ID"
+# (requires Developer Mode enabled in Discord settings)
+# Replace YOUR_CHANNEL_ID_HERE with your actual channel ID (numbers only)
+# Example: ChannelId=123456789012345678
+ChannelId=YOUR_CHANNEL_ID_HERE
+
+# ===========================================================================================
+# POLLING SETTINGS
+# ===========================================================================================
+
+# How often to poll Discord for new messages (in seconds)
+# Lower values = more responsive but more API calls
+# Recommended: 2.0 to 5.0 seconds
+PollIntervalSeconds=2.0
+
+# ===========================================================================================
+# MESSAGE FORMATTING
+# ===========================================================================================
+
+# Label for Discord messages shown in-game
+# This replaces the {source} placeholder in DiscordNameFormat
+# Examples: Discord, DC, Chat, Community
+DiscordSourceLabel=Discord
+
+# Label for game messages shown in Discord
+# This replaces the {source} placeholder in GameNameFormat
+# Examples: Game, Server, Satisfactory, Factory
+GameSourceLabel=Game
+
+# Format for Discord usernames when displayed in game
+# Use {source} for the source label and {username} for the Discord username
+# Examples:
+#   [{source}] {username} - Shows as "[Discord] JohnDoe"
+#   <{username}@{source}> - Shows as "<JohnDoe@Discord>"
+#   {username} (from {source}) - Shows as "JohnDoe (from Discord)"
+DiscordNameFormat=[{source}] {username}
+
+# Format for game player messages when sent to Discord
+# Use {source} for source label, {username} for player name, {message} for content
+# Examples:
+#   **[{username}]** {message} - Shows as "**[JohnDoe]** Hello world"
+#   [{source}] {username}: {message} - Shows as "[Game] JohnDoe: Hello world"
+#   🏭 [{source}] **{username}**: {message} - Shows as "🏭 [Game] **JohnDoe**: Hello world"
+GameNameFormat=**[{username}]** {message}
+
+# ===========================================================================================
+# SERVER STATUS NOTIFICATIONS
+# ===========================================================================================
+
+# Enable server start and stop notifications
+# Set to true or false
+EnableServerNotifications=false
+
+# Discord Channel ID for server notifications (optional)
+# If empty, notifications will be sent to the chat channel (ChannelId)
+# If set, notifications will be sent to a separate channel
+NotificationChannelId=
+
+# Message format for server start notification
+ServerStartMessage=🟢 **Server Started** - The Satisfactory server is now online!
+
+# Message format for server stop notification
+ServerStopMessage=🔴 **Server Stopped** - The Satisfactory server is now offline.
+
+# ===========================================================================================
+# BOT ACTIVITY / PLAYER COUNT STATUS
+# ===========================================================================================
+
+# Enable bot activity status updates (posts player count)
+# Set to true or false
+EnableBotActivity=false
+
+# Use Discord Gateway WebSocket for true bot presence
+# Set to true or false
+# If false: Posts player count as messages to a channel (REST API only)
+# If true: Updates bot's actual presence status via WebSocket
+UseGatewayForPresence=false
+
+# Format for the bot activity/player count message
+# Use {playercount} as placeholder for the number of players
+# When UseGatewayForPresence=false (REST API):
+#   Examples: 🎮 **Players Online:** {playercount}, 👥 Current Players: {playercount}
+# When UseGatewayForPresence=true (Gateway):
+#   This format is ignored, use GatewayPresenceFormat instead
+BotActivityFormat=🎮 **Players Online:** {playercount}
+
+# ===========================================================================================
+# GATEWAY PRESENCE CUSTOMIZATION (only for UseGatewayForPresence=true)
+# ===========================================================================================
+
+# Format for Gateway bot presence text
+# Use {playercount} as placeholder
+# Examples:
+#   with {playercount} players → "Playing with 5 players"
+#   {playercount} players online → "Playing 5 players online"
+GatewayPresenceFormat=with {playercount} players
+
+# Gateway activity type (0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing)
+GatewayActivityType=0
+
+# How often to update bot activity status (in seconds)
+# Recommended: 60 to 300 seconds
+ActivityUpdateIntervalSeconds=60.0
+
+# Discord Channel ID for bot activity status updates (optional)
+# Only used when UseGatewayForPresence=false (REST API mode)
+# If empty, uses the main ChannelId
+BotActivityChannelId=
+
+# ===========================================================================================
+# END OF CONFIGURATION
+# ===========================================================================================

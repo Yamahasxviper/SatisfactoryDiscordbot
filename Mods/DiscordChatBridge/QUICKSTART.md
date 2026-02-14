@@ -32,10 +32,27 @@
 
 ### 4. Configure the Mod (1 minute)
 
+**OPTION A: ServerDefaults TXT Format (Recommended)** ⭐ NEW!
+
+Edit the file in your project: `Mods/DiscordChatBridge/ServerDefaults/DiscordChatBridge.txt`
+
+```txt
+# Discord Chat Bridge Configuration
+BotToken=paste_your_bot_token_here
+ChannelId=paste_your_channel_id_here
+PollIntervalSeconds=2.0
+DiscordNameFormat=[Discord] {username}
+GameNameFormat=**[{username}]** {message}
+```
+
+**Benefits:** Simple format, automatically persists across restarts via SML!
+
+**OPTION B: Traditional INI Format**
+
 Create/edit this file on your server:
 
 **Windows:** `%localappdata%\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini`  
-**Linux:** `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini`
+**Linux:** `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer\DiscordChatBridge.ini`
 
 ```ini
 [/Script/DiscordChatBridge.DiscordChatSubsystem]

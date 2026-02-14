@@ -6,22 +6,28 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 - ✅ Two-way chat synchronization between Satisfactory and Discord
 - ✅ Uses Discord Bot Token (no webhooks required)
-- ✅ Configurable through INI file
+- ✅ Configurable through INI or TXT file formats
+- ✅ **NEW: ServerDefaults TXT configuration** - Simple KEY=VALUE format with automatic SML persistence!
 - ✅ Custom message formatting with player names
 - ✅ Prevents message loops by ignoring bot messages
 - ✅ Server-side only (no client installation required)
 - ✅ **Customizable name formats** - Choose from multiple style presets or create your own!
 - ✅ **Server start and stop notifications** - Get notified when the server goes online or offline with custom channel support!
 - ✅ **Player count status updates** - Automatically post player count to Discord with customizable format and interval!
-- ✅ **Discord Gateway bot presence** ⭐ NEW! - True "Playing with X players" status via WebSocket!
+- ✅ **Discord Gateway bot presence** ⭐ - True "Playing with X players" status via WebSocket!
+- ✅ **Settings persist across server restarts** - Powered by SML's configuration system!
 
 ## Quick Links
 
 - 🚀 [Quick Start Guide](QUICKSTART.md) - Get up and running in 5 minutes
 - 📖 [Setup Guide](SETUP_GUIDE.md) - Detailed step-by-step instructions
 - 🎨 [**Configuration Examples**](EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
-- ⚙️ [Default Configuration](Config/DefaultDiscordChatBridge.ini) - Template configuration file
+- ⚙️ [**ServerDefaults Configuration**](ServerDefaults/README.md) - **NEW! Simple TXT format with SML persistence**
+- ⚙️ [Default INI Configuration](Config/DefaultDiscordChatBridge.ini) - Traditional INI template configuration file
 - 🔧 [Dependency Explanation](DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
+- 📦 [Packaging Notes](PACKAGING_NOTES.md) - Build and packaging information (documentation files now included!)
+
+> **Note:** All documentation files are now automatically included when you build/package this mod!
 
 ## Prerequisites
 
@@ -50,11 +56,43 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 ## Configuration
 
+The Discord Chat Bridge mod supports **two configuration formats**:
+
+### Option 1: ServerDefaults TXT Format (Recommended) ⭐ NEW!
+
+The easiest and most server-friendly option:
+
+1. Navigate to `Mods/DiscordChatBridge/ServerDefaults/DiscordChatBridge.txt` in your project
+2. Edit the file using simple `KEY=VALUE` format:
+
+```txt
+# Discord Chat Bridge Configuration
+BotToken=YOUR_BOT_TOKEN_HERE
+ChannelId=YOUR_CHANNEL_ID_HERE
+PollIntervalSeconds=2.0
+DiscordNameFormat=[Discord] {username}
+GameNameFormat=**[{username}]** {message}
+```
+
+**Benefits:**
+- ✅ Simple KEY=VALUE format (no complex INI sections)
+- ✅ Automatically persists via SML configuration system
+- ✅ Settings survive server restarts
+- ✅ Extensive inline documentation
+- ✅ No need to copy files to runtime directories
+
+See [ServerDefaults/README.md](ServerDefaults/README.md) for complete documentation.
+
+### Option 2: Traditional INI Format (Legacy)
+
 1. Navigate to the mod's configuration file:
    - Windows: `%localappdata%/FactoryGame/Saved/Config/WindowsServer/DiscordChatBridge.ini`
    - Linux: `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini`
    
-   If the file doesn't exist, create it or copy from `Config/DefaultDiscordChatBridge.ini`
+   If the file doesn't exist, create it or copy from one of these template files:
+   - `Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini` (comprehensive template with all options)
+   - `Config/WindowsServer/DiscordChatBridge.ini` (project template for Windows servers)
+   - `Config/LinuxServer/DiscordChatBridge.ini` (project template for Linux servers)
 
 2. Edit the configuration file:
 
