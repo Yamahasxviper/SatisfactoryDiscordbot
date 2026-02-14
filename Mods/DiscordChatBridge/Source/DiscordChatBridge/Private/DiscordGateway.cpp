@@ -1,8 +1,10 @@
 // Copyright (c) 2024 Discord Chat Bridge Contributors
 
 #include "DiscordGateway.h"
+#if WITH_WEBSOCKETS_SUPPORT
 #include "WebSocketsModule.h"
 #include "IWebSocket.h"
+#endif
 #include "Json.h"
 #include "JsonUtilities.h"
 #include "TimerManager.h"
@@ -30,6 +32,12 @@ void UDiscordGateway::Initialize(const FString& InBotToken)
 
 void UDiscordGateway::Connect()
 {
+#if !WITH_WEBSOCKETS_SUPPORT
+	UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Cannot connect - WebSockets plugin is not available. This build was compiled without WebSockets support. Please use a build with the WebSockets plugin enabled."));
+	ConnectionState = EGatewayConnectionState::Disconnected;
+	OnDisconnected.ExecuteIfBound(TEXT("WebSockets plugin not available at compile time"));
+	return;
+#else
 	if (ConnectionState != EGatewayConnectionState::Disconnected)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Already connecting or connected"));
@@ -69,10 +77,12 @@ void UDiscordGateway::Connect()
 
 	// Connect
 	WebSocket->Connect();
+#endif
 }
 
 void UDiscordGateway::Disconnect()
 {
+#if WITH_WEBSOCKETS_SUPPORT
 	if (WebSocket.IsValid() && WebSocket->IsConnected())
 	{
 		UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Disconnecting..."));
@@ -82,6 +92,10 @@ void UDiscordGateway::Disconnect()
 	StopHeartbeat();
 	ConnectionState = EGatewayConnectionState::Disconnected;
 	WebSocket.Reset();
+#else
+	StopHeartbeat();
+	ConnectionState = EGatewayConnectionState::Disconnected;
+#endif
 }
 
 void UDiscordGateway::UpdatePresence(const FString& ActivityName, int32 ActivityType)
@@ -364,6 +378,7 @@ void UDiscordGateway::SendResume()
 
 void UDiscordGateway::SendPayload(const TSharedPtr<FJsonObject>& Payload)
 {
+#if WITH_WEBSOCKETS_SUPPORT
 	if (!WebSocket.IsValid() || !WebSocket->IsConnected())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Cannot send payload - not connected"));
@@ -381,6 +396,9 @@ void UDiscordGateway::SendPayload(const TSharedPtr<FJsonObject>& Payload)
 	{
 		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Failed to serialize payload"));
 	}
+#else
+	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Cannot send payload - WebSockets support not compiled"));
+#endif
 }
 
 void UDiscordGateway::StartHeartbeat()
