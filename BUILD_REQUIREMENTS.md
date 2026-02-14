@@ -32,17 +32,20 @@ The WebSockets plugin builds as part of the Unreal Engine itself, **not** as par
 
 - ✅ **FactoryGame.uproject**: Enables WebSockets at project level (marked as optional)
 - ✅ **DiscordChatBridge.uplugin**: Declares WebSockets dependency for the mod
-- ✅ **DiscordChatBridge.Build.cs**: Links the module against WebSockets
+- ✅ **DiscordChatBridge.Build.cs**: Conditionally links the module against WebSockets only if available
 - ❌ **FactoryGame.Build.cs**: Does NOT include WebSockets (correctly - only mods use it)
+
+**Important Update:** As of the latest version, `DiscordChatBridge.Build.cs` now **automatically detects** whether the WebSockets plugin is available in your engine installation and only includes it as a dependency if found. This means:
+- The mod will **build successfully** even if WebSockets is not available in the engine
+- If WebSockets is not found during build, the mod compiles with `WITH_WEBSOCKETS_SUPPORT=0`
+- Gateway/presence features will be disabled at runtime if WebSockets was not available at compile time
+- If WebSockets is found during build, full Gateway functionality is enabled
 
 **Troubleshooting "Unable to find plugin 'WebSockets'" error:**
 
-**Note:** As of the latest update, WebSockets is marked as **optional** in `FactoryGame.uproject`. This means:
-- The project can build successfully even without WebSockets
-- Only the DiscordChatBridge mod will fail to load if WebSockets is missing
-- The base game and other mods will work normally
+**Note:** As of the latest update, this specific build error is significantly less likely to occur due to automatic detection of WebSockets availability. While the changes address the primary cause (missing WebSockets plugin), errors may still occur in edge cases such as corrupted build files or misconfigured paths. If you encounter this error, verify the build system changes are present and check your build environment configuration.
 
-If you encounter this error and want to use the DiscordChatBridge mod, it means the WebSockets plugin is not present in your Unreal Engine installation:
+If you want to use the DiscordChatBridge mod with full Gateway/presence features, ensure the WebSockets plugin is present in your Unreal Engine installation:
 
 **For CI/Automated Builds:**
 - The official CI workflow automatically downloads the correct UE build which includes WebSockets
@@ -157,13 +160,14 @@ The Discord Gateway allows the bot to have true presence status (shows "Playing 
 
 The WebSockets plugin builds **during Unreal Engine compilation**, not during this project's build. When you build this project:
 
-1. ✅ UE 5.3.2-CSS must already be built/installed (includes WebSockets)
-2. ✅ This project references WebSockets in `.uproject` file
-3. ✅ DiscordChatBridge mod declares WebSockets dependency
-4. ✅ UBT links DiscordChatBridge against the existing WebSockets module
-5. ✅ Your code can now use WebSocket functionality
+1. ✅ UE 5.3.2-CSS should be built/installed (ideally includes WebSockets)
+2. ✅ This project references WebSockets in `.uproject` file (marked optional)
+3. ✅ DiscordChatBridge mod declares WebSockets dependency (marked optional)
+4. ✅ **NEW:** DiscordChatBridge.Build.cs automatically detects WebSockets availability
+5. ✅ If found: UBT links DiscordChatBridge against the existing WebSockets module
+6. ✅ If not found: Mod builds without WebSockets support (Gateway features disabled)
 
-**The WebSockets plugin is built once with the engine, then reused by any project that needs it.**
+**The WebSockets plugin is built once with the engine, then reused by any project that needs it. If it's not available, the DiscordChatBridge mod will still build successfully but without Gateway/presence features.**
 
 ## Additional Resources
 

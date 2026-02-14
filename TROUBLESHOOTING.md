@@ -4,26 +4,33 @@ Quick solutions to common build and setup issues.
 
 ## Build Errors
 
-### "Unable to find plugin 'WebSockets'"
+### "Unable to find plugin 'WebSockets'" or "cannot open input file UnrealEditor-WebSockets.lib"
 
-**Error Message:**
+**Error Messages:**
 ```
 Unable to find plugin 'WebSockets' (referenced via FactoryGame.uproject). 
 Install it and try again, or remove it from the required plugin list.
 ```
+or
+```
+cannot open input file '..\Intermediate\Build\Win64\x64\UnrealEditor\Development\WebSockets\UnrealEditor-WebSockets.lib'
+```
 
 **Solution:**
 
-**Note:** As of the latest update, WebSockets is marked as **optional** in `FactoryGame.uproject`. This means:
-- The project can build successfully even without WebSockets
-- Only the DiscordChatBridge mod requires WebSockets for Discord Gateway functionality
-- If WebSockets is missing, only the DiscordChatBridge mod will fail to load
+**Note:** As of the latest update, this error is significantly less likely to occur. The DiscordChatBridge.Build.cs now automatically detects WebSockets availability and only includes it if present. If you still encounter this error, please verify you have the latest code and check for configuration issues, corrupted build files, or path problems.
 
-This error means the WebSockets plugin is not found in your Unreal Engine installation. WebSockets is a built-in engine plugin that should be present.
+**What Changed:**
+- WebSockets is marked as **optional** in `FactoryGame.uproject` and `DiscordChatBridge.uplugin`
+- The build system now **automatically detects** if WebSockets plugin exists in the engine
+- If WebSockets is not found, the mod builds successfully **without Gateway/presence features**
+- If WebSockets is found, full functionality is enabled
 
-**Quick Fixes:**
+**For Full Gateway Features:**
 
-1. **For CI/Automated Builds:** This should not happen if using the official workflow. The workflow downloads UE 5.3.2-CSS which includes WebSockets.
+If you want to use Discord Gateway/presence features, ensure WebSockets is in your engine installation:
+
+1. **For CI/Automated Builds:** The official workflow downloads UE 5.3.2-CSS which includes WebSockets.
 
 2. **For Local Development:**
    
@@ -128,10 +135,10 @@ Still having issues? Here are additional resources:
 
 | Issue | Solution |
 |-------|----------|
-| WebSockets plugin missing | Use UE 5.3.2-CSS or ensure plugin is in engine |
+| WebSockets build error | Should auto-resolve now; builds without WebSockets if not available |
+| Gateway features not working | Ensure WebSockets plugin is in engine (optional) |
 | Build files outdated | Delete Intermediate/, regenerate project |
 | Discord messages not working | Check bot token, channel ID, permissions |
-| Gateway not working | Enable Presence Intent, check WebSockets |
 | Wwise missing | CI downloads it automatically, or download manually |
 | Cannot build mod | Ensure SML is present and built first |
 

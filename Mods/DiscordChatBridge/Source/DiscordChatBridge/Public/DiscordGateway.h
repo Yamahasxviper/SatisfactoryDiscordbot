@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#if WITH_WEBSOCKETS_SUPPORT
 #include "IWebSocket.h"
+#endif
 #include "DiscordGateway.generated.h"
 
 /**
@@ -77,8 +79,10 @@ public:
 	FOnGatewayDisconnected OnDisconnected;
 
 private:
+#if WITH_WEBSOCKETS_SUPPORT
 	/** WebSocket connection */
 	TSharedPtr<IWebSocket> WebSocket;
+#endif
 
 	/** Bot token for authentication */
 	FString BotToken;
