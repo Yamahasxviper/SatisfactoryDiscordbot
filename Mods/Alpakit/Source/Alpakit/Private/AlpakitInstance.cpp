@@ -139,7 +139,7 @@ void FAlpakitInstance::OnWorkerCompleted_GameThread( bool bSuccess, double Durat
 	{
 		Result = EAlpakitInstanceResult::Fail;
 		AddMessageToOutputLog( ELogVerbosity::Error, FString::Printf( TEXT("Packaging failed with ExitCode=%d"), ExitCode ) );
-		MarkNotificationAsFail( Duration );
+		MarkNotificationAsFail( ExitCode );
 	}
 
 	EndTime = FDateTime::UtcNow();
