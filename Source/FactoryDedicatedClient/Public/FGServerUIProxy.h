@@ -52,7 +52,7 @@ public:
 	void HandleServerMessage( EServerMessage Message );
 
 	/**
-	 * An error has occured executing the previously issued request to the server.
+	 * An error has occurred executing the previously issued request to the server.
 	 * The error description is available in the ServerError structure.
 	 */
 	UFUNCTION( BlueprintNativeEvent, Category = "Server UI Proxy" )

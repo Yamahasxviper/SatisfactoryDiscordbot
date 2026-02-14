@@ -19,7 +19,7 @@ struct FACTORYGAME_API FFGImplicitRequestParameterBase
 };
 
 /**
- * Server Error Response is a generic description of an error that has occured either on the Server or the Client,
+ * Server Error Response is a generic description of an error that has occurred either on the Server or the Client,
  * and prevented the request from being handled. It contains general purpose information for identifying what went wrong,
  * such as response code, error code and user-friendly error message, as well as potentially additional information.
  *
