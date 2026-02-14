@@ -28,12 +28,13 @@ Check if WebSockets exists in your engine:
 
 **Windows:**
 ```cmd
-dir "C:\Program Files\Epic Games\UE_5.3\Engine\Plugins\Runtime\WebSockets"
-REM Replace UE_5.3 with your actual UE version and check your installation path
+dir "C:\Program Files\Epic Games\UE_5.3.2\Engine\Plugins\Runtime\WebSockets"
+REM Replace UE_5.3.2 with your actual UE version and check your installation path
 ```
 
 **Linux/Mac:**
 ```bash
+# Replace <UE_ROOT> with your UE installation path, e.g., /home/user/UnrealEngine-5.3.2
 ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
 ```
 
