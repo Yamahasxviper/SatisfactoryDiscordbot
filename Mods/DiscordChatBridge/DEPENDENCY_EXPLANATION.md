@@ -89,7 +89,6 @@ The DiscordChatBridge mod uses WebSockets for:
 FactoryGame.uproject
 └── Plugins (Project-level)
     ├── WebSockets ✓ Enabled
-    ├── WebSocketNetworking ✓ Available (not used by DiscordChatBridge)
     └── ... other plugins
 
 Mods/
