@@ -24,6 +24,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - 🔧 [Dependency Explanation](DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
 - 🌐 [**WebSocket Usage Guide**](WEBSOCKET_USAGE.md) - **Complete guide to using WebSockets for Discord Gateway!**
 - 📝 [WebSocket Examples](WEBSOCKET_EXAMPLES.md) - Code examples and implementation patterns
+- ✅ [WebSocket Validation Guide](WEBSOCKET_VALIDATION.md) - Pre-flight checklist and troubleshooting
 
 ## Prerequisites
 
