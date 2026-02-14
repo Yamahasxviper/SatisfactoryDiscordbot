@@ -14,6 +14,11 @@ Install it and try again, or remove it from the required plugin list.
 
 **Solution:**
 
+**Note:** As of the latest update, WebSockets is marked as **optional** in `FactoryGame.uproject`. This means:
+- The project can build successfully even without WebSockets
+- Only the DiscordChatBridge mod requires WebSockets for Discord Gateway functionality
+- If WebSockets is missing, only the DiscordChatBridge mod will fail to load
+
 This error means the WebSockets plugin is not found in your Unreal Engine installation. WebSockets is a built-in engine plugin that should be present.
 
 **Quick Fixes:**

@@ -79,7 +79,8 @@
 		},
 		{
 			"Name": "WebSockets",
-			"Enabled": true
+			"Enabled": true,
+			"Optional": true
 		},
 		{
 			"Name": "DTLSHandlerComponent",
