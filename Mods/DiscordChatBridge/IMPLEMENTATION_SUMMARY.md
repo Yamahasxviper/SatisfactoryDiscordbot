@@ -36,7 +36,13 @@ Successfully implemented a complete two-way chat bridge between Satisfactory (in
    - Manages integration between game and Discord
    - Hooks into FGChatManager
 
-4. **DiscordChatGameInstanceModule.h** - SML registration
+4. **DiscordGateway.h** - Discord Gateway WebSocket client
+   - Real-time WebSocket connection to Discord Gateway
+   - Bot presence/status updates ("Playing with X players")
+   - Heartbeat management for connection keepalive
+   - Connection state management
+
+5. **DiscordChatGameInstanceModule.h** - SML registration
    - Registers subsystem with SML framework
    - Handles lifecycle events
 
@@ -52,13 +58,21 @@ Successfully implemented a complete two-way chat bridge between Satisfactory (in
    - Bot message filtering to prevent loops
    - Error handling and logging
 
-3. **DiscordChatSubsystem.cpp** - Subsystem implementation (182 lines)
+3. **DiscordGateway.cpp** - Gateway implementation
+   - WebSocket connection to Discord Gateway (wss://gateway.discord.gg)
+   - Module availability check with graceful error handling
+   - Automatically attempts to load WebSockets module if not loaded
+   - Handles HELLO, READY, IDENTIFY, HEARTBEAT Gateway opcodes
+   - Reconnection logic for dropped connections
+   - Presence update for bot activity status
+
+4. **DiscordChatSubsystem.cpp** - Subsystem implementation (182 lines)
    - Configuration loading from INI file
    - Chat manager event binding
    - Message forwarding (both directions)
    - Message formatting and user identification
 
-4. **DiscordChatGameInstanceModule.cpp** - Registration
+5. **DiscordChatGameInstanceModule.cpp** - Registration
    - Subsystem registration during CONSTRUCTION phase
 
 ### Configuration
@@ -145,9 +159,10 @@ Successfully implemented a complete two-way chat bridge between Satisfactory (in
 ## Dependencies
 
 - **Satisfactory Mod Loader (SML)**: 3.11.3+
-- **Unreal Engine**: 5.3.2
-- **Unreal Modules**: HTTP, Json, JsonUtilities, FactoryGame
+- **Unreal Engine**: 5.3.2-CSS
+- **Unreal Modules**: HTTP, Json, JsonUtilities, WebSockets, FactoryGame
 - **Discord API**: v10
+- **Optional**: WebSockets plugin (built-in UE plugin) for Gateway/presence features
 
 ## Testing Status
 
@@ -166,13 +181,27 @@ Successfully implemented a complete two-way chat bridge between Satisfactory (in
 
 ## Future Enhancement Opportunities
 
-1. **WebSocket Support**: Replace polling for real-time updates
-2. **Multiple Channels**: Support different channels for different purposes
-3. **Rich Embeds**: Use Discord embeds for special messages
-4. **Command System**: Add slash commands or bot commands
-5. **Player Status**: Announce player join/leave in Discord
-6. **Server Stats**: Periodic status updates to Discord
-7. **Message History**: Sync recent history on server start
+1. **Multiple Channels**: Support different channels for different purposes
+2. **Rich Embeds**: Use Discord embeds for special messages
+3. **Command System**: Add slash commands or bot commands
+4. **Player Status**: Announce player join/leave in Discord
+5. **Server Stats**: Periodic status updates to Discord
+6. **Message History**: Sync recent history on server start
+
+## Recent Improvements
+
+### WebSocket Gateway Support (Implemented)
+✅ Real-time WebSocket connection to Discord Gateway for bot presence
+✅ Graceful error handling when WebSockets plugin is not available
+✅ Shows "Playing with X players" status in Discord
+
+### WebSocket Module Error Handling
+The mod now includes robust error handling for the WebSockets module:
+- Checks if WebSockets module is loaded before attempting to use it
+- Attempts to load the module automatically if not already loaded
+- Provides clear error messages if the module cannot be loaded
+- Gracefully degrades functionality (REST API only) if WebSockets is unavailable
+- Prevents crashes when WebSockets plugin is missing from engine installation
 
 ## Deployment Instructions
 

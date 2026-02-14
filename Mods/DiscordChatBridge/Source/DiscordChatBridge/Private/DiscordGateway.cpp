@@ -7,6 +7,7 @@
 #include "JsonUtilities.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "Modules/ModuleManager.h"
 
 UDiscordGateway::UDiscordGateway()
 	: LastSequenceNumber(-1)
@@ -39,6 +40,19 @@ void UDiscordGateway::Connect()
 	{
 		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Cannot connect - bot token is empty"));
 		return;
+	}
+
+	// Check if WebSockets module is available
+	if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
+	{
+		// Try to load the module
+		if (!FModuleManager::Get().LoadModule("WebSockets"))
+		{
+			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Cannot connect - WebSockets plugin is not available. Please ensure the WebSockets plugin is enabled in your Unreal Engine installation."));
+			ConnectionState = EGatewayConnectionState::Disconnected;
+			OnDisconnected.ExecuteIfBound(TEXT("WebSockets plugin not available"));
+			return;
+		}
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway..."));
