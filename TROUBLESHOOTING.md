@@ -4,6 +4,100 @@ Quick solutions to common build and setup issues.
 
 ## Build Errors
 
+### "The following modules are missing or built with a different engine version"
+
+**Error Message:**
+```
+The following modules are missing or built with a different engine version:
+
+  FactoryGame
+  FactoryEditor
+  FactoryPreEarlyLoadingScreen
+  FactoryDedicatedServer
+  FactoryDedicatedClient
+  DummyHeaders
+  InstancedSplinesComponent
+  GameplayEvents
+  AbstractInstance
+  SignificanceISPC
+  ReliableMessaging
+  ReliableMessagingEOSP2P
+  ReliableMessagingSteamP2P
+  ReliableMessagingTCP
+  Wwise
+  (+25 others, see log for details)
+
+Would you like to rebuild them now?
+```
+
+**What This Means:**
+
+This dialog appears when you try to open `FactoryGame.uproject` in Unreal Engine and the compiled binaries are either:
+- Missing (first time opening the project or after cleaning)
+- Built with a different engine version (after updating Unreal Engine)
+- Out of date (after code changes)
+
+**Solution:**
+
+✅ **Yes, click "Yes" to rebuild!** This is the normal and expected behavior for Unreal Engine projects.
+
+**What happens when you click "Yes":**
+1. Unreal Engine will compile all project modules
+2. This process can take 10-30 minutes depending on your system
+3. You'll see a progress bar showing compilation status
+4. Once complete, the editor will open automatically
+
+**Requirements before rebuilding:**
+
+Before clicking "Yes", ensure you have:
+- ✅ **Unreal Engine 5.3.2-CSS** installed and registered
+- ✅ **Visual Studio 2022** with C++ development tools (Windows) or appropriate build tools (Linux)
+- ✅ **Wwise plugin** downloaded and placed in `Plugins/Wwise/` directory
+- ✅ At least **50GB** of free disk space for build artifacts
+- ✅ A **stable internet connection** (for downloading dependencies)
+
+**Alternative: Build from Command Line**
+
+If you prefer to build from the command line instead of through the Unreal Editor dialog:
+
+**Windows:**
+```powershell
+# Navigate to project directory
+cd C:\Path\To\SatisfactoryDiscordbot
+
+# Build the editor target
+& "C:\Path\To\UE_5.3.2-CSS\Engine\Build\BatchFiles\Build.bat" FactoryEditor Win64 Development -project="$PWD\FactoryGame.uproject"
+```
+
+**Linux:**
+```bash
+# Navigate to project directory
+cd /path/to/SatisfactoryDiscordbot
+
+# Build the editor target
+/path/to/UE_5.3.2-CSS/Engine/Build/BatchFiles/Linux/Build.sh FactoryEditor Linux Development -project="$(pwd)/FactoryGame.uproject"
+```
+
+**After building from command line**, you can open the `.uproject` file normally and it won't ask to rebuild.
+
+**CI/Automated Builds:**
+
+For automated builds, see the [CI workflow](.github/workflows/build.yml) which:
+1. Downloads and sets up UE 5.3.2-CSS automatically
+2. Downloads Wwise from B2 bucket
+3. Builds all modules using UnrealBuildTool
+4. Packages the SML mod
+
+**Common Issues:**
+
+- **"Cannot find Visual Studio"** → Install Visual Studio 2022 with "Game Development with C++" workload
+- **"Wwise plugin not found"** → See [Wwise plugin section](#cannot-find-wwise-plugin) below
+- **Build fails with errors** → Check that you're using the correct engine version (5.3.2-CSS)
+- **Out of memory during build** → Close other applications and ensure at least 16GB RAM available
+- **Build takes forever** → This is normal for first builds; subsequent builds are much faster
+
+**Detailed Information:** See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) for complete build setup instructions.
+
 ### "Unable to find plugin 'WebSockets'"
 
 **Error Message:**
@@ -123,6 +217,7 @@ Still having issues? Here are additional resources:
 
 | Issue | Solution |
 |-------|----------|
+| Modules missing/different engine version | Click "Yes" to rebuild - this is normal! |
 | WebSockets plugin missing | Use UE 5.3.2-CSS or ensure plugin is in engine |
 | Build files outdated | Delete Intermediate/, regenerate project |
 | Discord messages not working | Check bot token, channel ID, permissions |

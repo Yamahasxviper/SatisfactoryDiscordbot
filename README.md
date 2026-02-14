@@ -21,6 +21,7 @@ For information about building this project, including engine requirements and p
 Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
 
 **Common build errors:**
+- "Modules are missing or built with a different engine version" → Click "Yes" to rebuild ([TROUBLESHOOTING.md](TROUBLESHOOTING.md#the-following-modules-are-missing-or-built-with-a-different-engine-version))
 - "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## Discord Chat Bridge Mod
