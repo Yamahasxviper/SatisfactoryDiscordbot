@@ -40,10 +40,11 @@ This enables the WebSockets plugin for the entire Unreal Engine project. **Note:
 ```json
 {
     "Name": "WebSockets",
-    "Enabled": true
+    "Enabled": true,
+    "Optional": true
 }
 ```
-This declares that the DiscordChatBridge mod requires the WebSockets plugin.
+This declares that the DiscordChatBridge mod uses the WebSockets plugin. **Note:** It's marked as optional so the mod can be loaded even if WebSockets is not available, though the Gateway/WebSocket features will not work without it.
 
 #### c) Mod Module Level - `DiscordChatBridge.Build.cs`
 ```csharp
