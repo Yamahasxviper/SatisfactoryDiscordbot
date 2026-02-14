@@ -68,6 +68,15 @@ void UDiscordGateway::Connect()
 
 	// Create WebSocket connection using built-in WebSockets module
 	WebSocket = FWebSocketsModule::Get().CreateWebSocket(GATEWAY_URL, TEXT(""));
+	
+	// Validate WebSocket creation
+	if (!WebSocket.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Failed to create WebSocket"));
+		ConnectionState = EGatewayConnectionState::Disconnected;
+		OnDisconnected.ExecuteIfBound(TEXT("Failed to create WebSocket"));
+		return;
+	}
 
 	// Bind event handlers
 	WebSocket->OnConnected().AddUObject(this, &UDiscordGateway::OnWebSocketConnected);
@@ -156,7 +165,19 @@ void UDiscordGateway::OnWebSocketMessage(const FString& Message)
 
 void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonObject)
 {
+	// Validate JsonObject
+	if (!JsonObject.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Invalid JSON object in HandleGatewayMessage"));
+		return;
+	}
+	
 	// Get opcode
+	if (!JsonObject->HasField(TEXT("op")))
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Missing 'op' field in gateway message"));
+		return;
+	}
 	int32 Opcode = JsonObject->GetIntegerField(TEXT("op"));
 	
 	// Get sequence number if present
@@ -176,8 +197,22 @@ void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonOb
 	{
 	case EDiscordGatewayOpcode::Hello:
 		{
-			TSharedPtr<FJsonObject> Data = JsonObject->GetObjectField(TEXT("d"));
-			HandleHello(Data);
+			if (JsonObject->HasField(TEXT("d")))
+			{
+				TSharedPtr<FJsonObject> Data = JsonObject->GetObjectField(TEXT("d"));
+				if (Data.IsValid())
+				{
+					HandleHello(Data);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Invalid data object in HELLO message"));
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Missing 'd' field in HELLO message"));
+			}
 		}
 		break;
 
@@ -188,15 +223,37 @@ void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonOb
 	case EDiscordGatewayOpcode::Dispatch:
 		if (EventName == TEXT("READY"))
 		{
-			TSharedPtr<FJsonObject> Data = JsonObject->GetObjectField(TEXT("d"));
-			HandleReady(Data);
+			if (JsonObject->HasField(TEXT("d")))
+			{
+				TSharedPtr<FJsonObject> Data = JsonObject->GetObjectField(TEXT("d"));
+				if (Data.IsValid())
+				{
+					HandleReady(Data);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Invalid data object in READY message"));
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Missing 'd' field in READY message"));
+			}
 		}
 		break;
 
 	case EDiscordGatewayOpcode::InvalidSession:
 		{
-			bool CanResume = JsonObject->GetBoolField(TEXT("d"));
-			HandleInvalidSession(CanResume);
+			if (JsonObject->HasField(TEXT("d")))
+			{
+				bool CanResume = JsonObject->GetBoolField(TEXT("d"));
+				HandleInvalidSession(CanResume);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Missing 'd' field in INVALID_SESSION, assuming cannot resume"));
+				HandleInvalidSession(false);
+			}
 		}
 		break;
 
@@ -212,6 +269,18 @@ void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonOb
 
 void UDiscordGateway::HandleHello(const TSharedPtr<FJsonObject>& Data)
 {
+	if (!Data.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Invalid Data object in HandleHello"));
+		return;
+	}
+	
+	if (!Data->HasField(TEXT("heartbeat_interval")))
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Missing heartbeat_interval field in HELLO"));
+		return;
+	}
+	
 	HeartbeatIntervalMs = Data->GetNumberField(TEXT("heartbeat_interval"));
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Received HELLO, heartbeat interval: %.0f ms"), HeartbeatIntervalMs);
 
@@ -225,6 +294,18 @@ void UDiscordGateway::HandleHello(const TSharedPtr<FJsonObject>& Data)
 
 void UDiscordGateway::HandleReady(const TSharedPtr<FJsonObject>& Data)
 {
+	if (!Data.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Invalid Data object in HandleReady"));
+		return;
+	}
+	
+	if (!Data->HasField(TEXT("session_id")))
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Missing session_id field in READY"));
+		return;
+	}
+	
 	SessionId = Data->GetStringField(TEXT("session_id"));
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: READY received, Session ID: %s"), *SessionId);
 

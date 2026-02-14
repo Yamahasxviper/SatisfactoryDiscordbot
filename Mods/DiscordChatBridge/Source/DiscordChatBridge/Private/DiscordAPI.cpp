@@ -282,12 +282,43 @@ void UDiscordAPI::OnPollMessagesResponse(FHttpRequestPtr Request, FHttpResponseP
 			continue;
 		}
 
+		// Validate required fields
+		if (!MessageObj->HasField(TEXT("id")))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Message missing 'id' field, skipping"));
+			continue;
+		}
+		
 		FString MessageId = MessageObj->GetStringField(TEXT("id"));
+		
+		if (!MessageObj->HasField(TEXT("content")))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Message missing 'content' field, skipping"));
+			continue;
+		}
+		
 		FString Content = MessageObj->GetStringField(TEXT("content"));
 		
 		// Check if message is from a bot (ignore bot messages to prevent loops)
+		if (!MessageObj->HasField(TEXT("author")))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Message missing 'author' field, skipping"));
+			continue;
+		}
+		
 		TSharedPtr<FJsonObject> AuthorObj = MessageObj->GetObjectField(TEXT("author"));
-		if (AuthorObj.IsValid())
+		if (!AuthorObj.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Invalid author object, skipping message"));
+			continue;
+		}
+		
+		// Check if 'bot' field exists
+		if (!AuthorObj->HasField(TEXT("bot")))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Author missing 'bot' field, assuming not a bot"));
+		}
+		else
 		{
 			bool bIsBot = AuthorObj->GetBoolField(TEXT("bot"));
 			if (bIsBot)
@@ -296,17 +327,24 @@ void UDiscordAPI::OnPollMessagesResponse(FHttpRequestPtr Request, FHttpResponseP
 				LastMessageId = MessageId;
 				continue;
 			}
+		}
 
-			FString Username = AuthorObj->GetStringField(TEXT("username"));
-			
-			// Update the last message ID
-			LastMessageId = MessageId;
+		// Check if 'username' field exists
+		if (!AuthorObj->HasField(TEXT("username")))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Author missing 'username' field, skipping message"));
+			continue;
+		}
+		
+		FString Username = AuthorObj->GetStringField(TEXT("username"));
+		
+		// Update the last message ID
+		LastMessageId = MessageId;
 
-			// Call the delegate
-			if (!Content.IsEmpty() && OnMessageReceived.IsBound())
-			{
-				OnMessageReceived.Execute(Username, Content);
-			}
+		// Call the delegate
+		if (!Content.IsEmpty() && OnMessageReceived.IsBound())
+		{
+			OnMessageReceived.Execute(Username, Content);
 		}
 	}
 }
