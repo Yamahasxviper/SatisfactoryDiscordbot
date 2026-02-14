@@ -156,7 +156,7 @@ public:
 	 * @param station		The station the train should find a path to.
 	 * @param filter		Filter to use for the path evaluation, this contains parameters that affect the path chosen.
 	 *
-	 * @return Result of the pathfinding; Status code indicate if a path was found or not or if an error occured, e.g. bad params.
+	 * @return Result of the pathfinding; Status code indicate if a path was found or not or if an error occurred, e.g. bad params.
 	 */
 	static FRailroadPathFindingResult FindPathSync(
 		AFGLocomotive* locomotive,

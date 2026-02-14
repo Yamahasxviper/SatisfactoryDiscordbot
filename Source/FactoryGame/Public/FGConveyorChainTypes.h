@@ -142,7 +142,7 @@ struct FACTORYGAME_API FConveyorItemRemovalItems
 	UPROPERTY()
 	int32 CurrentRemovalIndex = 0;
 
-	// Used by client when they recieve a removal update to track from where they need to apply removals up to the currentRemovalIndex
+	// Used by client when they receive a removal update to track from where they need to apply removals up to the currentRemovalIndex
 	UPROPERTY()
 	int32 LastRemovalIndex = 0;
 	
@@ -215,7 +215,7 @@ struct FACTORYGAME_API FConveyorItemAdditionItems
 	UPROPERTY()
 	int32 CurrentAdditionIndex = 0;
 
-	// Used by client when they recieve an addition update to track from where they need to apply additions up to the CurrentAdditionIndex
+	// Used by client when they receive an addition update to track from where they need to apply additions up to the CurrentAdditionIndex
 	UPROPERTY()
 	int32 LastAdditionIndex = 0;
 	

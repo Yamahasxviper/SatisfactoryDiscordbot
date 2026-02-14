@@ -6,7 +6,7 @@
 
 #include "CoreMinimal.h"
 
-/** Status code for sucessful websocket closure */
+/** Status code for successful websocket closure */
 #define UE_WEBSOCKET_CLOSE_NORMAL_CLOSURE 1000
 /** Status code for application-failure websocket closure */
 #define UE_WEBSOCKET_CLOSE_APP_FAILURE 1006

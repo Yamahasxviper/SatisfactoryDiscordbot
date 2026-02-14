@@ -12,42 +12,42 @@ public:
 	/**
 	 * Log that an WinHttpWebSocketCompleteUpgrade call failed with the specified ErrorCode
 	 *
-	 * @param ErrorCode The error that occured
+	 * @param ErrorCode The error that occurred
 	 */
 	static void LogWinHttpWebSocketCompleteUpgradeFailure(const uint32 ErrorCode);
 
 	/**
 	 * Log that an WinHttpWebSocketReceive call failed with the specified ErrorCode
 	 *
-	 * @param ErrorCode The error that occured
+	 * @param ErrorCode The error that occurred
 	 */
 	static void LogWinHttpWebSocketReceiveFailure(const uint32 ErrorCode);
 
 	/**
 	 * Log that an WinHttpWebSocketSend call failed with the specified ErrorCode
 	 *
-	 * @param ErrorCode The error that occured
+	 * @param ErrorCode The error that occurred
 	 */
 	static void LogWinHttpWebSocketSendFailure(const uint32 ErrorCode);
 
 	/**
 	 * Log that an WinHttpWebSocketClose call failed with the specified ErrorCode
 	 *
-	 * @param ErrorCode The error that occured
+	 * @param ErrorCode The error that occurred
 	 */
 	static void LogWinHttpWebSocketCloseFailure(const uint32 ErrorCode);
 
 	/**
 	 * Log that an WinHttpWebSocketShutdown call failed with the specified ErrorCode
 	 *
-	 * @param ErrorCode The error that occured
+	 * @param ErrorCode The error that occurred
 	 */
 	static void LogWinHttpWebSocketShutdownFailure(const uint32 ErrorCode);
 
 	/**
 	 * Log that an WinHttpWebSocketQueryCloseStatus call failed with the specified ErrorCode
 	 *
-	 * @param ErrorCode The error that occured
+	 * @param ErrorCode The error that occurred
 	 */
 	static void LogWinHttpWebSocketQueryCloseStatusFailure(const uint32 ErrorCode);
 

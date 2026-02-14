@@ -496,7 +496,7 @@ public:
 	UPROPERTY( Replicated )
 	TArray< UFGLightweightCustomizationBundle* > mPendingCustomizationBundle;
 	
-	// Removals that were sent BEFORE client ever recieved the full bundle state
+	// Removals that were sent BEFORE client ever received the full bundle state
 	TMap< TSubclassOf< AFGBuildable >, TArray< int32 > > mRemovalsPendingIntialRep; 
 
 	// When the server sends a block of data this is incremented. We only want to allow a select number of sends to avoid a reliable buffer overflow

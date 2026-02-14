@@ -143,7 +143,7 @@ struct FFGPendingConnectionEncryptionData
 // Don't pass the error here, as we want the user to specify how it want to handle the error itself (peek or get)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnNewError );
 
-/** Delegate when a network error has occured, like mismatching version, timeouts and so on */
+/** Delegate when a network error has occurred, like mismatching version, timeouts and so on */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnNetworkErrorRecieved, ENetworkFailure::Type, errorType, FString, errorMsg );
 
 class UFGLocalPersistenceStore;

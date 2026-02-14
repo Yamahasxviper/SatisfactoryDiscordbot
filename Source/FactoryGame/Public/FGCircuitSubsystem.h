@@ -231,15 +231,15 @@ public:
 	FOnPowerPrioritySwitchAdded mOnPowerPrioritySwitchAddedDelegate;
 
 	/**
-	 * Called when structural changes occured in the circuits. Server and Client.
+	 * Called when structural changes occurred in the circuits. Server and Client.
 	 * This can happen for example when a wire is added or removed.
 	 * If this is triggered then OnCircuitGroupsRebuilt will also be triggered, but not the other way around.
 	 */
 	UPROPERTY( BlueprintAssignable, Category = "Circuit" )
 	FOnStructuralChange mOnCircuitsRebuiltDelegate;
 	/**
-	 * Called when structural changes occured in the circuit groups. Server and Client.
-	 * Called when structural changes occured in the circuit groups. Server and Client.
+	 * Called when structural changes occurred in the circuit groups. Server and Client.
+	 * Called when structural changes occurred in the circuit groups. Server and Client.
 	 * This can happen when a circuit is rebuilt or when a switch is flipped.
 	 */
 	UPROPERTY( BlueprintAssignable, Category = "Circuit" )

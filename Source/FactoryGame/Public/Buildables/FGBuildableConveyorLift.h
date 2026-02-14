@@ -142,7 +142,7 @@ public:
 
 	virtual void BuildStaticItemInstances() override;
 
-	/** Overrided as conveyor lifts lack primitives so they never recieve this otherwise */
+	/** Overrided as conveyor lifts lack primitives so they never receive this otherwise */
 	virtual float GetLastRenderTime() const override;
 
 	// Setup the connection locations
