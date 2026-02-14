@@ -441,6 +441,19 @@ This mod is built using the Satisfactory Mod Loader (SML) framework.
 2. Place this mod in the `Mods/` directory
 3. Build the project using Unreal Engine with the SML project
 
+**Build Requirements:**
+
+This mod requires the **WebSockets** plugin, which is a built-in Unreal Engine plugin. If you encounter build errors about WebSockets being missing:
+
+- See the main repository's [BUILD_REQUIREMENTS.md](../../BUILD_REQUIREMENTS.md) for detailed information
+- The WebSockets plugin must be present in your Unreal Engine installation (it builds with the engine, not with this project)
+- For local development, ensure you're using UE 5.3.2-CSS or a compatible version that includes WebSockets
+- For automated builds, the CI workflow handles this automatically
+
+**WebSockets Dependency:**
+
+For technical details about how and why WebSockets is configured, see [DEPENDENCY_EXPLANATION.md](DEPENDENCY_EXPLANATION.md).
+
 ### File Structure
 
 ```
