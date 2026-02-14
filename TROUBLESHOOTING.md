@@ -63,7 +63,7 @@ If you prefer to build from the command line instead of through the Unreal Edito
 **Windows:**
 ```powershell
 # Navigate to project directory
-cd C:\Path\To\SatisfactoryDiscordbot
+cd C:\Path\To\SatisfactoryModLoader
 
 # Build the editor target
 & "C:\Path\To\UE_5.3.2-CSS\Engine\Build\BatchFiles\Build.bat" FactoryEditor Win64 Development -project="$PWD\FactoryGame.uproject"
@@ -72,7 +72,7 @@ cd C:\Path\To\SatisfactoryDiscordbot
 **Linux:**
 ```bash
 # Navigate to project directory
-cd /path/to/SatisfactoryDiscordbot
+cd /path/to/SatisfactoryModLoader
 
 # Build the editor target
 /path/to/UE_5.3.2-CSS/Engine/Build/BatchFiles/Linux/Build.sh FactoryEditor Linux Development -project="$(pwd)/FactoryGame.uproject"
