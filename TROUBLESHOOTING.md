@@ -4,13 +4,25 @@ Quick solutions to common build and setup issues.
 
 ## Build Errors
 
-### "Unable to find plugin 'WebSockets'"
+### "Unable to find plugin 'WebSockets'" or "Would you like to disable it and continue?"
 
 **Error Message:**
+```
+This project requires the 'WebSockets' plugin, which could not be found.
+Would you like to disable it and continue?
+```
+OR
 ```
 Unable to find plugin 'WebSockets' (referenced via FactoryGame.uproject). 
 Install it and try again, or remove it from the required plugin list.
 ```
+
+**What this means:**
+
+WebSockets is marked as **optional** in the project configuration. This means:
+- ✅ **You can safely click "Yes" to disable it and continue** - The project will open normally
+- ⚠️ The Discord Chat Bridge mod will not load without WebSockets
+- ✅ All other mods and base game functionality will work fine
 
 **Solution:**
 
@@ -18,9 +30,18 @@ This error means the WebSockets plugin is not found in your Unreal Engine instal
 
 **Quick Fixes:**
 
-1. **For CI/Automated Builds:** This should not happen if using the official workflow. The workflow downloads UE 5.3.2-CSS which includes WebSockets.
+**Option 1: Continue without WebSockets (Recommended for most users)**
+   - Click "Yes" when prompted to disable WebSockets and continue
+   - The project will open successfully
+   - All mods except Discord Chat Bridge will work
+   - If you need Discord Chat Bridge later, follow Option 2 or 3
 
-2. **For Local Development:**
+**Option 2: For CI/Automated Builds:**
+   - This should not happen if using the official workflow
+   - The workflow downloads UE 5.3.2-CSS which includes WebSockets
+   - No action needed if using the standard CI workflow
+
+**Option 3: For Local Development (if you need Discord Chat Bridge):**
    
    a. Verify you're using **Unreal Engine 5.3.2-CSS** (the Coffee Stain Studios custom build)
    

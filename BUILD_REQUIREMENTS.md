@@ -16,9 +16,15 @@ The following Unreal Engine plugins must be present in your engine installation:
 
 #### WebSockets Plugin
 
-**Status**: ✅ Required (Built-in Engine Plugin)
+**Status**: ⚠️ Optional (Built-in Engine Plugin)
 
 The WebSockets plugin is a standard Unreal Engine plugin that provides WebSocket client functionality. It is used by the Discord Chat Bridge mod for Discord Gateway connections.
+
+**The plugin is marked as optional in FactoryGame.uproject**, which means:
+- ✅ The project will open successfully even if WebSockets is not found
+- ✅ All mods that don't use WebSockets will work normally
+- ⚠️ The Discord Chat Bridge mod will only load if WebSockets is available
+- ⚠️ If WebSockets is missing, Discord Gateway features (bot presence) will not work
 
 **When does WebSockets build?**
 
@@ -30,10 +36,15 @@ The WebSockets plugin builds as part of the Unreal Engine itself, **not** as par
 
 **Configuration in this project:**
 
-- ✅ **FactoryGame.uproject** (lines 81-83): Enables WebSockets at project level
+- ✅ **FactoryGame.uproject** (lines 81-84): Enables WebSockets at project level as **optional**
 - ✅ **DiscordChatBridge.uplugin** (lines 45-47): Declares WebSockets dependency for the mod
 - ✅ **DiscordChatBridge.Build.cs** (line 26): Links the module against WebSockets
 - ❌ **FactoryGame.Build.cs**: Does NOT include WebSockets (correctly - only mods use it)
+
+**Making WebSockets optional means:**
+- The project will open without errors even if WebSockets is not found
+- Mods that require WebSockets (like DiscordChatBridge) will fail to load gracefully
+- Users without the correct UE build can still work on other mods
 
 **Troubleshooting "Unable to find plugin 'WebSockets'" error:**
 
