@@ -166,6 +166,13 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	{
 		Host = HostAndPort.Left(ColonIndex);
 		Port = FCString::Atoi(*HostAndPort.RightChop(ColonIndex + 1));
+		
+		// Validate port range
+		if (Port < 1 || Port > 65535)
+		{
+			UE_LOG(LogWebSocketNetworking, Error, TEXT("Invalid port number: %d. Using default port."), Port);
+			Port = bIsSecure ? 443 : 80;
+		}
 	}
 	else
 	{
@@ -183,9 +190,20 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	Protocols = new lws_protocols[3];
 	FMemory::Memzero(Protocols, sizeof(lws_protocols) * 3);
 
-	// Use provided protocol or default to empty for generic WebSocket
-	const char* ProtocolName = Protocol.IsEmpty() ? "" : TCHAR_TO_ANSI(*Protocol);
-	Protocols[0].name = ProtocolName;
+	// Store protocol name in member variable to ensure lifetime
+	if (!Protocol.IsEmpty())
+	{
+		auto ProtocolAnsi = StringCast<ANSICHAR>(*Protocol);
+		int32 ProtocolLen = FCStringAnsi::Strlen(ProtocolAnsi.Get()) + 1;
+		ProtocolNameStorage.SetNum(ProtocolLen);
+		FCStringAnsi::Strcpy(ProtocolNameStorage.GetData(), ProtocolLen, ProtocolAnsi.Get());
+		Protocols[0].name = ProtocolNameStorage.GetData();
+	}
+	else
+	{
+		Protocols[0].name = "";
+	}
+	
 	Protocols[0].callback = unreal_networking_client;
 	Protocols[0].per_session_data_size = 0;
 	Protocols[0].rx_buffer_size = 10 * 1024 * 1024;
