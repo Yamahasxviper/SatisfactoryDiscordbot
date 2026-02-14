@@ -12,28 +12,98 @@ Unable to find plugin 'WebSockets' (referenced via FactoryGame.uproject).
 Install it and try again, or remove it from the required plugin list.
 ```
 
-**Solution:**
+**What this error means:**
 
-This error means the WebSockets plugin is not found in your Unreal Engine installation. WebSockets is a built-in engine plugin that should be present.
+This error means the WebSockets plugin cannot be found in your Unreal Engine installation. This is **NOT** a problem with this project - it's an issue with your Unreal Engine setup.
 
-**Quick Fixes:**
+**❓ "Where do I download WebSockets?"**
 
-1. **For CI/Automated Builds:** This should not happen if using the official workflow. The workflow downloads UE 5.3.2-CSS which includes WebSockets.
+**You don't!** WebSockets is a built-in Unreal Engine plugin that comes with the engine installation. There is no separate download.
 
-2. **For Local Development:**
+**Solution Steps:**
+
+#### Step 1: Verify Your Unreal Engine Installation
+
+Check if WebSockets exists in your engine:
+
+**Windows:**
+```cmd
+dir "C:\Program Files\Epic Games\UE_5.3\Engine\Plugins\Runtime\WebSockets"
+REM Or wherever your UE is installed
+```
+
+**Linux/Mac:**
+```bash
+ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
+# or
+ls "<UE_ROOT>/Engine/Plugins/Experimental/WebSockets/"
+```
+
+**If the directory exists:** Go to Step 3 (plugin exists but isn't being detected)
+
+**If the directory doesn't exist:** Continue to Step 2 (plugin is missing from engine)
+
+#### Step 2: Fix Missing WebSockets Plugin
+
+If WebSockets is missing from your engine, your UE installation is incomplete. Choose one of these solutions:
+
+**Option A: Install UE 5.3.2-CSS (Recommended for this project)**
+- The Coffee Stain Studios custom build includes all required plugins
+- Follow the setup guide in [Satisfactory Modding Documentation](https://docs.ficsit.app/)
+- **For CI builds:** No action needed - the workflow handles this automatically
+- **For local development:** You'll need access to the `satisfactorymodding/UnrealEngine` repository
+
+**Option B: Install/Repair Standard UE 5.3.2**
+- Open Epic Games Launcher
+- Go to Library > Engine Versions
+- If UE 5.3.2 is installed: Click the three dots and select "Verify" to repair
+- If not installed: Install UE 5.3.2 from the launcher
+- WebSockets should be included by default in standard UE installations
+- ⚠️ Note: Some CSS-specific features may not work with standard UE
+
+**Option C: Build UE from Source**
+- Clone the UE 5.3.2 source code
+- Build the engine (WebSockets will compile automatically as part of engine build)
+- WebSockets is located in `Engine/Plugins/Runtime/WebSockets/` in the source
+
+#### Step 3: Fix Plugin Detection Issues
+
+If WebSockets exists but still getting the error:
+
+1. **Clean and regenerate project files:**
+   ```bash
+   # Delete generated files
+   rm -rf Intermediate/ Saved/ *.sln *.vcxproj* .vs/
    
-   a. Verify you're using **Unreal Engine 5.3.2-CSS** (the Coffee Stain Studios custom build)
-   
-   b. Check if WebSockets exists:
-      - Windows: `<UE_ROOT>\Engine\Plugins\Runtime\WebSockets\`
-      - Linux/Mac: `<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/`
-   
-   c. If missing, you need to:
-      - Use the official CSS UE build (recommended)
-      - Or use standard UE 5.3.2 from Epic (WebSockets should be included)
-      - Or build UE from source (WebSockets will compile automatically)
+   # Regenerate project files
+   # Right-click FactoryGame.uproject > "Generate Visual Studio project files"
+   # Or use: UnrealVersionSelector /projectfiles "FactoryGame.uproject"
+   ```
 
-**Detailed Information:** See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) for complete details about when and how WebSockets builds.
+2. **Verify the plugin is enabled in your engine:**
+   - Check that `WebSockets.uplugin` exists in the plugin directory
+   - The plugin should have `"Enabled": true` in the plugin descriptor
+
+3. **Check UnrealBuildTool can find the plugin:**
+   ```bash
+   # Clear UBT cache
+   rm -rf "%LOCALAPPDATA%\UnrealBuildTool"  # Windows
+   rm -rf ~/.local/share/UnrealBuildTool    # Linux
+   ```
+
+4. **Verify no path issues:**
+   - Ensure your engine path doesn't contain special characters
+   - Check that UE_ROOT environment variable (if set) points to correct location
+
+#### For CI/Automated Builds
+
+If you're seeing this error in CI:
+1. ✅ Ensure the workflow downloads the correct UE build
+2. ✅ Check that UE extraction completed successfully
+3. ✅ Verify engine registration step succeeded
+4. ✅ Look for earlier errors in the workflow logs
+
+The official CI workflow automatically downloads UE 5.3.2-CSS which includes WebSockets, so this error shouldn't occur in properly configured CI environments.
 
 ### "Cannot find Wwise plugin"
 

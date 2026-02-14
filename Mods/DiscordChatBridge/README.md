@@ -445,10 +445,12 @@ This mod is built using the Satisfactory Mod Loader (SML) framework.
 
 This mod requires the **WebSockets** plugin, which is a built-in Unreal Engine plugin. If you encounter build errors about WebSockets being missing:
 
-- See the main repository's [BUILD_REQUIREMENTS.md](../../BUILD_REQUIREMENTS.md) for detailed information
-- The WebSockets plugin must be present in your Unreal Engine installation (it builds with the engine, not with this project)
-- For local development, ensure you're using UE 5.3.2-CSS or a compatible version that includes WebSockets
-- For automated builds, the CI workflow handles this automatically
+- ℹ️ **WebSockets comes included with Unreal Engine** - there is no separate download
+- ✅ Install UE 5.3.2-CSS (recommended) or standard UE 5.3.2 from Epic Games Launcher
+- 📖 See the main repository's [BUILD_REQUIREMENTS.md](../../BUILD_REQUIREMENTS.md) FAQ section for detailed information
+- 🔧 For troubleshooting, see [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md)
+- 🏗️ The WebSockets plugin builds with the engine, not with this project
+- 🤖 For automated builds, the CI workflow handles this automatically
 
 **WebSockets Dependency:**
 

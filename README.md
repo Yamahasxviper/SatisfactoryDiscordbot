@@ -16,6 +16,14 @@ Learn how to set up and use this repo on the [modding documentation](https://doc
 
 For information about building this project, including engine requirements and plugin dependencies, see [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md).
 
+**📌 Important: WebSockets Plugin**
+
+The Discord Chat Bridge mod requires the **WebSockets** plugin. Good news: **WebSockets comes built into Unreal Engine** - you don't need to download it separately!
+
+- ✅ **WebSockets is included** in Unreal Engine 5.3.2-CSS (recommended) and standard UE 5.3.2
+- ✅ **No separate download needed** - just install Unreal Engine
+- ❓ Getting "Unable to find plugin" error? See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) FAQ section
+
 ### Troubleshooting
 
 Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.

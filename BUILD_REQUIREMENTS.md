@@ -2,6 +2,33 @@
 
 This document explains the requirements for building the Satisfactory Mod Loader and Discord Chat Bridge mod.
 
+## FAQ: Quick Answers
+
+### ❓ "Where can I download the WebSockets plugin?"
+
+**Short Answer:** You don't need to download WebSockets separately - it's already included in Unreal Engine!
+
+**The WebSockets plugin comes built into Unreal Engine** and is not a separate download. When you install or build Unreal Engine, WebSockets is automatically included.
+
+**What you need to do:**
+1. ✅ Install **Unreal Engine 5.3.2-CSS** (the Coffee Stain Studios custom build) - **RECOMMENDED**
+   - For CI builds: Handled automatically by the workflow
+   - For local development: Follow the [modding documentation](https://docs.ficsit.app/)
+   
+   **OR**
+   
+2. ✅ Install **Standard Unreal Engine 5.3.2** from Epic Games Launcher
+   - WebSockets is included by default
+   - Note: Some CSS-specific features may not work
+
+**That's it!** Once you have UE installed, WebSockets is ready to use. No additional downloads or plugins needed.
+
+### ❓ "Why am I getting 'Unable to find plugin WebSockets' error?"
+
+This error means your Unreal Engine installation is incomplete or corrupted. See the [Troubleshooting section](#troubleshooting-unable-to-find-plugin-websockets-error) below for solutions.
+
+---
+
 ## Unreal Engine Requirements
 
 ### Required Unreal Engine Version
