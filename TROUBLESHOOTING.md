@@ -145,6 +145,221 @@ rm -rf Intermediate/ Saved/ *.sln *.vcxproj*
 # Or use UnrealBuildTool to regenerate
 ```
 
+### Unreal Engine closes without errors (silent crash)
+
+**Problem:**
+
+The Unreal Engine editor suddenly closes with no error dialog, crash reporter, or warning message. This is often called a "silent crash" or "silent exit."
+
+**Common Causes:**
+
+1. **Out of Memory (OOM)** - Most common cause
+2. **Shader compilation issues** - Especially on first project open
+3. **Corrupted project files** - Bad assets or configuration
+4. **Plugin conflicts** - Incompatible or corrupted plugins
+5. **Graphics driver issues** - Outdated or unstable GPU drivers
+6. **Disk space exhausted** - Running out of space during compilation
+7. **Antivirus interference** - Antivirus blocking or quarantining files
+
+**Step-by-Step Troubleshooting:**
+
+#### 1. Check Crash Logs
+
+Even when UE closes "without errors", it usually writes crash logs. Check these locations:
+
+**Windows:**
+```
+%localappdata%\UnrealEngine\<VERSION>\Saved\Logs\
+%localappdata%\FactoryGame\Saved\Logs\
+<ProjectDir>\Saved\Logs\
+```
+
+**Linux:**
+```
+~/.config/Epic/UnrealEngine/<VERSION>/Saved/Logs/
+~/.config/Epic/FactoryGame/Saved/Logs/
+<ProjectDir>/Saved/Logs/
+```
+
+Look for the most recent `.log` file. Search for keywords:
+- `Error:`
+- `Fatal:`
+- `Assertion failed`
+- `Out of memory`
+- `Access violation`
+
+#### 2. Check System Resources
+
+**Memory:**
+- **Minimum:** 16GB RAM
+- **Recommended:** 32GB+ RAM for large projects
+- Monitor RAM usage in Task Manager/System Monitor while opening project
+
+**Disk Space:**
+- Ensure at least **50GB free** on drive containing:
+  - Project directory
+  - Temp directory (`%TEMP%` on Windows, `/tmp` on Linux)
+  - Derived Data Cache (`%localappdata%\UnrealEngine\Common\DerivedDataCache`)
+
+**Close unnecessary applications** before opening Unreal Engine.
+
+#### 3. Clean and Rebuild
+
+Try a clean rebuild of the project:
+
+```bash
+# Navigate to project directory
+cd /path/to/SatisfactoryModLoader
+
+# Delete all generated files
+rm -rf Intermediate/
+rm -rf Saved/
+rm -rf .vs/
+rm -rf *.sln
+rm -rf *.vcxproj*
+rm -rf DerivedDataCache/
+
+# Delete Derived Data Cache (safe to delete, will regenerate)
+# Windows:
+rm -rf "$env:LOCALAPPDATA\UnrealEngine\Common\DerivedDataCache"
+# Linux:
+rm -rf ~/.local/share/UnrealEngine/Common/DerivedDataCache
+
+# Rebuild from command line instead of editor
+# Windows:
+& "C:\Path\To\UE_5.3.2-CSS\Engine\Build\BatchFiles\Build.bat" FactoryEditor Win64 Development -project="$(pwd)\FactoryGame.uproject"
+# Linux:
+/path/to/UE_5.3.2-CSS/Engine/Build/BatchFiles/Linux/Build.sh FactoryEditor Linux Development -project="$(pwd)/FactoryGame.uproject"
+```
+
+#### 4. Check for Corrupted Files
+
+**Verify Project Integrity:**
+```bash
+# Check if .uproject file is valid JSON
+# Windows PowerShell:
+Get-Content FactoryGame.uproject | ConvertFrom-Json
+# Linux:
+python3 -m json.tool FactoryGame.uproject
+```
+
+**Check Plugin Integrity:**
+- Ensure Wwise plugin is properly extracted in `Plugins/Wwise/`
+- Verify all plugin `.uplugin` files are valid JSON
+- Check that plugin binaries exist if pre-compiled
+
+#### 5. Update Graphics Drivers
+
+Outdated or buggy graphics drivers can cause silent crashes:
+
+- **NVIDIA:** Download latest drivers from nvidia.com
+- **AMD:** Download latest drivers from amd.com
+- **Intel:** Update through Windows Update or intel.com
+
+After updating, restart your computer.
+
+#### 6. Disable Antivirus Temporarily
+
+Some antivirus software interferes with UE compilation:
+
+1. Temporarily disable antivirus
+2. Add exclusions for:
+   - Unreal Engine installation directory
+   - Project directory
+   - Visual Studio directory
+   - Temp directories
+
+#### 7. Check Windows Event Viewer (Windows Only)
+
+Windows Event Viewer might have additional information:
+
+1. Open Event Viewer (`eventvwr.msc`)
+2. Go to **Windows Logs → Application**
+3. Look for errors around the time UE crashed
+4. Check for entries from "UnrealEditor" or "Application Error"
+
+#### 8. Run Editor with Logging
+
+Start the editor from command line to see live output:
+
+**Windows:**
+```powershell
+& "C:\Path\To\UE_5.3.2-CSS\Engine\Binaries\Win64\UnrealEditor.exe" "$(pwd)\FactoryGame.uproject" -log -stdout
+```
+
+**Linux:**
+```bash
+/path/to/UE_5.3.2-CSS/Engine/Binaries/Linux/UnrealEditor "$(pwd)/FactoryGame.uproject" -log -stdout
+```
+
+Watch the console output for any errors or warnings before the crash.
+
+#### 9. Verify Engine Installation
+
+Ensure UE 5.3.2-CSS is correctly installed:
+
+```bash
+# Check if engine is registered
+# Windows:
+reg query "HKEY_CURRENT_USER\Software\Epic Games\Unreal Engine\Builds"
+# Linux:
+cat ~/.config/Epic/UnrealEngine/Install.ini
+```
+
+If engine registration is missing, re-run the registration script:
+- Windows: `<UE_ROOT>\SetupScripts\Register.bat`
+- Linux: `<UE_ROOT>/SetupScripts/Register.sh`
+
+#### 10. Check for Known Issues
+
+**Wwise-related crashes:**
+- Ensure Wwise plugin is version-compatible with UE 5.3.2
+- Try disabling Wwise temporarily to isolate the issue
+- Check that Wwise patches have been applied (see PreBuildSteps in .uproject)
+
+**Shader compilation crashes:**
+- First project open compiles thousands of shaders
+- Can take 30+ minutes and use significant RAM
+- If crashing during shader compilation, increase virtual memory/swap
+
+#### 11. Reduce Initial Load
+
+If crashing on project open, try:
+
+1. **Start with empty level:**
+   ```bash
+   UnrealEditor.exe FactoryGame.uproject -game -EmptyLevel
+   ```
+
+2. **Skip shader compilation:**
+   ```bash
+   UnrealEditor.exe FactoryGame.uproject -noshadercompile
+   ```
+   Note: This is temporary troubleshooting only
+
+3. **Disable plugins one by one:**
+   Edit `FactoryGame.uproject` and temporarily disable plugins to isolate conflicts
+
+**Quick Fixes Summary:**
+
+| Symptom | Likely Cause | Solution |
+|---------|--------------|----------|
+| Crashes after a few minutes | Out of memory | Close other apps, upgrade to 32GB RAM |
+| Crashes during shader compilation | Insufficient resources | Wait longer, increase virtual memory |
+| Crashes immediately on open | Corrupted files | Clean rebuild, verify integrity |
+| Crashes after recent changes | New code/asset issue | Revert recent changes, check logs |
+| Crashes on specific hardware | Driver issues | Update graphics drivers |
+| Crashes with antivirus warning | Antivirus blocking | Add exclusions |
+
+**Still Crashing?**
+
+If none of the above solutions work:
+
+1. **Check the crash logs** - They usually contain the answer
+2. **Ask in Discord** - [discord.gg/QzcG9nX](https://discord.gg/QzcG9nX)
+3. **Check Satisfactory Modding Docs** - [docs.ficsit.app](https://docs.ficsit.app/)
+4. **Verify hardware meets requirements** - UE5 is demanding!
+
 ## Discord Chat Bridge Issues
 
 ### Messages not sending/receiving
@@ -218,12 +433,15 @@ Still having issues? Here are additional resources:
 | Issue | Solution |
 |-------|----------|
 | "Modules are missing or built with a different engine version" | Click "Yes" to rebuild - this is normal! |
+| Unreal Engine closes without errors | Check crash logs, verify RAM (16GB+), clean rebuild |
 | WebSockets plugin missing | Use UE 5.3.2-CSS or ensure plugin is in engine |
 | Build files outdated | Delete Intermediate/, regenerate project |
 | Discord messages not working | Check bot token, channel ID, permissions |
 | Gateway not working | Enable Presence Intent, check WebSockets |
 | Wwise missing | CI downloads it automatically, or download manually |
 | Cannot build mod | Ensure SML is present and built first |
+| Editor crashes during shader compilation | Be patient (30+ min first time), increase RAM/swap |
+| Out of memory during build/open | Close other apps, upgrade to 32GB RAM |
 
 ## Tips
 
