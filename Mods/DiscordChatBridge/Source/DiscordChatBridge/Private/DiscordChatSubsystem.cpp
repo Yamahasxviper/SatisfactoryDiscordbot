@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Discord Chat Bridge Contributors
 
 #include "DiscordChatSubsystem.h"
+#include "ServerDefaultsConfigLoader.h"
 #include "FGChatManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Engine/World.h"
@@ -141,7 +142,22 @@ void ADiscordChatSubsystem::LoadConfiguration()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Loading configuration"));
 	
-	// Try to load from config file
+	// Try to load from ServerDefaults TXT format first (new system)
+	bool bLoadedFromTxt = FServerDefaultsConfigLoader::LoadFromServerDefaults(BotConfig);
+	if (bLoadedFromTxt)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded from ServerDefaults/DiscordChatBridge.txt"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
+			*BotConfig.ChannelId, BotConfig.PollIntervalSeconds, 
+			BotConfig.bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), 
+			BotConfig.bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), 
+			BotConfig.bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ServerDefaults TXT config not found, falling back to INI config"));
+	
+	// Fallback to INI format (legacy system)
 	FString ConfigSection = TEXT("/Script/DiscordChatBridge.DiscordChatSubsystem");
 	
 	if (GConfig)
