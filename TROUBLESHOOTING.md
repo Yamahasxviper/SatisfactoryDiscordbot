@@ -217,7 +217,7 @@ Still having issues? Here are additional resources:
 
 | Issue | Solution |
 |-------|----------|
-| Modules missing/different engine version | Click "Yes" to rebuild - this is normal! |
+| "Modules are missing or built with a different engine version" | Click "Yes" to rebuild - this is normal! |
 | WebSockets plugin missing | Use UE 5.3.2-CSS or ensure plugin is in engine |
 | Build files outdated | Delete Intermediate/, regenerate project |
 | Discord messages not working | Check bot token, channel ID, permissions |
