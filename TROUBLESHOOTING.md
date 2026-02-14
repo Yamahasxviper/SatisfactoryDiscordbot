@@ -29,7 +29,7 @@ Check if WebSockets exists in your engine:
 **Windows:**
 ```cmd
 dir "C:\Program Files\Epic Games\UE_5.3\Engine\Plugins\Runtime\WebSockets"
-REM Or wherever your UE is installed
+REM Replace UE_5.3 with your actual UE version and check your installation path
 ```
 
 **Linux/Mac:**
