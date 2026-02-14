@@ -36,7 +36,7 @@ The WebSockets plugin builds as part of the Unreal Engine itself, **not** as par
 
 **Configuration in this project:**
 
-- ✅ **FactoryGame.uproject** (lines 81-84): Enables WebSockets at project level as **optional**
+- ✅ **FactoryGame.uproject** (lines 80-84): Enables WebSockets at project level as **optional**
 - ✅ **DiscordChatBridge.uplugin** (lines 45-47): Declares WebSockets dependency for the mod
 - ✅ **DiscordChatBridge.Build.cs** (line 26): Links the module against WebSockets
 - ❌ **FactoryGame.Build.cs**: Does NOT include WebSockets (correctly - only mods use it)
