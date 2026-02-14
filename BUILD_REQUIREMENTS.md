@@ -43,7 +43,7 @@ The WebSockets plugin builds as part of the Unreal Engine itself, **not** as par
 
 **Troubleshooting "Unable to find plugin 'WebSockets'" error:**
 
-**Note:** As of the latest update, this build error should be resolved. The build system now automatically detects WebSockets availability. If you still encounter this error, it may indicate a different issue - please check your configuration and verify the build system changes are present.
+**Note:** As of the latest update, this specific build error is significantly less likely to occur due to automatic detection of WebSockets availability. While the changes address the primary cause (missing WebSockets plugin), errors may still occur in edge cases such as corrupted build files or misconfigured paths. If you encounter this error, verify the build system changes are present and check your build environment configuration.
 
 If you want to use the DiscordChatBridge mod with full Gateway/presence features, ensure the WebSockets plugin is present in your Unreal Engine installation:
 
