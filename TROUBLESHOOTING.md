@@ -65,6 +65,31 @@ rm -rf Intermediate/ Saved/ *.sln *.vcxproj*
 
 ## Discord Chat Bridge Issues
 
+### Server won't start or mod doesn't load
+
+**Symptoms:**
+- Server fails to start after installing the mod
+- Mod loads but doesn't work
+- Warning messages in server logs
+
+**Solution:**
+
+The mod requires configuration before it will function. If `BotToken` and `ChannelId` are not set in the configuration file, the mod will load but remain inactive.
+
+1. **Check server logs** for these messages:
+   - `"DiscordChatSubsystem: Initialized but not configured - mod will not be active"`
+   - `"DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set"`
+
+2. **Configure the mod:**
+   - Create/edit the configuration file (see config file location below)
+   - Set your `BotToken` (from Discord Developer Portal)
+   - Set your `ChannelId` (from Discord, with Developer Mode enabled)
+   - See [QUICKSTART.md](Mods/DiscordChatBridge/QUICKSTART.md) for detailed setup instructions
+
+3. **Restart the server** after configuration
+
+**Important:** The mod will NOT work without valid `BotToken` and `ChannelId`. The server will start successfully but the Discord bridge will be inactive until properly configured.
+
 ### Messages not sending/receiving
 
 **Checklist:**
