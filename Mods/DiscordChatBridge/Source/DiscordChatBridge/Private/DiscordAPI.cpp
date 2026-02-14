@@ -358,6 +358,15 @@ void UDiscordAPI::StopActivityUpdates()
 	}
 }
 
+void UDiscordAPI::Tick(float DeltaTime)
+{
+	// Tick the Gateway WebSocket if it exists
+	if (Gateway)
+	{
+		Gateway->Tick(DeltaTime);
+	}
+}
+
 void UDiscordAPI::UpdateBotActivity(int32 PlayerCount)
 {
 	if (!bIsInitialized || !BotConfig.bEnableBotActivity)

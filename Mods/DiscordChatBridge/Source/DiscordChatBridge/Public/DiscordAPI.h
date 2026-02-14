@@ -131,6 +131,9 @@ public:
 	/** Update bot activity status with player count */
 	void UpdateBotActivity(int32 PlayerCount);
 
+	/** Tick the API to update WebSocket connections */
+	void Tick(float DeltaTime);
+
 	/** Check if the API is initialized and ready */
 	bool IsInitialized() const { return bIsInitialized; }
 

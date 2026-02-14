@@ -128,6 +128,115 @@ FWebSocket::FWebSocket(
 #endif
 }
 
+// URL-based constructor
+FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
+	:IsServerSide(false)
+{
+#if USE_LIBWEBSOCKET
+
+	// Parse the URL to extract components
+	bool bIsSecure = Url.StartsWith(TEXT("wss://"));
+	FString UrlWithoutProtocol = Url;
+	if (bIsSecure)
+	{
+		UrlWithoutProtocol = Url.RightChop(6); // Remove "wss://"
+	}
+	else if (Url.StartsWith(TEXT("ws://")))
+	{
+		UrlWithoutProtocol = Url.RightChop(5); // Remove "ws://"
+	}
+
+	// Split into host/port and path
+	FString HostAndPort, Path;
+	if (!UrlWithoutProtocol.Split(TEXT("/"), &HostAndPort, &Path))
+	{
+		HostAndPort = UrlWithoutProtocol;
+		Path = TEXT("");
+	}
+	else
+	{
+		Path = TEXT("/") + Path;
+	}
+
+	// Split host and port
+	FString Host;
+	int32 Port;
+	int32 ColonIndex;
+	if (HostAndPort.FindChar(TEXT(':'), ColonIndex))
+	{
+		Host = HostAndPort.Left(ColonIndex);
+		Port = FCString::Atoi(*HostAndPort.RightChop(ColonIndex + 1));
+	}
+	else
+	{
+		Host = HostAndPort;
+		Port = bIsSecure ? 443 : 80;
+	}
+
+	UE_LOG(LogWebSocketNetworking, Log, TEXT("WebSocket connecting to: %s:%d%s (SSL: %d)"), *Host, Port, *Path, bIsSecure);
+
+#if !UE_BUILD_SHIPPING
+	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_DEBUG | LLL_INFO, lws_debugLogS);
+#endif
+
+	// Setup protocols
+	Protocols = new lws_protocols[3];
+	FMemory::Memzero(Protocols, sizeof(lws_protocols) * 3);
+
+	// Use provided protocol or default to empty for generic WebSocket
+	const char* ProtocolName = Protocol.IsEmpty() ? "" : TCHAR_TO_ANSI(*Protocol);
+	Protocols[0].name = ProtocolName;
+	Protocols[0].callback = unreal_networking_client;
+	Protocols[0].per_session_data_size = 0;
+	Protocols[0].rx_buffer_size = 10 * 1024 * 1024;
+
+	Protocols[1].name = nullptr;
+	Protocols[1].callback = nullptr;
+	Protocols[1].per_session_data_size = 0;
+
+	// Create context
+	struct lws_context_creation_info Info;
+	memset(&Info, 0, sizeof Info);
+
+	Info.port = CONTEXT_PORT_NO_LISTEN;
+	Info.protocols = &Protocols[0];
+	Info.gid = -1;
+	Info.uid = -1;
+	Info.user = this;
+	Info.options |= LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+	Info.options |= LWS_SERVER_OPTION_DISABLE_IPV6;
+
+	Context = lws_create_context(&Info);
+	check(Context);
+
+	// Connect to server
+	auto HostAnsi = StringCast<ANSICHAR>(*Host);
+	auto PathAnsi = StringCast<ANSICHAR>(*Path);
+	
+	struct lws_client_connect_info ConnectInfo;
+	memset(&ConnectInfo, 0, sizeof(ConnectInfo));
+	
+	ConnectInfo.context = Context;
+	ConnectInfo.address = HostAnsi.Get();
+	ConnectInfo.port = Port;
+	ConnectInfo.ssl_connection = bIsSecure ? LCCSCF_USE_SSL : 0;
+	ConnectInfo.path = PathAnsi.Get();
+	ConnectInfo.host = HostAnsi.Get();
+	ConnectInfo.origin = HostAnsi.Get();
+	ConnectInfo.protocol = Protocols[0].name;
+	ConnectInfo.pwsi = &Wsi;
+	ConnectInfo.userdata = this;
+	
+	Wsi = lws_client_connect_via_info(&ConnectInfo);
+	check(Wsi);
+
+	memset(&RemoteAddr, 0, sizeof(RemoteAddr));
+
+#else
+	UE_LOG(LogWebSocketNetworking, Error, TEXT("URL-based WebSocket connection not supported on HTML5"));
+#endif
+}
+
 #if USE_LIBWEBSOCKET
 FWebSocket::FWebSocket(WebSocketInternalContext* InContext, WebSocketInternal* InWsi)
 	: Context(InContext)

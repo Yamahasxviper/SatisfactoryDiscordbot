@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "IWebSocket.h"
+#include "INetworkingWebSocket.h"
 #include "DiscordGateway.generated.h"
 
 /**
@@ -63,6 +63,9 @@ public:
 	/** Disconnect from Discord Gateway */
 	void Disconnect();
 
+	/** Tick the WebSocket connection */
+	void Tick(float DeltaTime);
+
 	/** Update bot presence with activity */
 	void UpdatePresence(const FString& ActivityName, int32 ActivityType = 0);
 
@@ -78,7 +81,7 @@ public:
 
 private:
 	/** WebSocket connection */
-	TSharedPtr<IWebSocket> WebSocket;
+	TSharedPtr<INetworkingWebSocket> WebSocket;
 
 	/** Bot token for authentication */
 	FString BotToken;
@@ -106,9 +109,9 @@ private:
 
 	/** WebSocket event handlers */
 	void OnWebSocketConnected();
-	void OnWebSocketConnectionError(const FString& Error);
-	void OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean);
-	void OnWebSocketMessage(const FString& Message);
+	void OnWebSocketError();
+	void OnWebSocketClosed();
+	void OnWebSocketMessage(void* Data, int32 Size);
 
 	/** Gateway message handlers */
 	void HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonObject);

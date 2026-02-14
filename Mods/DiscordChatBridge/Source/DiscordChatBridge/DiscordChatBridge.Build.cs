@@ -23,7 +23,8 @@ public class DiscordChatBridge : ModuleRules
             "Json",
             "JsonUtilities",
             "HTTP",
-            "WebSockets",
+            "WebSocketNetworking",
+            "Sockets",
             "FactoryGame",
             "SML"
         });

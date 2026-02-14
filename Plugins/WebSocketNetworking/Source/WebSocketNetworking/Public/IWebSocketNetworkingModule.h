@@ -32,4 +32,13 @@ public:
 	 * @return A new WebSocket client connection, or nullptr if the connection couldn't be created.
 	 */
 	virtual TSharedPtr<INetworkingWebSocket> CreateConnection(const class FInternetAddr& ServerAddress) = 0;
+
+	/**
+	 * Create a WebSocket client connection from a URL.
+	 *
+	 * @param Url The WebSocket URL (ws:// or wss://)
+	 * @param Protocol Optional protocol to use
+	 * @return A new WebSocket client connection, or nullptr if the connection couldn't be created.
+	 */
+	virtual TSharedPtr<INetworkingWebSocket> CreateConnection(const FString& Url, const FString& Protocol = TEXT("")) = 0;
 };

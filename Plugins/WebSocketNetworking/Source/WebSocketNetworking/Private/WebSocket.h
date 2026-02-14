@@ -19,6 +19,9 @@ public:
 	// Initialize as client side socket.
 	FWebSocket(const FInternetAddr& ServerAddress);
 
+	// Initialize as client side socket from URL
+	FWebSocket(const FString& Url, const FString& Protocol);
+
 #if USE_LIBWEBSOCKET
 	// Initialize as server side socket.
 	FWebSocket(WebSocketInternalContext* InContext, WebSocketInternal* Wsi);

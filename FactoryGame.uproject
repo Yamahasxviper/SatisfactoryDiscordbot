@@ -82,6 +82,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "WebSocketNetworking",
+			"Enabled": true
+		},
+		{
 			"Name": "DTLSHandlerComponent",
 			"Enabled": true
 		},

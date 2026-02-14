@@ -122,6 +122,17 @@ void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void ADiscordChatSubsystem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	// Tick the Discord API which will tick the Gateway WebSocket if it exists
+	if (DiscordAPI)
+	{
+		DiscordAPI->Tick(DeltaTime);
+	}
+}
+
 void ADiscordChatSubsystem::LoadConfiguration()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Loading configuration"));

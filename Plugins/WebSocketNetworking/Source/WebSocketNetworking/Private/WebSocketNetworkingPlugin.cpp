@@ -30,6 +30,11 @@ public:
 		return MakeShared<FWebSocket>(ServerAddress);
 	}
 
+	TSharedPtr<INetworkingWebSocket> CreateConnection(const FString& Url, const FString& Protocol) override
+	{
+		return MakeShared<FWebSocket>(Url, Protocol);
+	}
+
 };
 
 IMPLEMENT_MODULE(FWebSocketNetworkingPlugin, WebSocketNetworking)
