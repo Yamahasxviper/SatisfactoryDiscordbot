@@ -54,7 +54,10 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
    - Windows: `%localappdata%/FactoryGame/Saved/Config/WindowsServer/DiscordChatBridge.ini`
    - Linux: `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini`
    
-   If the file doesn't exist, create it or copy from `Config/DefaultDiscordChatBridge.ini`
+   If the file doesn't exist, create it or copy from one of these template files:
+   - `Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini` (comprehensive template with all options)
+   - `Config/WindowsServer/DiscordChatBridge.ini` (project template for Windows servers)
+   - `Config/LinuxServer/DiscordChatBridge.ini` (project template for Linux servers)
 
 2. Edit the configuration file:
 
