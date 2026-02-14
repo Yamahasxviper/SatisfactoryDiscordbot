@@ -14,68 +14,56 @@ The custom UE build is automatically downloaded during CI builds from the `satis
 
 The following Unreal Engine plugins must be present in your engine installation:
 
-#### WebSockets Plugin
+#### WebSocketNetworking Plugin
 
-**Status**: ✅ Required (Built-in Engine Plugin)
+**Status**: ✅ Required (Project Plugin - Included in repository)
 
-The WebSockets plugin is a standard Unreal Engine plugin that provides WebSocket client functionality. It is used by the Discord Chat Bridge mod for Discord Gateway connections.
+The WebSocketNetworking plugin provides WebSocket client functionality using libwebsockets. It is used by the Discord Chat Bridge mod for Discord Gateway connections. This plugin is included in the project's `Plugins/` directory and has been enhanced to support:
+- URL-based WebSocket connections (ws:// and wss://)
+- SSL/TLS for secure connections
+- Custom protocol support
 
-**When does WebSockets build?**
+**When does WebSocketNetworking build?**
 
-The WebSockets plugin builds as part of the Unreal Engine itself, **not** as part of this project. Specifically:
+The WebSocketNetworking plugin builds as part of **this project**, not as part of the Unreal Engine itself. Specifically:
 
-1. **Engine Build Phase**: WebSockets is compiled when Unreal Engine is built/installed
-2. **Location**: The plugin resides in `Engine/Plugins/Experimental/WebSockets/` or `Engine/Plugins/Runtime/WebSockets/` depending on the UE version
-3. **Project Build Phase**: When building this project, Unreal Build Tool (UBT) links against the already-built WebSockets module
+1. **Project Build Phase**: WebSocketNetworking compiles when building this project
+2. **Location**: The plugin resides in `Plugins/WebSocketNetworking/`
+3. **Dependencies**: Requires OpenSSL, libWebSockets, and zlib (included in engine)
 
 **Configuration in this project:**
 
-- ✅ **FactoryGame.uproject** (lines 81-83): Enables WebSockets at project level
-- ✅ **DiscordChatBridge.uplugin** (lines 45-47): Declares WebSockets dependency for the mod
-- ✅ **DiscordChatBridge.Build.cs** (line 26): Links the module against WebSockets
-- ❌ **FactoryGame.Build.cs**: Does NOT include WebSockets (correctly - only mods use it)
+- ✅ **Plugins/WebSocketNetworking/**: Source code for the plugin
+- ✅ **FactoryGame.uproject** (Added): Enables WebSocketNetworking at project level
+- ✅ **DiscordChatBridge.uplugin**: Declares WebSocketNetworking dependency for the mod
+- ✅ **DiscordChatBridge.Build.cs**: Links the module against WebSocketNetworking and Sockets
+- ❌ **FactoryGame.Build.cs**: Does NOT include WebSocketNetworking (correctly - only mods use it)
 
-**Troubleshooting "Unable to find plugin 'WebSockets'" error:**
+**Troubleshooting "Unable to find plugin 'WebSocketNetworking'" error:**
 
-If you encounter this error, it means the WebSockets plugin is not present in your Unreal Engine installation:
+If you encounter this error, it means the WebSocketNetworking plugin is not being found in the project:
 
 **For CI/Automated Builds:**
-- The official CI workflow automatically downloads the correct UE build which includes WebSockets
-- No action needed if using the standard CI workflow
+- The plugin is included in the repository under `Plugins/WebSocketNetworking/`
+- Ensure the repository was cloned completely with all subdirectories
+- No additional setup needed if using the standard CI workflow
 
 **For Local Development:**
 
-1. **Check if WebSockets exists in your engine:**
+1. **Check if WebSocketNetworking exists in the project:**
    ```bash
-   # Check engine plugins directory
-   # Replace <UE_ROOT> with your engine installation path
-   ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
-   # or
-   ls "<UE_ROOT>/Engine/Plugins/Experimental/WebSockets/"
+   ls "Plugins/WebSocketNetworking/"
    ```
 
-2. **If WebSockets is missing from your engine:**
-   
-   Option A: **Use the official CSS Unreal Engine build** (Recommended)
-   - The CSS custom build includes all required plugins
-   - Download from `satisfactorymodding/UnrealEngine` repository (requires authentication)
-   - Follow the SML documentation for setting up the development environment
+2. **If WebSocketNetworking is missing:**
+   - The plugin should be in the repository
+   - Ensure you have cloned the repository completely
+   - Check that git didn't skip the Plugins directory
 
-   Option B: **Use a standard UE 5.3.2 build**
-   - WebSockets should be included by default in UE 5.3.2
-   - If missing, you may need to enable it via the Epic Games Launcher
-   - Note: Some CSS-specific features may not work with standard UE
-
-   Option C: **Build WebSockets from source**
-   - If you have UE source code, WebSockets should build automatically
-   - Located in `Engine/Plugins/Runtime/WebSockets/`
-   - Builds as part of the engine compile process
-
-3. **If WebSockets is present but still getting errors:**
-   - Ensure the plugin is enabled in your UE installation
-   - Check that UnrealBuildTool can find the plugin
-   - Verify no path issues in your engine installation
-   - Clean and regenerate project files: Delete `.sln` files and `Intermediate/` folder, then regenerate
+3. **If WebSocketNetworking is present but still getting errors:**
+   - Clean and regenerate project files: Delete `.sln` files and `Intermediate/` folder
+   - Regenerate project files using `GenerateProjectFiles.bat` (Windows) or `GenerateProjectFiles.sh` (Linux)
+   - Ensure OpenSSL and libWebSockets are available in your engine installation
 
 ## Other Required Plugins
 
@@ -99,6 +87,7 @@ In addition to WebSockets, this project requires several other plugins that are 
 - **Online/OnlineIntegration**: Online subsystem
 - **ReliableMessaging**: Network messaging
 - **SignificanceISPC**: ISPC-accelerated significance
+- **WebSocketNetworking**: WebSocket client with libwebsockets (enhanced for URL/SSL support)
 
 ### Third-Party Plugins
 - **Wwise**: Audio middleware (downloaded separately during build via B2 bucket)
@@ -110,53 +99,65 @@ The build happens in several phases:
 ### 1. **Engine Setup Phase**
    - Download and extract UE 5.3.2-CSS
    - Register engine installation
-   - **WebSockets is already built at this point** (part of engine)
+   - Engine includes required dependencies (OpenSSL, libWebSockets)
 
 ### 2. **Project Setup Phase**
    - Download Wwise plugin
    - Apply Wwise patches
-   - UBT scans for available plugins including WebSockets
+   - UBT scans for available plugins including WebSocketNetworking
 
 ### 3. **Module Build Phase**
    - Build FactoryGame modules
    - Build FactoryEditor modules
+   - Build project plugins (including WebSocketNetworking)
    - Build mod modules (including DiscordChatBridge)
-   - **DiscordChatBridge links against pre-built WebSockets module**
+   - **DiscordChatBridge links against WebSocketNetworking module**
 
 ### 4. **Packaging Phase**
    - Package mods for distribution
    - Create platform-specific builds (Win64, Linux)
 
-## WebSockets Usage in Discord Chat Bridge
+## WebSocketNetworking Usage in Discord Chat Bridge
 
-The WebSockets plugin is used exclusively by the **DiscordChatBridge mod** for:
+The WebSocketNetworking plugin is used exclusively by the **DiscordChatBridge mod** for:
 
 ### Discord Gateway Connection
 - Establishes WebSocket connection to `wss://gateway.discord.gg`
 - Maintains persistent connection for real-time bot presence updates
 - Sends heartbeats to keep connection alive
 - Handles reconnection logic
+- Uses SSL/TLS for secure communication
 
-### Files Using WebSockets
+### Files Using WebSocketNetworking
 - `Mods/DiscordChatBridge/Source/DiscordChatBridge/Public/DiscordGateway.h`
 - `Mods/DiscordChatBridge/Source/DiscordChatBridge/Private/DiscordGateway.cpp`
+- `Plugins/WebSocketNetworking/Source/WebSocketNetworking/` (Enhanced with URL/SSL support)
 
-### Why Gateway/WebSockets?
+### Why Gateway/WebSocketNetworking?
 The Discord Gateway allows the bot to have true presence status (shows "Playing with X players") instead of just posting messages to a channel. This is optional - the mod can work without Gateway mode using REST API only.
+
+### Enhancements Made
+The WebSocketNetworking plugin was enhanced to support:
+1. **URL-based connections**: Accepts full URLs (ws:// or wss://) instead of just IP addresses
+2. **SSL/TLS support**: Enabled secure WebSocket connections required by Discord
+3. **Protocol specification**: Allows specifying WebSocket sub-protocols
+4. **Manual ticking**: Integrated into game loop for proper message handling
 
 ## Summary
 
-**"At what point will the WebSocket build?"**
+**"At what point will the WebSocketNetworking build?"**
 
-The WebSocket plugin builds **during Unreal Engine compilation**, not during this project's build. When you build this project:
+The WebSocketNetworking plugin builds **during this project's compilation**, as a project plugin. When you build this project:
 
-1. ✅ UE 5.3.2-CSS must already be built/installed (includes WebSockets)
-2. ✅ This project references WebSockets in `.uproject` file
-3. ✅ DiscordChatBridge mod declares WebSockets dependency
-4. ✅ UBT links DiscordChatBridge against the existing WebSockets module
-5. ✅ Your code can now use WebSocket functionality
+1. ✅ UE 5.3.2-CSS must be installed (provides OpenSSL, libWebSockets dependencies)
+2. ✅ WebSocketNetworking plugin is in the `Plugins/` directory
+3. ✅ This project references WebSocketNetworking in `.uproject` file
+4. ✅ DiscordChatBridge mod declares WebSocketNetworking dependency
+5. ✅ UBT builds WebSocketNetworking plugin first
+6. ✅ UBT links DiscordChatBridge against WebSocketNetworking module
+7. ✅ Your code can now use enhanced WebSocket functionality with URL/SSL support
 
-**The WebSockets plugin is built once with the engine, then reused by any project that needs it.**
+**The WebSocketNetworking plugin builds as part of the project, providing enhanced WebSocket capabilities for the Discord integration.**
 
 ## Additional Resources
 
