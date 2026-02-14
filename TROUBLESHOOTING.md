@@ -18,7 +18,7 @@ cannot open input file '..\Intermediate\Build\Win64\x64\UnrealEditor\Development
 
 **Solution:**
 
-**Note:** As of the latest update, these errors should **no longer occur** during build. The DiscordChatBridge.Build.cs now automatically detects WebSockets availability and only includes it if present. If you still see these errors, please verify you have the latest code.
+**Note:** As of the latest update, these build errors should be resolved. The DiscordChatBridge.Build.cs now automatically detects WebSockets availability and only includes it if present. If you still encounter these errors, please verify you have the latest code and check for any configuration issues.
 
 **What Changed:**
 - WebSockets is marked as **optional** in `FactoryGame.uproject` and `DiscordChatBridge.uplugin`
