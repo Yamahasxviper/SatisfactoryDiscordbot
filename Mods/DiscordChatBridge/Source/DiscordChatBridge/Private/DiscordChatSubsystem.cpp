@@ -18,7 +18,7 @@ void ADiscordChatSubsystem::Init()
 {
 	Super::Init();
 	
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Initializing"));
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Initializing Discord Chat Bridge mod"));
 	
 	// Load configuration
 	LoadConfiguration();
@@ -29,12 +29,30 @@ void ADiscordChatSubsystem::Init()
 	{
 		DiscordAPI->Initialize(BotConfig);
 		DiscordAPI->OnMessageReceived.BindUObject(this, &ADiscordChatSubsystem::OnDiscordMessageReceived);
+		
+		// Log initialization status
+		if (DiscordAPI->IsInitialized())
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Successfully initialized with valid configuration"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Initialized but not configured - mod will not be active"));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: To use this mod, configure BotToken and ChannelId in DiscordChatBridge.ini"));
+		}
 	}
 }
 
 void ADiscordChatSubsystem::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// Early exit if Discord API is not initialized (missing configuration)
+	if (!DiscordAPI || !DiscordAPI->IsInitialized())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: BeginPlay called but mod is not configured - skipping initialization"));
+		return;
+	}
 	
 	// Get reference to chat manager
 	ChatManager = AFGChatManager::Get(GetWorld());
@@ -51,36 +69,33 @@ void ADiscordChatSubsystem::BeginPlay()
 	}
 	
 	// Start polling Discord for messages
-	if (DiscordAPI && DiscordAPI->IsInitialized())
+	DiscordAPI->StartPolling();
+	
+	// Send server start notification if enabled
+	if (BotConfig.bEnableServerNotifications)
 	{
-		DiscordAPI->StartPolling();
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Sending server start notification"));
+		DiscordAPI->SendNotification(BotConfig.ServerStartMessage);
+	}
+	
+	// Start bot activity updates if enabled
+	if (BotConfig.bEnableBotActivity)
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Starting bot activity updates"));
+		DiscordAPI->StartActivityUpdates();
 		
-		// Send server start notification if enabled
-		if (BotConfig.bEnableServerNotifications)
+		// Set up timer to periodically update activity
+		UWorld* World = GetWorld();
+		if (World)
 		{
-			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Sending server start notification"));
-			DiscordAPI->SendNotification(BotConfig.ServerStartMessage);
-		}
-		
-		// Start bot activity updates if enabled
-		if (BotConfig.bEnableBotActivity)
-		{
-			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Starting bot activity updates"));
-			DiscordAPI->StartActivityUpdates();
-			
-			// Set up timer to periodically update activity
-			UWorld* World = GetWorld();
-			if (World)
-			{
-				World->GetTimerManager().SetTimer(
-					ActivityTimerHandle,
-					this,
-					&ADiscordChatSubsystem::UpdateBotActivity,
-					BotConfig.ActivityUpdateIntervalSeconds,
-					true,
-					0.0f  // Start immediately
-				);
-			}
+			World->GetTimerManager().SetTimer(
+				ActivityTimerHandle,
+				this,
+				&ADiscordChatSubsystem::UpdateBotActivity,
+				BotConfig.ActivityUpdateIntervalSeconds,
+				true,
+				0.0f  // Start immediately
+			);
 		}
 	}
 }
@@ -232,7 +247,13 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Configuration incomplete - please set BotToken and ChannelId in Config/DefaultDiscordChatBridge.ini"));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set in DiscordChatBridge.ini"));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: The mod will load but remain inactive until configured. See QUICKSTART.md for setup instructions."));
+			
+			// Ensure all feature flags are disabled when configuration is incomplete
+			BotConfig.bEnableServerNotifications = false;
+			BotConfig.bEnableBotActivity = false;
+			BotConfig.bUseGatewayForPresence = false;
 		}
 	}
 }
