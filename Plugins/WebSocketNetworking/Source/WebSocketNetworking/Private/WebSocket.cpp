@@ -139,11 +139,11 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	FString UrlWithoutProtocol = Url;
 	if (bIsSecure)
 	{
-		UrlWithoutProtocol = Url.RightChop(6); // Remove "wss://"
+		UrlWithoutProtocol = Url.RightChop(FCString::Strlen(TEXT("wss://"))); // Remove "wss://"
 	}
 	else if (Url.StartsWith(TEXT("ws://")))
 	{
-		UrlWithoutProtocol = Url.RightChop(5); // Remove "ws://"
+		UrlWithoutProtocol = Url.RightChop(FCString::Strlen(TEXT("ws://"))); // Remove "ws://"
 	}
 
 	// Split into host/port and path
@@ -237,7 +237,7 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	Info.options |= LWS_SERVER_OPTION_DISABLE_IPV6;
 
 	Context = lws_create_context(&Info);
-	checkf(Context, TEXT("Failed to create libwebsockets context. Check OpenSSL and libWebSockets are available."));
+	checkf(Context, TEXT("Failed to create libwebsockets context. Check OpenSSL and libwebsockets are available."));
 
 	// Store host and path strings in member variables to ensure lifetime
 	TStringConversion<TStringConvert<TCHAR, ANSICHAR>> HostConv(*Host);
