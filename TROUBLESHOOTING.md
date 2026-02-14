@@ -169,14 +169,14 @@ Even when UE closes "without errors", it usually writes crash logs. Check these 
 
 **Windows:**
 ```
-%localappdata%\UnrealEngine\<VERSION>\Saved\Logs\
+%localappdata%\UnrealEngine\5.3\Saved\Logs\
 %localappdata%\FactoryGame\Saved\Logs\
 <ProjectDir>\Saved\Logs\
 ```
 
 **Linux:**
 ```
-~/.config/Epic/UnrealEngine/<VERSION>/Saved/Logs/
+~/.config/Epic/UnrealEngine/5.3/Saved/Logs/
 ~/.config/Epic/FactoryGame/Saved/Logs/
 <ProjectDir>/Saved/Logs/
 ```
@@ -207,6 +207,27 @@ Look for the most recent `.log` file. Search for keywords:
 
 Try a clean rebuild of the project:
 
+**Windows (PowerShell):**
+```powershell
+# Navigate to project directory
+cd C:\Path\To\SatisfactoryModLoader
+
+# Delete all generated files
+Remove-Item -Recurse -Force Intermediate/
+Remove-Item -Recurse -Force Saved/
+Remove-Item -Recurse -Force .vs/
+Remove-Item -Force *.sln
+Remove-Item -Force *.vcxproj*
+Remove-Item -Recurse -Force DerivedDataCache/ -ErrorAction SilentlyContinue
+
+# Delete Derived Data Cache (safe to delete, will regenerate)
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\UnrealEngine\Common\DerivedDataCache" -ErrorAction SilentlyContinue
+
+# Rebuild from command line instead of editor
+& "C:\Path\To\UE_5.3.2-CSS\Engine\Build\BatchFiles\Build.bat" FactoryEditor Win64 Development -project="$PWD\FactoryGame.uproject"
+```
+
+**Linux (Bash):**
 ```bash
 # Navigate to project directory
 cd /path/to/SatisfactoryModLoader
@@ -220,26 +241,25 @@ rm -rf *.vcxproj*
 rm -rf DerivedDataCache/
 
 # Delete Derived Data Cache (safe to delete, will regenerate)
-# Windows:
-rm -rf "$env:LOCALAPPDATA\UnrealEngine\Common\DerivedDataCache"
-# Linux:
 rm -rf ~/.local/share/UnrealEngine/Common/DerivedDataCache
 
 # Rebuild from command line instead of editor
-# Windows:
-& "C:\Path\To\UE_5.3.2-CSS\Engine\Build\BatchFiles\Build.bat" FactoryEditor Win64 Development -project="$(pwd)\FactoryGame.uproject"
-# Linux:
 /path/to/UE_5.3.2-CSS/Engine/Build/BatchFiles/Linux/Build.sh FactoryEditor Linux Development -project="$(pwd)/FactoryGame.uproject"
 ```
 
 #### 4. Check for Corrupted Files
 
 **Verify Project Integrity:**
+
+**Windows (PowerShell):**
+```powershell
+# Check if .uproject file is valid JSON
+Get-Content FactoryGame.uproject | ConvertFrom-Json
+```
+
+**Linux (Bash):**
 ```bash
 # Check if .uproject file is valid JSON
-# Windows PowerShell:
-Get-Content FactoryGame.uproject | ConvertFrom-Json
-# Linux:
 python3 -m json.tool FactoryGame.uproject
 ```
 
@@ -282,14 +302,14 @@ Windows Event Viewer might have additional information:
 
 Start the editor from command line to see live output:
 
-**Windows:**
+**Windows (PowerShell):**
 ```powershell
-& "C:\Path\To\UE_5.3.2-CSS\Engine\Binaries\Win64\UnrealEditor.exe" "$(pwd)\FactoryGame.uproject" -log -stdout
+& "C:\Path\To\UE_5.3.2-CSS\Engine\Binaries\Win64\UnrealEditor.exe" "C:\Path\To\SatisfactoryModLoader\FactoryGame.uproject" -log -stdout
 ```
 
-**Linux:**
+**Linux (Bash):**
 ```bash
-/path/to/UE_5.3.2-CSS/Engine/Binaries/Linux/UnrealEditor "$(pwd)/FactoryGame.uproject" -log -stdout
+/path/to/UE_5.3.2-CSS/Engine/Binaries/Linux/UnrealEditor "/path/to/SatisfactoryModLoader/FactoryGame.uproject" -log -stdout
 ```
 
 Watch the console output for any errors or warnings before the crash.
@@ -298,11 +318,13 @@ Watch the console output for any errors or warnings before the crash.
 
 Ensure UE 5.3.2-CSS is correctly installed:
 
-```bash
-# Check if engine is registered
-# Windows:
+**Windows (Command Prompt):**
+```cmd
 reg query "HKEY_CURRENT_USER\Software\Epic Games\Unreal Engine\Builds"
-# Linux:
+```
+
+**Linux (Bash):**
+```bash
 cat ~/.config/Epic/UnrealEngine/Install.ini
 ```
 
