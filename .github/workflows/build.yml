@@ -90,14 +90,14 @@ jobs:
         run: .\\ue\\Engine\\Build\\BatchFiles\\Build.bat WebSockets Win64 Development
 
       - name: Build for Development Editor
-        run: .\\ue\\Engine\\Build\\BatchFiles\\Build.bat FactoryEditor Win64 Development -project="C:\\SML\\SML\\FactoryGame.uproject"
+        run: .\\ue\\Engine\\Build\\BatchFiles\\Build.bat FactoryEditor Win64 Development -project="C:\\SML\\FactoryGame.uproject"
 
       - name: Package SML Mod
-        run: .\\ue\\Engine\\Build\\BatchFiles\\RunUAT.bat -ScriptsForProject="C:\\SML\\SML\\FactoryGame.uproject" PackagePlugin -Project="C:\\SML\\SML\\FactoryGame.uproject" -dlcname=SML -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
+        run: .\\ue\\Engine\\Build\\BatchFiles\\RunUAT.bat -ScriptsForProject="C:\\SML\\FactoryGame.uproject" PackagePlugin -Project="C:\\SML\\FactoryGame.uproject" -dlcname=SML -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
 
       - name: Archive SML artifact
         uses: actions/upload-artifact@v4
         if: ${{ github.event_name == 'push' }}
         with:
           name: sml
-          path: C:\\SML\\SML\\Saved\\ArchivedPlugins\\SML\\*.zip
+          path: C:\\SML\\Saved\\ArchivedPlugins\\SML\\*.zip
