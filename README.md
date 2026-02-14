@@ -21,7 +21,7 @@ For information about building this project, including engine requirements and p
 Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
 
 **Common build errors:**
-- "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- "Unable to find plugin 'WebSockets'" → You can safely click "Yes" to disable it. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for details.
 
 ## Discord Chat Bridge Mod
 
@@ -32,6 +32,8 @@ This repository includes the **Discord Chat Bridge** mod, which provides two-way
 - Uses Discord Bot Token (no webhooks required)
 - Configurable through INI file
 - Server-side only (no client installation required)
+
+**Note:** This mod requires the WebSockets plugin for Discord Gateway features. If WebSockets is not available, the mod will not load, but all other mods will work normally.
 
 ### Quick Links
 - [Mod README](Mods/DiscordChatBridge/README.md)
