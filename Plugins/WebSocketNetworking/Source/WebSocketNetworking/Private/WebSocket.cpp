@@ -165,13 +165,24 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	if (HostAndPort.FindChar(TEXT(':'), ColonIndex))
 	{
 		Host = HostAndPort.Left(ColonIndex);
-		Port = FCString::Atoi(*HostAndPort.RightChop(ColonIndex + 1));
+		FString PortStr = HostAndPort.RightChop(ColonIndex + 1);
 		
-		// Validate port range
-		if (Port < 1 || Port > 65535)
+		// Check if port string is numeric
+		if (!PortStr.IsNumeric())
 		{
-			UE_LOG(LogWebSocketNetworking, Error, TEXT("Invalid port number: %d. Using default port."), Port);
+			UE_LOG(LogWebSocketNetworking, Error, TEXT("Invalid port string '%s' in URL. Using default port."), *PortStr);
 			Port = bIsSecure ? 443 : 80;
+		}
+		else
+		{
+			Port = FCString::Atoi(*PortStr);
+			
+			// Validate port range
+			if (Port < 1 || Port > 65535)
+			{
+				UE_LOG(LogWebSocketNetworking, Error, TEXT("Port number %d out of valid range (1-65535). Using default port."), Port);
+				Port = bIsSecure ? 443 : 80;
+			}
 		}
 	}
 	else
@@ -226,7 +237,7 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	Info.options |= LWS_SERVER_OPTION_DISABLE_IPV6;
 
 	Context = lws_create_context(&Info);
-	check(Context);
+	checkf(Context, TEXT("Failed to create libwebsockets context. Check OpenSSL and libWebSockets are available."));
 
 	// Store host and path strings in member variables to ensure lifetime
 	TStringConversion<TStringConvert<TCHAR, ANSICHAR>> HostConv(*Host);
@@ -256,7 +267,7 @@ FWebSocket::FWebSocket(const FString& Url, const FString& Protocol)
 	ConnectInfo.userdata = this;
 	
 	Wsi = lws_client_connect_via_info(&ConnectInfo);
-	check(Wsi);
+	checkf(Wsi, TEXT("Failed to create WebSocket connection to %s:%d%s"), *Host, Port, *Path);
 
 	memset(&RemoteAddr, 0, sizeof(RemoteAddr));
 
