@@ -26,16 +26,16 @@ This error means the WebSockets plugin cannot be found in your Unreal Engine ins
 
 Check if WebSockets exists in your engine:
 
-**Windows:**
-```cmd
+**Windows (Command Prompt):**
+```batch
 dir "C:\Program Files\Epic Games\UE_5.3.2\Engine\Plugins\Runtime\WebSockets"
-REM Replace UE_5.3.2 with your actual UE version and check your installation path
+REM Adjust the path to match your actual UE installation location
 ```
 
 **Linux/Mac:**
 ```bash
-# Replace <UE_ROOT> with your UE installation path, e.g., /home/user/UnrealEngine-5.3.2
-ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
+# Adjust the path to match your UE installation location
+ls "/home/user/UnrealEngine-5.3.2/Engine/Plugins/Runtime/WebSockets/"
 ```
 
 **Note:** In older UE versions, WebSockets may be in `Engine/Plugins/Experimental/WebSockets/`. For UE 5.3.2, it should be in the `Runtime` directory.
