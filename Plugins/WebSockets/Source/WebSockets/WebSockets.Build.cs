@@ -84,6 +84,8 @@ public class WebSockets : ModuleRules
 
 	public WebSockets(ReadOnlyTargetRules Target) : base(Target)
 	{
+		PrivatePCHHeaderFile = "Public/WebSocketsModule.h";
+		
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
