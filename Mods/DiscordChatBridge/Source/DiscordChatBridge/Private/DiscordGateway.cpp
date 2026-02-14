@@ -44,7 +44,7 @@ void UDiscordGateway::Connect()
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway..."));
 	ConnectionState = EGatewayConnectionState::Connecting;
 
-	// Create WebSocket connection
+	// Create WebSocket connection using built-in WebSockets module
 	WebSocket = FWebSocketsModule::Get().CreateWebSocket(GATEWAY_URL, TEXT(""));
 
 	// Bind event handlers

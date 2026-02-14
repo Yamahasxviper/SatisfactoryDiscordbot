@@ -1,14 +1,30 @@
 # WebSockets Dependency Explanation
 
-## Question: Does FactoryGame.Build.cs need the WebSockets dependency?
+## Question: Why use the built-in WebSockets module?
 
-**Answer: NO** - The WebSockets dependency does NOT need to be added to `FactoryGame.Build.cs`.
+**Answer:** The mod uses the **built-in WebSockets module** from Unreal Engine instead of the custom WebSocketNetworking plugin.
 
-## Why Not?
+## Why Built-in WebSockets?
 
-### 1. WebSockets is Already Properly Configured
+### 1. Stability and Maintenance
 
-The WebSockets dependency is correctly configured in three places:
+The built-in WebSockets module is:
+- Maintained and tested by Epic Games
+- Well-integrated with Unreal Engine
+- Widely used in production projects
+- Automatically updated with engine updates
+
+### 2. Simpler API
+
+The built-in WebSockets module provides:
+- Delegate-based event system (simpler than callbacks)
+- Automatic connection management
+- Built-in ticking (no manual tick required)
+- String-based message handling (easier for JSON)
+
+### 3. WebSockets Configuration
+
+The WebSockets dependency is properly configured in three places:
 
 #### a) Project Level - `FactoryGame.uproject`
 ```json
@@ -38,7 +54,7 @@ PublicDependencyModuleNames.AddRange(new string[] {
 ```
 This tells Unreal Build Tool that the DiscordChatBridge module needs to link against the WebSockets module.
 
-### 2. FactoryGame Doesn't Use WebSockets
+### 4. FactoryGame Doesn't Use WebSockets
 
 The FactoryGame module itself does not use any WebSockets functionality:
 - No `#include "IWebSocket.h"` or similar includes
@@ -47,7 +63,7 @@ The FactoryGame module itself does not use any WebSockets functionality:
 
 Only the **DiscordChatBridge mod** uses WebSockets for the Discord Gateway connection.
 
-### 3. Proper Dependency Isolation
+### 5. Proper Dependency Isolation
 
 In Unreal Engine modding:
 - The **base game module** (FactoryGame) should only include dependencies it directly uses
@@ -61,9 +77,10 @@ The DiscordChatBridge mod uses WebSockets for:
 1. **Discord Gateway Connection** - Real-time communication with Discord
    - File: `DiscordGateway.h` and `DiscordGateway.cpp`
    - Purpose: Maintain persistent WebSocket connection for bot presence updates
+   - Uses built-in SSL/TLS support for secure WSS connections
 
 2. **Bot Presence Status** - Shows "Playing with X players" in Discord
-   - Uses WebSocket to send presence updates
+   - Uses WebSocket to send presence updates via Gateway API
    - Alternative: REST API polling (when Gateway is disabled)
 
 ## Build Configuration Summary
@@ -91,12 +108,25 @@ Source/
             └── WebSockets ✗ Not needed (correctly excluded)
 ```
 
+## Advantages of Built-in WebSockets
+
+1. **Simpler API**
+   - Delegate-based callbacks (OnConnected, OnMessage, OnClosed, OnConnectionError)
+   - Automatic message handling (no manual tick required)
+   - String-based messaging (perfect for JSON)
+
+2. **Better Integration**
+   - Works seamlessly with Unreal Engine's event system
+   - Automatic connection lifecycle management
+   - Built-in error handling and reconnection support
+
+3. **Production Ready**
+   - Used in many shipped Unreal Engine titles
+   - Thoroughly tested by Epic Games
+   - Regular updates and bug fixes
+
 ## Conclusion
 
-The WebSockets dependency is **already correctly configured** where it's needed. Adding it to `FactoryGame.Build.cs` would be:
+The WebSockets dependency is **correctly configured** for use by the DiscordChatBridge mod. The built-in module provides stable, well-tested WebSocket functionality for Discord's Gateway API.
 
-1. ❌ **Unnecessary** - FactoryGame doesn't use WebSockets
-2. ❌ **Against best practices** - Pollutes the base game module with unused dependencies
-3. ❌ **Incorrect architecture** - Breaks dependency isolation between game and mods
-
-**The current configuration is correct and requires no changes.**
+**The current configuration uses the industry-standard, production-ready WebSockets module from Unreal Engine.**

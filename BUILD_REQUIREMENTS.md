@@ -25,14 +25,14 @@ The WebSockets plugin is a standard Unreal Engine plugin that provides WebSocket
 The WebSockets plugin builds as part of the Unreal Engine itself, **not** as part of this project. Specifically:
 
 1. **Engine Build Phase**: WebSockets is compiled when Unreal Engine is built/installed
-2. **Location**: The plugin resides in `Engine/Plugins/Experimental/WebSockets/` or `Engine/Plugins/Runtime/WebSockets/` depending on the UE version
+2. **Location**: The plugin resides in `Engine/Plugins/Runtime/WebSockets/` or `Engine/Plugins/Experimental/WebSockets/` depending on the UE version
 3. **Project Build Phase**: When building this project, Unreal Build Tool (UBT) links against the already-built WebSockets module
 
 **Configuration in this project:**
 
-- ✅ **FactoryGame.uproject** (lines 81-83): Enables WebSockets at project level
-- ✅ **DiscordChatBridge.uplugin** (lines 45-47): Declares WebSockets dependency for the mod
-- ✅ **DiscordChatBridge.Build.cs** (line 26): Links the module against WebSockets
+- ✅ **FactoryGame.uproject**: Enables WebSockets at project level
+- ✅ **DiscordChatBridge.uplugin**: Declares WebSockets dependency for the mod
+- ✅ **DiscordChatBridge.Build.cs**: Links the module against WebSockets
 - ❌ **FactoryGame.Build.cs**: Does NOT include WebSockets (correctly - only mods use it)
 
 **Troubleshooting "Unable to find plugin 'WebSockets'" error:**
@@ -120,6 +120,7 @@ The build happens in several phases:
 ### 3. **Module Build Phase**
    - Build FactoryGame modules
    - Build FactoryEditor modules
+   - Build project plugins
    - Build mod modules (including DiscordChatBridge)
    - **DiscordChatBridge links against pre-built WebSockets module**
 
@@ -136,6 +137,7 @@ The WebSockets plugin is used exclusively by the **DiscordChatBridge mod** for:
 - Maintains persistent connection for real-time bot presence updates
 - Sends heartbeats to keep connection alive
 - Handles reconnection logic
+- Uses SSL/TLS for secure communication
 
 ### Files Using WebSockets
 - `Mods/DiscordChatBridge/Source/DiscordChatBridge/Public/DiscordGateway.h`
@@ -146,9 +148,9 @@ The Discord Gateway allows the bot to have true presence status (shows "Playing 
 
 ## Summary
 
-**"At what point will the WebSocket build?"**
+**"At what point will the WebSockets build?"**
 
-The WebSocket plugin builds **during Unreal Engine compilation**, not during this project's build. When you build this project:
+The WebSockets plugin builds **during Unreal Engine compilation**, not during this project's build. When you build this project:
 
 1. ✅ UE 5.3.2-CSS must already be built/installed (includes WebSockets)
 2. ✅ This project references WebSockets in `.uproject` file
