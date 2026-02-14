@@ -12,6 +12,17 @@ It also serves as the Unreal project used for developing mods.
 
 Learn how to set up and use this repo on the [modding documentation](https://docs.ficsit.app/).
 
+### Build Requirements
+
+For information about building this project, including engine requirements and plugin dependencies, see [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md).
+
+### Troubleshooting
+
+Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
+
+**Common build errors:**
+- "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
 ## Discord Chat Bridge Mod
 
 This repository includes the **Discord Chat Bridge** mod, which provides two-way chat integration between Satisfactory in-game chat and Discord.
