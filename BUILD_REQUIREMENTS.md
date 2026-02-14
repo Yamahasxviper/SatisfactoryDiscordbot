@@ -25,7 +25,7 @@ This document explains the requirements for building the Satisfactory Mod Loader
 
 ### ❓ "Why am I getting 'Unable to find plugin WebSockets' error?"
 
-This error means your Unreal Engine installation is incomplete or corrupted. See the [Troubleshooting section](#unable-to-find-plugin-websockets) below for solutions.
+This error means your Unreal Engine installation is incomplete or corrupted. See the [TROUBLESHOOTING.md guide](TROUBLESHOOTING.md#unable-to-find-plugin-websockets) for solutions.
 
 ---
 

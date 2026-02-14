@@ -35,9 +35,9 @@ REM Or wherever your UE is installed
 **Linux/Mac:**
 ```bash
 ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
-# or
-ls "<UE_ROOT>/Engine/Plugins/Experimental/WebSockets/"
 ```
+
+**Note:** In older UE versions, WebSockets may be in `Engine/Plugins/Experimental/WebSockets/`. For UE 5.3.2, it should be in the `Runtime` directory.
 
 **If the directory exists:** Go to Step 3 (plugin exists but isn't being detected)
 
