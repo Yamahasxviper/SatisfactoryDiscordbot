@@ -84,7 +84,7 @@ jobs:
           7z x -aoa Wwise.7z -oSML\\Plugins\\
           rm Wwise.7z
 
-      - name: Build Network Modules
+      - name: Build WebSockets Module  
         run: .\\ue\\Engine\\Build\\BatchFiles\\Build.bat WebSockets Win64 Development
 
       - name: Build for Development Editor
