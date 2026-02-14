@@ -16,7 +16,12 @@ Learn how to set up and use this repo on the [modding documentation](https://doc
 
 For information about building this project, including engine requirements and plugin dependencies, see [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md).
 
-**Troubleshooting build errors?** Check the build requirements document for solutions to common issues like "Unable to find plugin 'WebSockets'".
+### Troubleshooting
+
+Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
+
+**Common build errors:**
+- "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## Discord Chat Bridge Mod
 
