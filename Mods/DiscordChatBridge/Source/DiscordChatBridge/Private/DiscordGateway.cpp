@@ -1,13 +1,12 @@
 // Copyright (c) 2024 Discord Chat Bridge Contributors
 
 #include "DiscordGateway.h"
-#include "IWebSocketNetworkingModule.h"
-#include "INetworkingWebSocket.h"
+#include "WebSocketsModule.h"
+#include "IWebSocket.h"
 #include "Json.h"
 #include "JsonUtilities.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
-#include "Modules/ModuleManager.h"
 
 UDiscordGateway::UDiscordGateway()
 	: LastSequenceNumber(-1)
@@ -45,46 +44,30 @@ void UDiscordGateway::Connect()
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway..."));
 	ConnectionState = EGatewayConnectionState::Connecting;
 
-	// Create WebSocket connection using WebSocketNetworking module
-	IWebSocketNetworkingModule& WebSocketModule = FModuleManager::LoadModuleChecked<IWebSocketNetworkingModule>(TEXT("WebSocketNetworking"));
-	WebSocket = WebSocketModule.CreateConnection(GATEWAY_URL, TEXT(""));
+	// Create WebSocket connection using built-in WebSockets module
+	WebSocket = FWebSocketsModule::Get().CreateWebSocket(GATEWAY_URL, TEXT(""));
 
-	if (!WebSocket.IsValid())
-	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Failed to create WebSocket"));
-		ConnectionState = EGatewayConnectionState::Disconnected;
-		return;
-	}
+	// Bind event handlers
+	WebSocket->OnConnected().AddUObject(this, &UDiscordGateway::OnWebSocketConnected);
+	WebSocket->OnConnectionError().AddUObject(this, &UDiscordGateway::OnWebSocketConnectionError);
+	WebSocket->OnClosed().AddUObject(this, &UDiscordGateway::OnWebSocketClosed);
+	WebSocket->OnMessage().AddUObject(this, &UDiscordGateway::OnWebSocketMessage);
 
-	// Bind event handlers using the new callback API
-	WebSocket->SetConnectedCallBack(FWebSocketInfoCallBack::CreateUObject(this, &UDiscordGateway::OnWebSocketConnected));
-	WebSocket->SetErrorCallBack(FWebSocketInfoCallBack::CreateUObject(this, &UDiscordGateway::OnWebSocketError));
-	WebSocket->SetSocketClosedCallBack(FWebSocketInfoCallBack::CreateUObject(this, &UDiscordGateway::OnWebSocketClosed));
-	WebSocket->SetReceiveCallBack(FWebSocketPacketReceivedCallBack::CreateUObject(this, &UDiscordGateway::OnWebSocketMessage));
-
-	// Note: WebSocketNetworking connects automatically in constructor
-	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSocket created, connection initiated"));
+	// Connect
+	WebSocket->Connect();
 }
 
 void UDiscordGateway::Disconnect()
 {
-	if (WebSocket.IsValid())
+	if (WebSocket.IsValid() && WebSocket->IsConnected())
 	{
 		UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Disconnecting..."));
-		// WebSocketNetworking doesn't have explicit Close method, we reset the shared pointer
-		WebSocket.Reset();
+		WebSocket->Close();
 	}
 
 	StopHeartbeat();
 	ConnectionState = EGatewayConnectionState::Disconnected;
-}
-
-void UDiscordGateway::Tick(float DeltaTime)
-{
-	if (WebSocket.IsValid())
-	{
-		WebSocket->Tick();
-	}
+	WebSocket.Reset();
 }
 
 void UDiscordGateway::UpdatePresence(const FString& ActivityName, int32 ActivityType)
@@ -103,40 +86,33 @@ void UDiscordGateway::OnWebSocketConnected()
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSocket connected, waiting for HELLO..."));
 }
 
-void UDiscordGateway::OnWebSocketError()
+void UDiscordGateway::OnWebSocketConnectionError(const FString& Error)
 {
-	UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Connection error"));
+	UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Connection error: %s"), *Error);
 	ConnectionState = EGatewayConnectionState::Disconnected;
 	
 	if (OnDisconnected.IsBound())
 	{
-		OnDisconnected.Execute(TEXT("Connection error"));
+		OnDisconnected.Execute(Error);
 	}
 }
 
-void UDiscordGateway::OnWebSocketClosed()
+void UDiscordGateway::OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean)
 {
-	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Connection closed"));
+	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Connection closed - Code: %d, Reason: %s, Clean: %d"), 
+		StatusCode, *Reason, bWasClean);
 	
 	StopHeartbeat();
 	ConnectionState = EGatewayConnectionState::Disconnected;
 
 	if (OnDisconnected.IsBound())
 	{
-		OnDisconnected.Execute(TEXT("Connection closed"));
+		OnDisconnected.Execute(Reason);
 	}
 }
 
-void UDiscordGateway::OnWebSocketMessage(void* Data, int32 Size)
+void UDiscordGateway::OnWebSocketMessage(const FString& Message)
 {
-	// Convert binary data to string
-	TArray<uint8> BinaryData;
-	BinaryData.Append(static_cast<uint8*>(Data), Size);
-	
-	// Convert to string - Discord Gateway uses JSON text messages
-	FString Message;
-	Message.AppendChars(reinterpret_cast<const ANSICHAR*>(BinaryData.GetData()), BinaryData.Num());
-	
 	// Parse JSON message
 	TSharedPtr<FJsonObject> JsonObject;
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Message);
@@ -374,7 +350,7 @@ void UDiscordGateway::SendResume()
 
 void UDiscordGateway::SendPayload(const TSharedPtr<FJsonObject>& Payload)
 {
-	if (!WebSocket.IsValid() || ConnectionState == EGatewayConnectionState::Disconnected)
+	if (!WebSocket.IsValid() || !WebSocket->IsConnected())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Cannot send payload - not connected"));
 		return;
@@ -385,12 +361,7 @@ void UDiscordGateway::SendPayload(const TSharedPtr<FJsonObject>& Payload)
 	
 	if (FJsonSerializer::Serialize(Payload.ToSharedRef(), Writer))
 	{
-		// Convert string to UTF-8 bytes for WebSocketNetworking
-		FTCHARToUTF8 UTF8String(*JsonString);
-		WebSocket->Send(reinterpret_cast<const uint8*>(UTF8String.Get()), UTF8String.Length(), false);
-		
-		// WebSocketNetworking needs to be ticked to actually send
-		WebSocket->Tick();
+		WebSocket->Send(JsonString);
 	}
 	else
 	{

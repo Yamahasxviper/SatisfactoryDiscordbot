@@ -1,75 +1,83 @@
-# WebSocketNetworking Dependency Explanation
+# WebSockets Dependency Explanation
 
-## Question: Why use WebSocketNetworking instead of WebSockets?
+## Question: Why use the built-in WebSockets module?
 
-**Answer:** The mod now uses the **WebSocketNetworking** plugin from the Plugins folder instead of the built-in WebSockets module.
+**Answer:** The mod uses the **built-in WebSockets module** from Unreal Engine instead of the custom WebSocketNetworking plugin.
 
-## Why WebSocketNetworking?
+## Why Built-in WebSockets?
 
-### 1. Local Plugin Control
+### 1. Stability and Maintenance
 
-The WebSocketNetworking plugin is available in the project's Plugins folder:
-- Allows for local modifications and customizations
-- Provides access to libwebsockets for advanced features
-- Can be version controlled with the project
+The built-in WebSockets module is:
+- Maintained and tested by Epic Games
+- Well-integrated with Unreal Engine
+- Widely used in production projects
+- Automatically updated with engine updates
 
-### 2. WebSocketNetworking Configuration
+### 2. Simpler API
 
-The WebSocketNetworking dependency is properly configured in three places:
+The built-in WebSockets module provides:
+- Delegate-based event system (simpler than callbacks)
+- Automatic connection management
+- Built-in ticking (no manual tick required)
+- String-based message handling (easier for JSON)
+
+### 3. WebSockets Configuration
+
+The WebSockets dependency is properly configured in three places:
 
 #### a) Project Level - `FactoryGame.uproject`
 ```json
 {
-    "Name": "WebSocketNetworking",
+    "Name": "WebSockets",
     "Enabled": true
 }
 ```
-This enables the WebSocketNetworking plugin for the entire Unreal Engine project.
+This enables the WebSockets plugin for the entire Unreal Engine project.
 
 #### b) Mod Plugin Level - `DiscordChatBridge.uplugin`
 ```json
 {
-    "Name": "WebSocketNetworking",
+    "Name": "WebSockets",
     "Enabled": true
 }
 ```
-This declares that the DiscordChatBridge mod requires the WebSocketNetworking plugin.
+This declares that the DiscordChatBridge mod requires the WebSockets plugin.
 
 #### c) Mod Module Level - `DiscordChatBridge.Build.cs`
 ```csharp
 PublicDependencyModuleNames.AddRange(new string[] {
     // ... other dependencies ...
-    "WebSocketNetworking",
-    "Sockets",
+    "WebSockets",
     // ... more dependencies ...
 });
 ```
-This tells Unreal Build Tool that the DiscordChatBridge module needs to link against the WebSocketNetworking module.
+This tells Unreal Build Tool that the DiscordChatBridge module needs to link against the WebSockets module.
 
-### 3. FactoryGame Doesn't Use WebSocketNetworking
+### 4. FactoryGame Doesn't Use WebSockets
 
-The FactoryGame module itself does not use any WebSocketNetworking functionality:
-- No `#include "INetworkingWebSocket.h"` or similar includes
-- No `IWebSocketNetworkingModule::Get()` calls
+The FactoryGame module itself does not use any WebSockets functionality:
+- No `#include "IWebSocket.h"` or similar includes
+- No `FWebSocketsModule::Get()` calls
 - No WebSocket-related code
 
-Only the **DiscordChatBridge mod** uses WebSocketNetworking for the Discord Gateway connection.
+Only the **DiscordChatBridge mod** uses WebSockets for the Discord Gateway connection.
 
-### 4. Proper Dependency Isolation
+### 5. Proper Dependency Isolation
 
 In Unreal Engine modding:
 - The **base game module** (FactoryGame) should only include dependencies it directly uses
 - **Mods** (like DiscordChatBridge) declare their own dependencies independently
 - This keeps dependencies clean and prevents unnecessary coupling
 
-## How WebSocketNetworking is Used
+## How WebSockets is Used
 
-The DiscordChatBridge mod uses WebSocketNetworking for:
+The DiscordChatBridge mod uses WebSockets for:
 
 1. **Discord Gateway Connection** - Real-time communication with Discord
    - File: `DiscordGateway.h` and `DiscordGateway.cpp`
    - Purpose: Maintain persistent WebSocket connection for bot presence updates
-   - Uses SSL/TLS support for secure WSS connections
+   - Uses built-in SSL/TLS support for secure WSS connections
 
 2. **Bot Presence Status** - Shows "Playing with X players" in Discord
    - Uses WebSocket to send presence updates via Gateway API
@@ -80,50 +88,46 @@ The DiscordChatBridge mod uses WebSocketNetworking for:
 ```
 FactoryGame.uproject
 └── Plugins (Project-level)
-    ├── WebSockets ✓ Enabled (for other uses)
-    ├── WebSocketNetworking ✓ Enabled
+    ├── WebSockets ✓ Enabled
+    ├── WebSocketNetworking ✓ Available (not used by DiscordChatBridge)
     └── ... other plugins
-
-Plugins/
-└── WebSocketNetworking/
-    └── Custom URL and SSL support added
 
 Mods/
 └── DiscordChatBridge/
     ├── DiscordChatBridge.uplugin
     │   └── Plugins (Mod-level)
-    │       └── WebSocketNetworking ✓ Declared
+    │       └── WebSockets ✓ Declared
     └── Source/DiscordChatBridge/
         └── DiscordChatBridge.Build.cs
             └── PublicDependencyModuleNames
-                └── "WebSocketNetworking" ✓ Included
-                └── "Sockets" ✓ Included
+                └── "WebSockets" ✓ Included
 
 Source/
 └── FactoryGame/
     └── FactoryGame.Build.cs
         └── PublicDependencyModuleNames
-            └── WebSocketNetworking ✗ Not needed (correctly excluded)
+            └── WebSockets ✗ Not needed (correctly excluded)
 ```
 
-## Key Changes Made
+## Advantages of Built-in WebSockets
 
-1. **WebSocketNetworking Plugin Enhanced**
-   - Added URL-based connection support (was IP-only)
-   - Enabled SSL/TLS for WSS connections
-   - Added `CreateConnection(URL, Protocol)` method
+1. **Simpler API**
+   - Delegate-based callbacks (OnConnected, OnMessage, OnClosed, OnConnectionError)
+   - Automatic message handling (no manual tick required)
+   - String-based messaging (perfect for JSON)
 
-2. **DiscordGateway Updated**
-   - Changed from `IWebSocket` to `INetworkingWebSocket`
-   - Updated callback system (from delegates to callback setters)
-   - Added manual ticking for WebSocket updates
+2. **Better Integration**
+   - Works seamlessly with Unreal Engine's event system
+   - Automatic connection lifecycle management
+   - Built-in error handling and reconnection support
 
-3. **Ticking Chain Added**
-   - `ADiscordChatSubsystem::Tick()` → `UDiscordAPI::Tick()` → `UDiscordGateway::Tick()` → `WebSocket->Tick()`
-   - Required because WebSocketNetworking needs manual ticking
+3. **Production Ready**
+   - Used in many shipped Unreal Engine titles
+   - Thoroughly tested by Epic Games
+   - Regular updates and bug fixes
 
 ## Conclusion
 
-The WebSocketNetworking dependency is **correctly configured** for use by the DiscordChatBridge mod. The plugin has been enhanced to support URL-based WSS connections needed for Discord's Gateway API.
+The WebSockets dependency is **correctly configured** for use by the DiscordChatBridge mod. The built-in module provides stable, well-tested WebSocket functionality for Discord's Gateway API.
 
-**The current configuration is correct and fully functional.**
+**The current configuration uses the industry-standard, production-ready WebSockets module from Unreal Engine.**
