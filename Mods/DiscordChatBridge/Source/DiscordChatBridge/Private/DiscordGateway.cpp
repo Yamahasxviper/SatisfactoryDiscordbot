@@ -516,12 +516,15 @@ void UDiscordGateway::StartHeartbeat()
 
 void UDiscordGateway::StopHeartbeat()
 {
-	UWorld* World = GetWorld();
-	if (World && HeartbeatTimerHandle.IsValid())
+	if (HeartbeatTimerHandle.IsValid())
 	{
-		World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+			UE_LOG(LogTemp, Verbose, TEXT("DiscordGateway: Heartbeat stopped"));
+		}
 		HeartbeatTimerHandle.Invalidate();
-		UE_LOG(LogTemp, Verbose, TEXT("DiscordGateway: Heartbeat stopped"));
 	}
 }
 
