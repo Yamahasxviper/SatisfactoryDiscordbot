@@ -71,13 +71,23 @@ If WebSockets is missing from your engine, your UE installation is incomplete. C
 If WebSockets exists but still getting the error:
 
 1. **Clean and regenerate project files:**
+   
+   **Windows (PowerShell):**
+   ```powershell
+   # Delete generated files
+   Remove-Item -Recurse -Force Intermediate/, Saved/, *.sln, *.vcxproj*, .vs/
+   
+   # Regenerate project files
+   # Right-click FactoryGame.uproject > "Generate Visual Studio project files"
+   ```
+   
+   **Linux/Mac (Bash):**
    ```bash
    # Delete generated files
    rm -rf Intermediate/ Saved/ *.sln *.vcxproj* .vs/
    
    # Regenerate project files
-   # Right-click FactoryGame.uproject > "Generate Visual Studio project files"
-   # Or use: UnrealVersionSelector /projectfiles "FactoryGame.uproject"
+   # Use UnrealVersionSelector or generate from IDE
    ```
 
 2. **Verify the plugin is enabled in your engine:**
@@ -85,10 +95,17 @@ If WebSockets exists but still getting the error:
    - The plugin should have `"Enabled": true` in the plugin descriptor
 
 3. **Check UnrealBuildTool can find the plugin:**
+   
+   **Windows:**
+   ```powershell
+   # Clear UBT cache
+   Remove-Item -Recurse -Force "$env:LOCALAPPDATA\UnrealBuildTool"
+   ```
+   
+   **Linux/Mac:**
    ```bash
    # Clear UBT cache
-   rm -rf "%LOCALAPPDATA%\UnrealBuildTool"  # Windows
-   rm -rf ~/.local/share/UnrealBuildTool    # Linux
+   rm -rf ~/.local/share/UnrealBuildTool
    ```
 
 4. **Verify no path issues:**
