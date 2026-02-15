@@ -64,6 +64,11 @@ public class SML : ModuleRules
             PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "AssemblyAnalyzer.lib"));
             PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "Zydis.lib"));
             PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "Zycore.lib"));
+
+            // libwebsockets - https://github.com/warmcat/libwebsockets
+            PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "websockets.lib"));
+            // libwebsockets requires ws2_32 for Windows sockets
+            PublicSystemLibraries.Add("ws2_32.lib");
         } else if (Target.Platform == UnrealTargetPlatform.Linux) {
             // https://github.com/satisfactorymodding/funchook/tree/4074c90c1bb4de294eb1dc2519c5830ed96739c0
             // Built on windows using the Unreal Engine cross-compile clang toolchain
@@ -75,6 +80,9 @@ public class SML : ModuleRules
             PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "libAssemblyAnalyzer.a"));
             PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "libZydis.a"));
             PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "libZycore.a"));
+
+            // libwebsockets - https://github.com/warmcat/libwebsockets
+            PublicAdditionalLibraries.Add(Path.Combine(LibraryFolder, "libwebsockets.a"));
         }
 
         AddFactoryGameInfo();
