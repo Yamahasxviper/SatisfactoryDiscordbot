@@ -1,5 +1,24 @@
 # Discord Chat Bridge - Setup Guide
 
+## 🎯 Who Is This Guide For?
+
+**This guide is for SERVER ADMINISTRATORS ONLY.**
+
+### For Players:
+If you're a player who wants to join a server with this mod:
+- ✅ You need to do **NOTHING**
+- ✅ No installation required
+- ✅ No Discord setup required
+- ✅ Just join the server and play normally
+
+### For Server Administrators:
+If you're setting up a Satisfactory server with Discord chat integration, follow this guide to:
+- Install the mod on your server
+- Create and configure a Discord bot
+- Set up the chat bridge
+
+---
+
 ## Quick Start Guide
 
 ### Step 1: Create a Discord Bot
@@ -42,13 +61,17 @@
 4. Click **"Copy ID"**
 5. Save this ID for the next step
 
-### Step 5: Install the Mod
+### Step 5: Install the Mod (Server Only)
 
-1. Make sure [Satisfactory Mod Loader (SML)](https://ficsit.app/sml-versions) is installed
+**Important:** Install this mod **only on your dedicated server**. Players do not need to install anything.
+
+1. Make sure [Satisfactory Mod Loader (SML)](https://ficsit.app/sml-versions) is installed **on your server**
 2. Download or build the DiscordChatBridge mod
-3. Place the mod folder in your Satisfactory mods directory:
-   - **Windows:** `%localappdata%\FactoryGame\Saved\Mods\`
-   - **Linux:** `~/.config/Epic/FactoryGame/Saved/Mods/`
+3. Place the mod folder in your **server's** Satisfactory mods directory:
+   - **Windows Server:** `%localappdata%\FactoryGame\Saved\Mods\`
+   - **Linux Server:** `~/.config/Epic/FactoryGame/Saved/Mods\`
+   
+**Note for Players:** If you're a player connecting to a server, you don't need to install anything in these directories. The mod is server-side only.
 
 ### Step 6: Configure the Mod
 
