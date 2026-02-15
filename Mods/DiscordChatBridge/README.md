@@ -26,9 +26,11 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ **Customizable name formats** - Choose from multiple style presets or create your own!
 - ✅ **Server start and stop notifications** - Get notified when the server goes online or offline with custom channel support!
 - ✅ **Player count status updates** - Automatically post player count to Discord with customizable format and interval!
-- ✅ **Discord Gateway bot presence** ⭐ - True "Playing with X players" status via WebSocket!
+- ✅ **Discord Gateway bot presence** ⭐ - True "Playing with X players" status via WebSocket (optional)!
 - ✅ **Bot online/offline status** ⭐ NEW! - Bot shows as online when server is running, offline when stopped!
 - ✅ **Settings persist across server restarts** - Powered by SML's configuration system!
+
+> **About WebSockets:** Gateway features (real-time bot presence) require the WebSockets plugin. However, **all core features work without WebSockets** using REST API. If your Unreal Engine build doesn't have WebSockets, the mod will automatically use REST-only mode. See [../../WEBSOCKET_ALTERNATIVES.md](../../WEBSOCKET_ALTERNATIVES.md) for details.
 
 ## Quick Links
 
@@ -39,6 +41,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ⚙️ [Default INI Configuration](Config/DefaultDiscordChatBridge.ini) - Traditional INI template configuration file
 - 🔧 [Dependency Explanation](DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
 - 📦 [Packaging Notes](PACKAGING_NOTES.md) - Build and packaging information (documentation files now included!)
+- 🔌 [**WebSocket Alternatives**](../../WEBSOCKET_ALTERNATIVES.md) - **Options when WebSockets is not available**
 
 > **Note:** All documentation files are now automatically included when you build/package this mod!
 
