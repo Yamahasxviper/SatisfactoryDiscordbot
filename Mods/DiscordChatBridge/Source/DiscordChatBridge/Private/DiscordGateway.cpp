@@ -240,7 +240,7 @@ void UDiscordGateway::HandleGatewayMessage(const TSharedPtr<FJsonObject>& JsonOb
 	}
 
 	// Get event name and data
-	FString EventName;
+	FString EventName = TEXT("");
 	JsonObject->TryGetStringField(TEXT("t"), EventName);
 
 	UE_LOG(LogTemp, Verbose, TEXT("DiscordGateway: Received opcode %d, event: %s"), Opcode, *EventName);
@@ -523,7 +523,7 @@ void UDiscordGateway::SendPayload(const TSharedPtr<FJsonObject>& Payload)
 		return;
 	}
 
-	FString JsonString;
+	FString JsonString = TEXT("");
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	
 	if (FJsonSerializer::Serialize(Payload.ToSharedRef(), Writer))
