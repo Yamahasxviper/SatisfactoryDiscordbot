@@ -182,7 +182,8 @@ void FSatisfactoryModLoader::SetupShippingDebuggerSupport()
 
 void FSatisfactoryModLoader::PreInitializeModLoading() {
     UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Satisfactory Mod Loader v.%s pre-initializing..."), modLoaderVersionString);
-    UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Build Date: %s %s"), ANSI_TO_TCHAR(__DATE__), ANSI_TO_TCHAR(__TIME__));
+    // Build date logging removed to ensure reproducible builds (fixes -Wdate-time warning)
+    // UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Build Date: %s %s"), ANSI_TO_TCHAR(__DATE__), ANSI_TO_TCHAR(__TIME__));
 
     //Don't try to save configuration in the editor, because it will make new folders for no real reason
     const bool bAllowSavingConfiguration = FPlatformProperties::RequiresCookedData();
