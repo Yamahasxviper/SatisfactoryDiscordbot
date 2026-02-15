@@ -5,7 +5,11 @@
 #include "WebSocketsModule.h"
 #include "IWebSocket.h"
 #endif
-#include "Json.h"
+#include "Dom/JsonObject.h"
+#include "Dom/JsonValue.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonWriter.h"
+#include "Serialization/JsonSerializer.h"
 #include "JsonUtilities.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
