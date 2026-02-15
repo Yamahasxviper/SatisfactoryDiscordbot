@@ -23,7 +23,7 @@ bool FServerDefaultsConfigLoader::LoadFromServerDefaults(FDiscordBotConfig& OutC
 
 bool FServerDefaultsConfigLoader::ParseTxtConfig(const FString& FilePath, FDiscordBotConfig& OutConfig)
 {
-	FString FileContent;
+	FString FileContent = TEXT("");
 	if (!FFileHelper::LoadFileToString(FileContent, *FilePath))
 	{
 		UE_LOG(LogTemp, Error, TEXT("ServerDefaultsConfigLoader: Failed to read file: %s"), *FilePath);

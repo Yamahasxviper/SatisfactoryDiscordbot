@@ -103,7 +103,7 @@ void UDiscordAPI::SendMessage(const FString& Username, const FString& Message)
 	FormattedMessage = FormattedMessage.Replace(TEXT("{message}"), *Message);
 	JsonObject->SetStringField(TEXT("content"), FormattedMessage);
 
-	FString JsonString;
+	FString JsonString = TEXT("");
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 
@@ -165,7 +165,7 @@ void UDiscordAPI::SendNotification(const FString& Message)
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 	JsonObject->SetStringField(TEXT("content"), Message);
 
-	FString JsonString;
+	FString JsonString = TEXT("");
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 
@@ -492,7 +492,7 @@ void UDiscordAPI::UpdateBotActivity(int32 PlayerCount)
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 	JsonObject->SetStringField(TEXT("content"), ActivityMessage);
 
-	FString JsonString;
+	FString JsonString = TEXT("");
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 

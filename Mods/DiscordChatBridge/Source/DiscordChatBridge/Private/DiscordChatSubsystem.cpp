@@ -125,6 +125,8 @@ void ADiscordChatSubsystem::BeginPlay()
 
 void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	(void)EndPlayReason;  // Suppress unused parameter warning
+	
 	// Send server stop notification if enabled
 	if (DiscordAPI && DiscordAPI->IsInitialized() && BotConfig.bEnableServerNotifications)
 	{
