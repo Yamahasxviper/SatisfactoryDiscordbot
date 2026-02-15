@@ -42,17 +42,20 @@ public class libWebSockets : ModuleRules
 			// In some versions of UE, the architecture name is accessed via LinuxName
 			archName = Target.Architecture.LinuxName;
 		}
-		catch
+		catch (System.Exception ex) when (ex is System.Reflection.TargetException || 
+		                                   ex is System.MissingMemberException || 
+		                                   ex is Microsoft.CSharp.RuntimeBinder.RuntimeBinderException ||
+		                                   ex is System.NullReferenceException)
 		{
-			// LinuxName property might not exist, try alternative approaches
+			// LinuxName property might not exist or Target.Architecture might be null, try alternative approaches
 			try
 			{
 				// Try ToString() as fallback
 				archName = Target.Architecture.ToString();
 			}
-			catch
+			catch (System.NullReferenceException)
 			{
-				// If all else fails, default to x86_64 (most common case for Linux server builds)
+				// If Target.Architecture is null, default to x86_64 (most common case for Linux server builds)
 				archName = "x86_64";
 			}
 		}
@@ -64,6 +67,7 @@ public class libWebSockets : ModuleRules
 		}
 		
 		// Map common architecture names to GNU triplets
+		// Note: Including already-formatted triplet names for completeness and documentation
 		if (archName == "x64" || archName == "x86_64" || archName == "x86_64-unknown-linux-gnu")
 		{
 			return "x86_64-unknown-linux-gnu";
