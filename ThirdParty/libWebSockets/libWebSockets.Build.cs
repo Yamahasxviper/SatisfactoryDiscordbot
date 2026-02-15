@@ -28,6 +28,27 @@ public class libWebSockets : ModuleRules
 
 	protected virtual string DefaultLibraryName { get { return "libwebsockets.a"; } }
 
+	protected virtual string GetLinuxArchitecturePath()
+	{
+		// Map Unreal Engine architecture names to the directory structure used by libwebsockets
+		// In UE 5.3+, Target.Architecture.LinuxName may return simplified names,
+		// but our prebuilt libraries use full GNU triplet naming convention
+		string archName = Target.Architecture.LinuxName;
+		
+		// Map common architecture names to GNU triplets
+		if (archName == "x86_64-unknown-linux-gnu" || archName == "x64" || archName == "x86_64")
+		{
+			return "x86_64-unknown-linux-gnu";
+		}
+		else if (archName == "aarch64-unknown-linux-gnueabi" || archName == "arm64" || archName == "aarch64")
+		{
+			return "aarch64-unknown-linux-gnueabi";
+		}
+		
+		// Fallback: return the original name
+		return archName;
+	}
+
 	protected virtual string IncludeDirectory
 	{
 		get
@@ -38,7 +59,7 @@ public class libWebSockets : ModuleRules
 			}
 			else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
 			{
-				return Path.Combine(WebSocketsPackagePath, "include", "Unix", Target.Architecture.LinuxName);
+				return Path.Combine(WebSocketsPackagePath, "include", "Unix", GetLinuxArchitecturePath());
 			}
 			else
 			{
@@ -57,7 +78,7 @@ public class libWebSockets : ModuleRules
 			}
 			else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
 			{
-				return Path.Combine(WebSocketsPackagePath, "lib", "Unix", Target.Architecture.LinuxName, ConfigName);
+				return Path.Combine(WebSocketsPackagePath, "lib", "Unix", GetLinuxArchitecturePath(), ConfigName);
 			}
 			else
 			{
