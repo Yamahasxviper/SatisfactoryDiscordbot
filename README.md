@@ -22,6 +22,10 @@ Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quic
 
 **Common build errors:**
 - "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- "libwebsockets.h not found" (Linux builds) → See [LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md)
+
+**Additional Guides:**
+- [LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md) - How to build and configure libwebsockets for Windows and Linux
 
 ## Discord Chat Bridge Mod
 

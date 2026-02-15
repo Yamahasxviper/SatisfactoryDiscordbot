@@ -47,6 +47,47 @@ If you want to use Discord Gateway/presence features, ensure WebSockets is in yo
 
 **Detailed Information:** See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) for complete details about when and how WebSockets builds.
 
+### "libwebsockets.h not found" (Linux Builds)
+
+**Error Messages:**
+```
+fatal error: 'libwebsockets.h' file not found
+#include "libwebsockets.h"
+```
+
+**Cause:** When building for Linux, the WebSockets plugin requires the libwebsockets library, which should be located at `{UnrealEngine}/Source/ThirdParty/libWebSockets/`.
+
+**Solutions:**
+
+1. **Automatic Graceful Degradation (Easiest)**
+   - As of the latest updates, the build system automatically detects if libwebsockets is missing
+   - The build will **succeed** with WebSockets disabled
+   - You'll see warnings like: `"libWebSockets third-party library not found"`
+   - The DiscordChatBridge mod will work in **REST-only mode** (no Gateway/presence features)
+   - ✅ **No action required** if you don't need Discord Gateway features
+
+2. **Verify Unreal Engine Installation**
+   - Check if libwebsockets is present:
+     ```bash
+     ls -la ~/UnrealEngine/Engine/Source/ThirdParty/libWebSockets/
+     ```
+   - If missing, your UE installation may be incomplete
+   - Re-download or verify UE 5.3.2-CSS installation
+
+3. **Manually Build libwebsockets**
+   - See **[LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md)** for complete instructions
+   - Includes steps for downloading, building, and installing libwebsockets
+   - Required if you need Discord Gateway/presence features on Linux
+
+**Platform Notes:**
+- **Windows builds**: Don't use libwebsockets (uses WinHttp instead) - this error won't occur
+- **Linux/Mac builds**: Require libwebsockets for WebSocket functionality
+- **Alternative**: Build without WebSockets - project compiles successfully, REST-only mode for Discord
+
+**For detailed guidance, see:**
+- [LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md) - Complete guide for building libwebsockets
+- [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) - Build system overview
+
 ### "Cannot find Wwise plugin"
 
 **Solution:** Wwise is downloaded separately during the build process from a B2 bucket. Ensure you have the correct credentials configured in the CI workflow or download Wwise manually for local builds.
@@ -150,6 +191,7 @@ rm -rf ~/.local/share/UnrealBuildTool   # Linux
 Still having issues? Here are additional resources:
 
 - **Build Requirements:** [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
+- **libwebsockets Setup:** [LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md)
 - **Discord Chat Bridge Setup:** [Mods/DiscordChatBridge/SETUP_GUIDE.md](Mods/DiscordChatBridge/SETUP_GUIDE.md)
 - **Discord Chat Bridge README:** [Mods/DiscordChatBridge/README.md](Mods/DiscordChatBridge/README.md)
 - **WebSockets Dependency Details:** [Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md](Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md)
@@ -161,6 +203,7 @@ Still having issues? Here are additional resources:
 | Issue | Solution |
 |-------|----------|
 | WebSockets build error | Should auto-resolve now; builds without WebSockets if not available |
+| libwebsockets.h not found (Linux) | Build succeeds with warnings; see [LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md) if you need Gateway features |
 | Gateway features not working | Ensure WebSockets plugin is in engine (optional) |
 | Build files outdated | Delete Intermediate/, regenerate project |
 | Discord messages not working | Check bot token, channel ID, permissions |

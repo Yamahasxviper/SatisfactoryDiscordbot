@@ -67,6 +67,30 @@ In addition to WebSockets, this project requires several other plugins that are 
 ### Third-Party Plugins
 - **Wwise**: Audio middleware (downloaded separately during build via B2 bucket)
 
+## Third-Party Library Requirements
+
+### libwebsockets for Linux Builds
+
+The WebSockets plugin requires platform-specific dependencies:
+
+#### Windows (Win64)
+- **Uses**: WinHttp (Windows HTTP Services)
+- **Provided by**: Windows SDK 8.1+
+- **Setup Required**: ✅ None - automatic
+
+#### Linux / macOS / Unix
+- **Uses**: libwebsockets library
+- **Expected Location**: `{UnrealEngine}/Source/ThirdParty/libWebSockets/`
+- **Provided by**: Unreal Engine installation
+- **Setup Required**: ⚠️ Verify libwebsockets is present in your UE installation
+
+**Important**: The UE 5.3.2-CSS build should include libwebsockets. If it's missing:
+- **Option 1**: The build will succeed with WebSockets disabled (REST-only mode for DiscordChatBridge)
+- **Option 2**: Manually build and install libwebsockets (see [LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md))
+
+For detailed information about building and configuring libwebsockets, see:
+- **[LIBWEBSOCKETS_GUIDE.md](LIBWEBSOCKETS_GUIDE.md)** - Complete guide for building libwebsockets on Windows and Linux
+
 ## Build Process Overview
 
 The build happens in several phases:
