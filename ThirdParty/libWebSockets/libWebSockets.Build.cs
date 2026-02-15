@@ -36,16 +36,16 @@ public class libWebSockets : ModuleRules
 		string archName = Target.Architecture.LinuxName;
 		
 		// Map common architecture names to GNU triplets
-		if (archName == "x86_64-unknown-linux-gnu" || archName == "x64" || archName == "x86_64")
+		if (archName == "x64" || archName == "x86_64")
 		{
 			return "x86_64-unknown-linux-gnu";
 		}
-		else if (archName == "aarch64-unknown-linux-gnueabi" || archName == "arm64" || archName == "aarch64")
+		else if (archName == "arm64" || archName == "aarch64")
 		{
 			return "aarch64-unknown-linux-gnueabi";
 		}
 		
-		// Fallback: return the original name
+		// Fallback: return the original name (handles cases where it's already in triplet format)
 		return archName;
 	}
 
