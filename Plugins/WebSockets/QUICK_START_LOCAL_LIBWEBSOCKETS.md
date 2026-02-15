@@ -1,5 +1,40 @@
 # Quick Start: Adding libwebsockets to WebSockets Plugin
 
+## ⭐ NEW: Automatic Setup
+
+**The WebSockets plugin now features automatic libwebsockets setup!**
+
+When you build your Unreal Engine project, the plugin will automatically:
+1. Detect if libwebsockets is missing
+2. Download libwebsockets v4.3.2 from GitHub
+3. Build it for your platform
+4. Install headers and libraries to the plugin ThirdParty directory
+
+**No manual intervention required!** Just build your project and libwebsockets will be set up automatically.
+
+### Requirements for Auto-Setup
+
+**Linux/Mac:**
+- git
+- cmake  
+- make
+- C/C++ compiler (gcc or clang)
+
+**Windows:**
+- git
+- cmake
+- Visual Studio 2019+ with C++ tools
+
+If you have these tools installed, libwebsockets will set itself up automatically on first build!
+
+See [Scripts/README.md](Scripts/README.md) for details on the auto-setup process.
+
+---
+
+## Manual Setup (Optional)
+
+If you prefer to manually add libwebsockets or the auto-setup fails, follow these instructions:
+
 ## What Was Done
 
 I've configured the WebSockets plugin to use local libwebsockets files. The build system now checks for libwebsockets in this order:

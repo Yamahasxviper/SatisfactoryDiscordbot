@@ -2,6 +2,7 @@
 
 using UnrealBuildTool;
 using System.IO;
+using System.Diagnostics;
 
 public class WebSockets : ModuleRules
 {
@@ -18,10 +19,106 @@ public class WebSockets : ModuleRules
 		}
 	}
 
-	// Cache for LibWebSocketsAvailable to avoid repeated directory checks and warnings
+	// Auto-setup flag and cache
+	private static bool _autoSetupAttempted = false;
 	private bool? _libWebSocketsAvailableCache = null;
 	private string _libWebSocketsPath = null;
 	private bool _usingLocalLibWebSockets = false;
+	
+	/// <summary>
+	/// Attempts to automatically set up libwebsockets by running the setup script
+	/// </summary>
+	private bool TryAutoSetupLibWebSockets()
+	{
+		// Only attempt once per build
+		if (_autoSetupAttempted)
+		{
+			return false;
+		}
+		_autoSetupAttempted = true;
+
+		string ScriptsDir = Path.Combine(ModuleDirectory, "..", "..", "Scripts");
+		
+		// Determine which script to run based on platform
+		string SetupScript = null;
+		string ScriptRunner = null;
+		
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			SetupScript = Path.Combine(ScriptsDir, "Setup-LibWebSockets.ps1");
+			ScriptRunner = "powershell.exe";
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			SetupScript = Path.Combine(ScriptsDir, "setup-libwebsockets.sh");
+			ScriptRunner = "/bin/bash";
+		}
+		
+		if (SetupScript == null || !File.Exists(SetupScript))
+		{
+			Log.TraceWarning($"[WebSockets] Auto-setup script not found: {SetupScript}");
+			return false;
+		}
+		
+		Log.TraceInformation($"[WebSockets] Attempting to auto-setup libwebsockets...");
+		Log.TraceInformation($"[WebSockets] Running: {ScriptRunner} {SetupScript}");
+		
+		try
+		{
+			ProcessStartInfo psi = new ProcessStartInfo
+			{
+				FileName = ScriptRunner,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				CreateNoWindow = true
+			};
+			
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				psi.Arguments = $"-ExecutionPolicy Bypass -File \"{SetupScript}\"";
+			}
+			else
+			{
+				psi.Arguments = $"\"{SetupScript}\"";
+			}
+			
+			using (Process process = Process.Start(psi))
+			{
+				string output = process.StandardOutput.ReadToEnd();
+				string error = process.StandardError.ReadToEnd();
+				process.WaitForExit();
+				
+				if (process.ExitCode == 0)
+				{
+					Log.TraceInformation($"[WebSockets] Auto-setup completed successfully");
+					if (!string.IsNullOrEmpty(output))
+					{
+						Log.TraceInformation($"[WebSockets] Setup output:\n{output}");
+					}
+					return true;
+				}
+				else
+				{
+					Log.TraceWarning($"[WebSockets] Auto-setup failed with exit code {process.ExitCode}");
+					if (!string.IsNullOrEmpty(error))
+					{
+						Log.TraceWarning($"[WebSockets] Setup error:\n{error}");
+					}
+					if (!string.IsNullOrEmpty(output))
+					{
+						Log.TraceInformation($"[WebSockets] Setup output:\n{output}");
+					}
+					return false;
+				}
+			}
+		}
+		catch (System.Exception ex)
+		{
+			Log.TraceWarning($"[WebSockets] Exception during auto-setup: {ex.Message}");
+			return false;
+		}
+	}
 	
 	protected virtual bool LibWebSocketsAvailable
 	{
@@ -67,11 +164,33 @@ public class WebSockets : ModuleRules
 				return true;
 			}
 			
-			// Not found in either location
+			// Not found in either location - try auto-setup
 			if (PlatformSupportsLibWebsockets)
 			{
 				Log.TraceWarning($"[WebSockets] libWebSockets not found in plugin ThirdParty: {LocalLibWebSocketsPath}");
 				Log.TraceWarning($"[WebSockets] libWebSockets not found in engine ThirdParty: {EngineLibWebSocketsPath}");
+				
+				// Attempt auto-setup
+				if (TryAutoSetupLibWebSockets())
+				{
+					// Check again after auto-setup
+					if (Directory.Exists(LocalLibWebSocketsPath))
+					{
+						string LocalIncludePath = Path.Combine(LocalLibWebSocketsPath, "include");
+						bool bHasHeaders = Directory.Exists(LocalIncludePath) && 
+						                   File.Exists(Path.Combine(LocalIncludePath, "libwebsockets.h"));
+						
+						if (bHasHeaders)
+						{
+							Log.TraceInformation($"[WebSockets] Auto-setup successful! Using local libwebsockets");
+							_libWebSocketsPath = LocalLibWebSocketsPath;
+							_usingLocalLibWebSockets = true;
+							_libWebSocketsAvailableCache = true;
+							return true;
+						}
+					}
+				}
+				
 				Log.TraceWarning($"[WebSockets] WebSocket functionality will be disabled. Dependent features (like Discord Gateway) will not work.");
 			}
 			
