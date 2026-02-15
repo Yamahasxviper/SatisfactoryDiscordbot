@@ -2,8 +2,10 @@
 
 #include "DiscordGateway.h"
 #if WITH_WEBSOCKETS_SUPPORT
+THIRD_PARTY_INCLUDES_START
 #include "WebSocketsModule.h"
 #include "IWebSocket.h"
+THIRD_PARTY_INCLUDES_END
 #endif
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"

@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #if WITH_WEBSOCKETS_SUPPORT
+THIRD_PARTY_INCLUDES_START
 #include "IWebSocket.h"
+THIRD_PARTY_INCLUDES_END
 #endif
 #include "DiscordGateway.generated.h"
 
