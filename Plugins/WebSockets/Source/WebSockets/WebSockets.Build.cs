@@ -140,12 +140,7 @@ public class WebSockets : ModuleRules
 
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "WinHttp");
 			}
-			else if (PlatformSupportsLibWebsockets && !LibWebSocketsAvailable)
-			{
-				// Platform needs libWebSockets but it's not available - disable WebSockets entirely
-				System.Console.WriteLine($"[WebSockets] Platform requires libWebSockets but it's not available. WebSockets will be disabled.");
-				bWithWebSockets = false;
-			}
+			// If neither implementation is available, WebSockets will be disabled (bWithWebSockets remains false)
 		}
 
 		PublicDefinitions.Add("WEBSOCKETS_PACKAGE=1");
