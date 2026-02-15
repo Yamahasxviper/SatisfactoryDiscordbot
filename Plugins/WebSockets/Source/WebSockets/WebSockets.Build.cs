@@ -29,7 +29,7 @@ public class WebSockets : ModuleRules
 			if (!bExists && PlatformSupportsLibWebsockets)
 			{
 				System.Console.WriteLine($"[WebSockets] Warning: libWebSockets third-party library not found at {LibWebSocketsPath}");
-				System.Console.WriteLine($"[WebSockets] WebSocket support will be disabled. The plugin will not function.");
+				System.Console.WriteLine($"[WebSockets] WebSocket functionality will be disabled. Dependent features (like Discord Gateway) will not work.");
 			}
 			
 			return bExists;
