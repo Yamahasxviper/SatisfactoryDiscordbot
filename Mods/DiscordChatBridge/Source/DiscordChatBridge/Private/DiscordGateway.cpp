@@ -405,8 +405,12 @@ void UDiscordGateway::SendIdentify()
 	Properties->SetStringField(TEXT("$device"), TEXT("satisfactory-discord-bridge"));
 	Data->SetObjectField(TEXT("properties"), Properties);
 
-	// Intents (we only need GUILD_MESSAGES for now)
-	Data->SetNumberField(TEXT("intents"), 512); // GUILD_MESSAGES = 1 << 9
+	// Intents - Discord Gateway requires these to function properly
+	// GUILD_PRESENCES (1 << 8 = 256) - Required for bot presence updates
+	// GUILD_MESSAGES (1 << 9 = 512) - Required to receive message events
+	// MESSAGE_CONTENT (1 << 15 = 32768) - Required to read message content (privileged intent)
+	// Total: 256 + 512 + 32768 = 33536
+	Data->SetNumberField(TEXT("intents"), 33536);
 
 	Payload->SetObjectField(TEXT("d"), Data);
 
