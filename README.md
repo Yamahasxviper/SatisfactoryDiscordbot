@@ -27,11 +27,16 @@ Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quic
 
 This repository includes the **Discord Chat Bridge** mod, which provides two-way chat integration between Satisfactory in-game chat and Discord.
 
+> **✅ NO CLIENT INSTALLATION REQUIRED**  
+> Players connecting to your server **do not need to install anything**. This mod runs entirely on the server side. Only the server administrator needs to install and configure the mod.
+> 
+> **Technical Implementation:** The mod uses `"RequiredOnRemote": false` in its plugin descriptor and `SpawnOnServer` replication policy to ensure it runs only on the server and allows vanilla clients to connect.
+
 ### Features
 - Two-way chat synchronization between Satisfactory and Discord
 - Uses Discord Bot Token (no webhooks required)
 - Configurable through INI file
-- Server-side only (no client installation required)
+- **Server-side only** - Players join and chat normally, no mod installation needed
 
 ### Quick Links
 - [Mod README](Mods/DiscordChatBridge/README.md)

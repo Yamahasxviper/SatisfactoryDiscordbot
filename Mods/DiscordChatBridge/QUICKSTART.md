@@ -1,6 +1,14 @@
 # Quick Start - Discord Chat Bridge
 
-## What You Need
+## ✅ For Players: Nothing to Install!
+
+**If you're a player joining a server with this mod:** You don't need to do anything! No installation, no setup, no Discord configuration. Just join and play.
+
+**This guide is for server administrators only.**
+
+---
+
+## What You Need (Server Admins)
 
 1. **Satisfactory Dedicated Server** with SML 3.11.3+ installed
 2. **Discord Bot** (we'll create this)

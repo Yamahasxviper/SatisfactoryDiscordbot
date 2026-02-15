@@ -2,6 +2,18 @@
 
 A mod for Satisfactory that creates a two-way chat bridge between the in-game chat and Discord using the Discord Bot API.
 
+## 🎮 For Players: Zero Installation Required!
+
+**If you're a player connecting to a server with this mod:**
+- ✅ You **DO NOT** need to install anything
+- ✅ You **DO NOT** need SML on your client
+- ✅ You **DO NOT** need any Discord OAuth setup
+- ✅ Simply join the server and chat normally - messages sync automatically
+
+**This mod is 100% server-side.** Only the server administrator needs to install and configure it.
+
+> **Technical Note:** This mod uses `"RequiredOnRemote": false` in its plugin descriptor, which tells SML (Satisfactory Mod Loader) that clients can connect without having the mod installed. Combined with the `SpawnOnServer` replication policy in the code, this ensures the mod runs entirely on the server.
+
 ## Features
 
 - ✅ Two-way chat synchronization between Satisfactory and Discord
@@ -31,6 +43,8 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 > **Note:** All documentation files are now automatically included when you build/package this mod!
 
 ## Prerequisites
+
+**For Server Administrators Only:**
 
 1. **Discord Bot Setup**
    - Go to [Discord Developer Portal](https://discord.com/developers/applications)
@@ -476,6 +490,58 @@ Once configured and the server is running:
 4. Ensure your bot has "Send Messages" permission in the status channel
 5. Check that `ActivityUpdateIntervalSeconds` is set to a reasonable value (60-300 seconds recommended)
 6. The first update should appear immediately when the server starts
+
+## Frequently Asked Questions (FAQ)
+
+### Do players need to install this mod to join my server?
+
+**No!** This is a **server-side only** mod. Players can join your server with a completely vanilla Satisfactory client (no mods, no SML). The chat bridge works automatically for all players.
+
+**Technical Details:** The mod uses `"RequiredOnRemote": false` in its plugin descriptor, which tells SML that clients don't need the mod. Combined with the `SpawnOnServer` replication policy in the code, this ensures vanilla clients can connect and the mod only runs on the server.
+
+### Do players need to install SML (Satisfactory Mod Loader)?
+
+**No!** Only the server needs SML installed. Players can connect with the base game without any modifications.
+
+### Do players need to set up Discord OAuth or a bot token?
+
+**No!** Only the server administrator needs to create the Discord bot and configure the token. Players don't need any Discord developer setup - they just type in Discord or in-game and messages sync automatically.
+
+### What does "OAuth" mean in the context of this mod?
+
+OAuth is used **only by the server administrator** to create and authorize the Discord bot in the Discord Developer Portal. This is a one-time setup done on the server side. Regular players never interact with OAuth.
+
+### Can players chat without Discord?
+
+**Yes!** Players can:
+- Chat in-game only (without Discord)
+- Chat in Discord only (messages appear in-game)
+- Chat in both places - they're independent
+
+The mod simply bridges the two chats together. No Discord account is required to play on the server.
+
+### What do I need to tell players who want to join?
+
+Simply tell them:
+1. The server address/IP
+2. (Optional) The Discord channel URL if they want to chat from Discord
+
+That's it! No installation instructions needed for players.
+
+### I'm a player, what do I install?
+
+**Nothing!** If you're connecting to a server that has this mod, you don't need to install anything. Just launch Satisfactory and join the server normally.
+
+### What if the server rejects me saying I need mods?
+
+If you're being rejected with a "missing mod" or "version mismatch" error:
+
+1. **Verify it's this mod causing the issue** - The server may have OTHER mods that require client installation
+2. **Check the server updated the mod** - The server needs version 1.0.0+ with `RequiredOnRemote: false` in the plugin descriptor
+3. **Try after server restart** - The server may need to restart after updating the mod
+4. **Check with server admin** - They may have other mods requiring client installation
+
+This Discord Chat Bridge mod specifically does NOT require client installation when properly configured with `RequiredOnRemote: false`.
 
 ## Development
 
