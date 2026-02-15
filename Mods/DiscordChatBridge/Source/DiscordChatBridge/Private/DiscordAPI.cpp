@@ -19,30 +19,58 @@ UDiscordAPI::UDiscordAPI()
 
 void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 {
+	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Initialize called - validating configuration..."));
 	BotConfig = Config;
 	bIsInitialized = !BotConfig.BotToken.IsEmpty() && !BotConfig.ChannelId.IsEmpty();
 
 	if (bIsInitialized)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Initialized with channel ID: %s"), *BotConfig.ChannelId);
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Configuration valid - Initialized with channel ID: %s"), *BotConfig.ChannelId);
 
 		// Initialize Gateway if enabled
 		if (BotConfig.bUseGatewayForPresence)
 		{
-			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway presence enabled, creating Gateway connection"));
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway presence enabled - attempting to create Gateway connection..."));
+#if WITH_WEBSOCKETS_SUPPORT
 			Gateway = NewObject<UDiscordGateway>(this);
 			if (Gateway)
 			{
+				UE_LOG(LogTemp, Log, TEXT("DiscordAPI: UDiscordGateway object created successfully"));
 				Gateway->Initialize(BotConfig.BotToken);
 				Gateway->OnConnected.BindUObject(this, &UDiscordAPI::OnGatewayConnected);
 				Gateway->OnDisconnected.BindUObject(this, &UDiscordAPI::OnGatewayDisconnected);
 				Gateway->Connect();
+				UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway connection initiated"));
 			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("DiscordAPI: CRITICAL ERROR - Failed to create UDiscordGateway object!"));
+				UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Gateway features will not be available"));
+				UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Bot presence/status updates are disabled"));
+			}
+#else
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway requested but WITH_WEBSOCKETS_SUPPORT=0"));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: WebSockets plugin was not found during compilation"));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway features are disabled - only REST API will work"));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: To enable Gateway, ensure WebSockets plugin is available in Engine or Project plugins"));
+#endif
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway presence disabled in configuration - using REST API only"));
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to initialize - missing bot token or channel ID"));
+		if (BotConfig.BotToken.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to initialize - BotToken is empty"));
+		}
+		if (BotConfig.ChannelId.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to initialize - ChannelId is empty"));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Please configure both BotToken and ChannelId in DiscordChatBridge.ini"));
 	}
 }
 

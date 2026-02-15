@@ -25,9 +25,11 @@ void ADiscordChatSubsystem::Init()
 	LoadConfiguration();
 	
 	// Create Discord API instance
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Creating UDiscordAPI object..."));
 	DiscordAPI = NewObject<UDiscordAPI>(this);
 	if (DiscordAPI)
 	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: UDiscordAPI object created successfully"));
 		DiscordAPI->Initialize(BotConfig);
 		DiscordAPI->OnMessageReceived.BindUObject(this, &ADiscordChatSubsystem::OnDiscordMessageReceived);
 		
@@ -42,11 +44,29 @@ void ADiscordChatSubsystem::Init()
 			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: To use this mod, configure BotToken and ChannelId in DiscordChatBridge.ini"));
 		}
 	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: CRITICAL ERROR - Failed to create UDiscordAPI object!"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: This may indicate memory allocation failure or object system issues"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: Discord chat bridge will NOT function"));
+	}
 }
 
 void ADiscordChatSubsystem::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: BeginPlay called - starting subsystem initialization"));
+	
+	// Validate World pointer
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: CRITICAL ERROR - GetWorld() returned nullptr!"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: Cannot initialize without valid World pointer"));
+		return;
+	}
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: World pointer validated successfully"));
 	
 	// Early exit if Discord API is not initialized (missing configuration)
 	if (!DiscordAPI || !DiscordAPI->IsInitialized())
@@ -56,20 +76,23 @@ void ADiscordChatSubsystem::BeginPlay()
 	}
 	
 	// Get reference to chat manager
-	ChatManager = AFGChatManager::Get(GetWorld());
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Attempting to get AFGChatManager reference..."));
+	ChatManager = AFGChatManager::Get(World);
 	
 	if (ChatManager)
 	{
 		// Bind to chat message event
 		ChatManager->OnChatMessageAdded.AddDynamic(this, &ADiscordChatSubsystem::OnGameChatMessageAdded);
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Bound to chat manager"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Successfully bound to chat manager"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Failed to get chat manager"));
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Failed to get AFGChatManager - in-game chat integration will not work"));
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: This may be normal if the chat manager hasn't been created yet"));
 	}
 	
 	// Start polling Discord for messages
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Starting Discord message polling..."));
 	DiscordAPI->StartPolling();
 	
 	// Send server start notification if enabled
@@ -82,23 +105,22 @@ void ADiscordChatSubsystem::BeginPlay()
 	// Start bot activity updates if enabled
 	if (BotConfig.bEnableBotActivity)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Starting bot activity updates"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Bot activity updates enabled - setting up timer"));
 		DiscordAPI->StartActivityUpdates();
 		
 		// Set up timer to periodically update activity
-		UWorld* World = GetWorld();
-		if (World)
-		{
-			World->GetTimerManager().SetTimer(
-				ActivityTimerHandle,
-				this,
-				&ADiscordChatSubsystem::UpdateBotActivity,
-				BotConfig.ActivityUpdateIntervalSeconds,
-				true,
-				0.0f  // Start immediately
-			);
-		}
+		World->GetTimerManager().SetTimer(
+			ActivityTimerHandle,
+			this,
+			&ADiscordChatSubsystem::UpdateBotActivity,
+			BotConfig.ActivityUpdateIntervalSeconds,
+			true,
+			0.0f  // Start immediately
+		);
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Activity update timer started (interval: %f seconds)"), BotConfig.ActivityUpdateIntervalSeconds);
 	}
+	
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: BeginPlay initialization complete"));
 }
 
 void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -140,138 +162,166 @@ void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ADiscordChatSubsystem::LoadConfiguration()
 {
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Loading configuration"));
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: === BEGIN CONFIGURATION LOADING ==="));
 	
 	// Try to load from config TXT format first (new system)
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Attempting to load from config/DiscordChatBridge.txt..."));
 	bool bLoadedFromTxt = FServerDefaultsConfigLoader::LoadFromServerDefaults(BotConfig);
 	if (bLoadedFromTxt)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded from config/DiscordChatBridge.txt"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from config/DiscordChatBridge.txt"));
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
 			*BotConfig.ChannelId, BotConfig.PollIntervalSeconds, 
 			BotConfig.bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), 
 			BotConfig.bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), 
 			BotConfig.bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: === END CONFIGURATION LOADING ==="));
 		return;
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: config TXT config not found, falling back to INI config"));
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: TXT config not found - falling back to INI config system"));
 	
 	// Fallback to INI format (legacy system)
 	FString ConfigSection = TEXT("/Script/DiscordChatBridge.DiscordChatSubsystem");
 	
-	if (GConfig)
+	if (!GConfig)
 	{
-		FString BotToken;
-		FString ChannelId;
-		float PollInterval = 2.0f;
-		FString DiscordNameFormat;
-		FString GameNameFormat;
-		FString DiscordSourceLabel;
-		FString GameSourceLabel;
-		bool bEnableServerNotifications = false;
-		FString NotificationChannelId;
-		FString ServerStartMessage;
-		FString ServerStopMessage;
-		bool bEnableBotActivity = false;
-		FString BotActivityFormat;
-		float ActivityUpdateIntervalSeconds = 60.0f;
-		FString BotActivityChannelId;
-		bool bUseGatewayForPresence = false;
-		FString GatewayPresenceFormat;
-		int32 GatewayActivityType = 0;
-		
-		// Load settings from Config/DefaultDiscordChatBridge.ini
-		GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("ChannelId"), ChannelId, GGameIni);
-		GConfig->GetFloat(*ConfigSection, TEXT("PollIntervalSeconds"), PollInterval, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("DiscordNameFormat"), DiscordNameFormat, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("GameNameFormat"), GameNameFormat, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("DiscordSourceLabel"), DiscordSourceLabel, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("GameSourceLabel"), GameSourceLabel, GGameIni);
-		GConfig->GetBool(*ConfigSection, TEXT("EnableServerNotifications"), bEnableServerNotifications, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("NotificationChannelId"), NotificationChannelId, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("ServerStartMessage"), ServerStartMessage, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("ServerStopMessage"), ServerStopMessage, GGameIni);
-		GConfig->GetBool(*ConfigSection, TEXT("EnableBotActivity"), bEnableBotActivity, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("BotActivityFormat"), BotActivityFormat, GGameIni);
-		GConfig->GetFloat(*ConfigSection, TEXT("ActivityUpdateIntervalSeconds"), ActivityUpdateIntervalSeconds, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("BotActivityChannelId"), BotActivityChannelId, GGameIni);
-		GConfig->GetBool(*ConfigSection, TEXT("UseGatewayForPresence"), bUseGatewayForPresence, GGameIni);
-		GConfig->GetString(*ConfigSection, TEXT("GatewayPresenceFormat"), GatewayPresenceFormat, GGameIni);
-		GConfig->GetInt(*ConfigSection, TEXT("GatewayActivityType"), GatewayActivityType, GGameIni);
-		
-		if (!BotToken.IsEmpty() && !ChannelId.IsEmpty())
-		{
-			BotConfig.BotToken = BotToken;
-			BotConfig.ChannelId = ChannelId;
-			BotConfig.PollIntervalSeconds = PollInterval;
-			
-			// Use custom formats if provided, otherwise use defaults
-			if (!DiscordNameFormat.IsEmpty())
-			{
-				BotConfig.DiscordNameFormat = DiscordNameFormat;
-			}
-			if (!GameNameFormat.IsEmpty())
-			{
-				BotConfig.GameNameFormat = GameNameFormat;
-			}
-			if (!DiscordSourceLabel.IsEmpty())
-			{
-				BotConfig.DiscordSourceLabel = DiscordSourceLabel;
-			}
-			if (!GameSourceLabel.IsEmpty())
-			{
-				BotConfig.GameSourceLabel = GameSourceLabel;
-			}
-			
-			// Load server notification settings
-			BotConfig.bEnableServerNotifications = bEnableServerNotifications;
-			if (!NotificationChannelId.IsEmpty())
-			{
-				BotConfig.NotificationChannelId = NotificationChannelId;
-			}
-			if (!ServerStartMessage.IsEmpty())
-			{
-				BotConfig.ServerStartMessage = ServerStartMessage;
-			}
-			if (!ServerStopMessage.IsEmpty())
-			{
-				BotConfig.ServerStopMessage = ServerStopMessage;
-			}
-			
-			// Load bot activity settings
-			BotConfig.bEnableBotActivity = bEnableBotActivity;
-			BotConfig.bUseGatewayForPresence = bUseGatewayForPresence;
-			if (!BotActivityFormat.IsEmpty())
-			{
-				BotConfig.BotActivityFormat = BotActivityFormat;
-			}
-			BotConfig.ActivityUpdateIntervalSeconds = ActivityUpdateIntervalSeconds;
-			if (!BotActivityChannelId.IsEmpty())
-			{
-				BotConfig.BotActivityChannelId = BotActivityChannelId;
-			}
-			if (!GatewayPresenceFormat.IsEmpty())
-			{
-				BotConfig.GatewayPresenceFormat = GatewayPresenceFormat;
-			}
-			BotConfig.GatewayActivityType = GatewayActivityType;
-			
-			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
-				*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set in DiscordChatBridge.ini"));
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: The mod will load but remain inactive until configured. See help/QUICKSTART.md for setup instructions."));
-			
-			// Ensure all feature flags are disabled when configuration is incomplete
-			BotConfig.bEnableServerNotifications = false;
-			BotConfig.bEnableBotActivity = false;
-			BotConfig.bUseGatewayForPresence = false;
-		}
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: CRITICAL ERROR - GConfig is nullptr!"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: Cannot load configuration from INI files"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: This indicates a serious engine initialization problem"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: === END CONFIGURATION LOADING (FAILED) ==="));
+		return;
 	}
+	
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: GConfig validated - loading INI settings from section: %s"), *ConfigSection);
+	
+	FString BotToken;
+	FString ChannelId;
+	float PollInterval = 2.0f;
+	FString DiscordNameFormat;
+	FString GameNameFormat;
+	FString DiscordSourceLabel;
+	FString GameSourceLabel;
+	bool bEnableServerNotifications = false;
+	FString NotificationChannelId;
+	FString ServerStartMessage;
+	FString ServerStopMessage;
+	bool bEnableBotActivity = false;
+	FString BotActivityFormat;
+	float ActivityUpdateIntervalSeconds = 60.0f;
+	FString BotActivityChannelId;
+	bool bUseGatewayForPresence = false;
+	FString GatewayPresenceFormat;
+	int32 GatewayActivityType = 0;
+	
+	// Load settings from Config/DefaultDiscordChatBridge.ini
+	GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("ChannelId"), ChannelId, GGameIni);
+	GConfig->GetFloat(*ConfigSection, TEXT("PollIntervalSeconds"), PollInterval, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("DiscordNameFormat"), DiscordNameFormat, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("GameNameFormat"), GameNameFormat, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("DiscordSourceLabel"), DiscordSourceLabel, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("GameSourceLabel"), GameSourceLabel, GGameIni);
+	GConfig->GetBool(*ConfigSection, TEXT("EnableServerNotifications"), bEnableServerNotifications, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("NotificationChannelId"), NotificationChannelId, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("ServerStartMessage"), ServerStartMessage, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("ServerStopMessage"), ServerStopMessage, GGameIni);
+	GConfig->GetBool(*ConfigSection, TEXT("EnableBotActivity"), bEnableBotActivity, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("BotActivityFormat"), BotActivityFormat, GGameIni);
+	GConfig->GetFloat(*ConfigSection, TEXT("ActivityUpdateIntervalSeconds"), ActivityUpdateIntervalSeconds, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("BotActivityChannelId"), BotActivityChannelId, GGameIni);
+	GConfig->GetBool(*ConfigSection, TEXT("UseGatewayForPresence"), bUseGatewayForPresence, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("GatewayPresenceFormat"), GatewayPresenceFormat, GGameIni);
+	GConfig->GetInt(*ConfigSection, TEXT("GatewayActivityType"), GatewayActivityType, GGameIni);
+	
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: INI values read - BotToken: %s, ChannelId: %s"), 
+		BotToken.IsEmpty() ? TEXT("EMPTY") : TEXT("SET"), 
+		ChannelId.IsEmpty() ? TEXT("EMPTY") : TEXT("SET"));
+	
+	if (!BotToken.IsEmpty() && !ChannelId.IsEmpty())
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Required configuration values found - applying settings..."));
+		BotConfig.BotToken = BotToken;
+		BotConfig.ChannelId = ChannelId;
+		BotConfig.PollIntervalSeconds = PollInterval;
+		
+		// Use custom formats if provided, otherwise use defaults
+		if (!DiscordNameFormat.IsEmpty())
+		{
+			BotConfig.DiscordNameFormat = DiscordNameFormat;
+		}
+		if (!GameNameFormat.IsEmpty())
+		{
+			BotConfig.GameNameFormat = GameNameFormat;
+		}
+		if (!DiscordSourceLabel.IsEmpty())
+		{
+			BotConfig.DiscordSourceLabel = DiscordSourceLabel;
+		}
+		if (!GameSourceLabel.IsEmpty())
+		{
+			BotConfig.GameSourceLabel = GameSourceLabel;
+		}
+		
+		// Load server notification settings
+		BotConfig.bEnableServerNotifications = bEnableServerNotifications;
+		if (!NotificationChannelId.IsEmpty())
+		{
+			BotConfig.NotificationChannelId = NotificationChannelId;
+		}
+		if (!ServerStartMessage.IsEmpty())
+		{
+			BotConfig.ServerStartMessage = ServerStartMessage;
+		}
+		if (!ServerStopMessage.IsEmpty())
+		{
+			BotConfig.ServerStopMessage = ServerStopMessage;
+		}
+		
+		// Load bot activity settings
+		BotConfig.bEnableBotActivity = bEnableBotActivity;
+		BotConfig.bUseGatewayForPresence = bUseGatewayForPresence;
+		if (!BotActivityFormat.IsEmpty())
+		{
+			BotConfig.BotActivityFormat = BotActivityFormat;
+		}
+		BotConfig.ActivityUpdateIntervalSeconds = ActivityUpdateIntervalSeconds;
+		if (!BotActivityChannelId.IsEmpty())
+		{
+			BotConfig.BotActivityChannelId = BotActivityChannelId;
+		}
+		if (!GatewayPresenceFormat.IsEmpty())
+		{
+			BotConfig.GatewayPresenceFormat = GatewayPresenceFormat;
+		}
+		BotConfig.GatewayActivityType = GatewayActivityType;
+		
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from INI - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
+			*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
+	}
+	else
+	{
+		if (BotToken.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: BotToken not found in INI configuration"));
+		}
+		if (ChannelId.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: ChannelId not found in INI configuration"));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set"));
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Expected location: Config/DefaultDiscordChatBridge.ini"));
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Expected section: %s"), *ConfigSection);
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: The mod will load but remain inactive until configured"));
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: See help/QUICKSTART.md for setup instructions"));
+		
+		// Ensure all feature flags are disabled when configuration is incomplete
+		BotConfig.bEnableServerNotifications = false;
+		BotConfig.bEnableBotActivity = false;
+		BotConfig.bUseGatewayForPresence = false;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: === END CONFIGURATION LOADING ==="));
 }
 
 void ADiscordChatSubsystem::OnGameChatMessageAdded()

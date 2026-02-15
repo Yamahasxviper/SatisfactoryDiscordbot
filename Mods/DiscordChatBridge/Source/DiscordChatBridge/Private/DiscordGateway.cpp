@@ -51,32 +51,52 @@ void UDiscordGateway::Connect()
 	}
 
 	// Check if WebSockets module is available
+	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Checking if WebSockets module is loaded..."));
 	if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: WebSockets module not loaded - attempting to load module..."));
 		// Try to load the module
 		if (!FModuleManager::Get().LoadModule("WebSockets"))
 		{
-			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Cannot connect - WebSockets plugin is not available. Please ensure the WebSockets plugin is enabled in your Unreal Engine installation."));
+			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CRITICAL ERROR - Failed to load WebSockets module!"));
+			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: This means the WebSockets plugin is not available at runtime"));
+			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Possible causes:"));
+			UE_LOG(LogTemp, Error, TEXT("  1. WebSockets plugin is not enabled in .uproject or .uplugin file"));
+			UE_LOG(LogTemp, Error, TEXT("  2. WebSockets plugin binaries are missing or corrupted"));
+			UE_LOG(LogTemp, Error, TEXT("  3. Engine plugins directory does not contain WebSockets"));
+			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Please ensure the WebSockets plugin is enabled and properly installed"));
 			ConnectionState = EGatewayConnectionState::Disconnected;
-			OnDisconnected.ExecuteIfBound(TEXT("WebSockets plugin not available"));
+			OnDisconnected.ExecuteIfBound(TEXT("WebSockets module load failed"));
 			return;
 		}
+		UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSockets module loaded successfully"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSockets module already loaded"));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway..."));
+	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway at %s..."), GATEWAY_URL);
 	ConnectionState = EGatewayConnectionState::Connecting;
 
 	// Create WebSocket connection using built-in WebSockets module
+	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Creating WebSocket object..."));
 	WebSocket = FWebSocketsModule::Get().CreateWebSocket(GATEWAY_URL, TEXT(""));
 	
 	// Validate WebSocket creation
 	if (!WebSocket.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Failed to create WebSocket"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CRITICAL ERROR - Failed to create WebSocket!"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: FWebSocketsModule::Get().CreateWebSocket() returned invalid pointer"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: This may indicate:"));
+		UE_LOG(LogTemp, Error, TEXT("  1. Invalid URL format (current: %s)"), GATEWAY_URL);
+		UE_LOG(LogTemp, Error, TEXT("  2. WebSocket module internal error"));
+		UE_LOG(LogTemp, Error, TEXT("  3. SSL/TLS certificate issues"));
 		ConnectionState = EGatewayConnectionState::Disconnected;
-		OnDisconnected.ExecuteIfBound(TEXT("Failed to create WebSocket"));
+		OnDisconnected.ExecuteIfBound(TEXT("WebSocket creation failed"));
 		return;
 	}
+	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSocket object created successfully"));
 
 	// Bind event handlers
 	WebSocket->OnConnected().AddUObject(this, &UDiscordGateway::OnWebSocketConnected);

@@ -33,13 +33,22 @@ public class DiscordChatBridge : ModuleRules
         string WebSocketsPluginPath2 = Path.Combine(EngineDirectory, "Plugins", "Experimental", "WebSockets");
         string WebSocketsPluginPath3 = Path.Combine(ModuleDirectory, "..", "..", "..", "..", "Plugins", "WebSockets");
         
+        Console.WriteLine("[DiscordChatBridge] Build.cs: Checking for WebSockets plugin...");
+        Console.WriteLine($"[DiscordChatBridge]   Path 1 (Engine/Runtime): {WebSocketsPluginPath1} - {(Directory.Exists(WebSocketsPluginPath1) ? "FOUND" : "NOT FOUND")}");
+        Console.WriteLine($"[DiscordChatBridge]   Path 2 (Engine/Experimental): {WebSocketsPluginPath2} - {(Directory.Exists(WebSocketsPluginPath2) ? "FOUND" : "NOT FOUND")}");
+        Console.WriteLine($"[DiscordChatBridge]   Path 3 (Project/Plugins): {WebSocketsPluginPath3} - {(Directory.Exists(WebSocketsPluginPath3) ? "FOUND" : "NOT FOUND")}");
+        
         if (Directory.Exists(WebSocketsPluginPath1) || Directory.Exists(WebSocketsPluginPath2) || Directory.Exists(WebSocketsPluginPath3))
         {
+            Console.WriteLine("[DiscordChatBridge] Build.cs: WebSockets plugin FOUND - Enabling WebSocket support");
             PublicDependencyModuleNames.Add("WebSockets");
             PublicDefinitions.Add("WITH_WEBSOCKETS_SUPPORT=1");
         }
         else
         {
+            Console.WriteLine("[DiscordChatBridge] Build.cs: WARNING - WebSockets plugin NOT FOUND in any location");
+            Console.WriteLine("[DiscordChatBridge] Build.cs: Discord Gateway features will be DISABLED");
+            Console.WriteLine("[DiscordChatBridge] Build.cs: The mod will still work with REST API only (no presence/status updates)");
             PublicDefinitions.Add("WITH_WEBSOCKETS_SUPPORT=0");
         }
     }
