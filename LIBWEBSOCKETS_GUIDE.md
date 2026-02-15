@@ -40,7 +40,34 @@ if (PlatformSupportsLibWebsockets && LibWebSocketsAvailable) {
 
 ## Where libwebsockets Should Be Located
 
-For Linux builds, the Unreal Build Tool expects libwebsockets at:
+The build system checks for libwebsockets in the following order:
+
+### Priority 1: Plugin Local ThirdParty (NEW!)
+
+**NEW**: You can now place libwebsockets directly in the plugin:
+
+```
+Plugins/WebSockets/ThirdParty/libwebsockets/
+├── include/
+│   └── libwebsockets.h
+└── lib/
+    ├── Linux/x86_64-unknown-linux-gnu/
+    │   └── libwebsockets.a
+    └── Win64/
+        └── websockets_static.lib
+```
+
+**Advantages:**
+- Self-contained plugin
+- No dependency on engine installation
+- Easy to version control
+- Works across different UE installations
+
+**See:** [Plugins/WebSockets/QUICK_START_LOCAL_LIBWEBSOCKETS.md](Plugins/WebSockets/QUICK_START_LOCAL_LIBWEBSOCKETS.md) for setup instructions.
+
+### Priority 2: Unreal Engine ThirdParty (Traditional)
+
+If not found in the plugin, the build system checks the engine:
 
 ```
 {UnrealEngineDirectory}/Source/ThirdParty/libWebSockets/
@@ -99,9 +126,34 @@ If you're using standard Epic Games Unreal Engine (not CSS custom build):
 #### What if libwebsockets is missing?
 
 If your Unreal Engine installation doesn't have libwebsockets:
-1. You may have an incomplete installation
-2. Re-download or verify your UE installation
-3. Or manually add libwebsockets (see Option 3)
+1. **NEW**: Add it to the plugin's ThirdParty directory (see Option 1A below - easiest!)
+2. You may have an incomplete installation - re-download or verify your UE installation
+3. Or manually add libwebsockets to the engine ThirdParty (see Option 3)
+
+## Option 1A: Use Plugin Local libwebsockets (NEW - Easiest!)
+
+**NEW in this update**: You can now add libwebsockets directly to the plugin, making it self-contained!
+
+### Quick Setup
+
+1. Place header files: `Plugins/WebSockets/ThirdParty/libwebsockets/include/libwebsockets.h`
+2. Place library files:
+   - Linux: `Plugins/WebSockets/ThirdParty/libwebsockets/lib/Linux/x86_64-unknown-linux-gnu/libwebsockets.a`
+   - Windows: `Plugins/WebSockets/ThirdParty/libwebsockets/lib/Win64/websockets_static.lib`
+3. Build automatically detects and uses them!
+
+### Advantages
+
+✅ **Self-contained**: Plugin works regardless of UE installation  
+✅ **No engine modification**: Doesn't require changing UE  
+✅ **Priority**: Build system checks plugin first  
+✅ **Easy distribution**: Share plugin with all dependencies  
+
+### Complete Instructions
+
+**See:** [Plugins/WebSockets/QUICK_START_LOCAL_LIBWEBSOCKETS.md](Plugins/WebSockets/QUICK_START_LOCAL_LIBWEBSOCKETS.md)
+
+Includes directory structure, build instructions, platform notes, verification, and troubleshooting.
 
 ## Option 2: Build Without libwebsockets (Graceful Degradation)
 
