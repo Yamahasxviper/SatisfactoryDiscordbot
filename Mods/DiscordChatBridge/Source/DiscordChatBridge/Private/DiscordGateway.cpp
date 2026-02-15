@@ -76,7 +76,7 @@ void UDiscordGateway::Connect()
 		UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSockets module already loaded"));
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway at %s..."), *GATEWAY_URL);
+	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway at %s..."), GATEWAY_URL);
 	ConnectionState = EGatewayConnectionState::Connecting;
 
 	// Create WebSocket connection using built-in WebSockets module
@@ -89,7 +89,7 @@ void UDiscordGateway::Connect()
 		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CRITICAL ERROR - Failed to create WebSocket!"));
 		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: FWebSocketsModule::Get().CreateWebSocket() returned invalid pointer"));
 		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: This may indicate:"));
-		UE_LOG(LogTemp, Error, TEXT("  1. Invalid URL format (current: %s)"), *GATEWAY_URL);
+		UE_LOG(LogTemp, Error, TEXT("  1. Invalid URL format (current: %s)"), GATEWAY_URL);
 		UE_LOG(LogTemp, Error, TEXT("  2. WebSocket module internal error"));
 		UE_LOG(LogTemp, Error, TEXT("  3. SSL/TLS certificate issues"));
 		ConnectionState = EGatewayConnectionState::Disconnected;
