@@ -33,7 +33,10 @@ void UDiscordGateway::Initialize(const FString& InBotToken)
 void UDiscordGateway::Connect()
 {
 #if !WITH_WEBSOCKETS_SUPPORT
-	UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Cannot connect - WebSockets plugin is not available. This build was compiled without WebSockets support. Please use a build with the WebSockets plugin enabled."));
+	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Cannot connect - WebSockets plugin is not available."));
+	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: This build was compiled without WebSockets support."));
+	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: The mod will work in REST-only mode (all core features still work)."));
+	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: For help adding WebSockets or understanding alternatives, see WEBSOCKET_ALTERNATIVES.md"));
 	ConnectionState = EGatewayConnectionState::Disconnected;
 	OnDisconnected.ExecuteIfBound(TEXT("WebSockets plugin not available at compile time"));
 	return;
@@ -56,7 +59,10 @@ void UDiscordGateway::Connect()
 		// Try to load the module
 		if (!FModuleManager::Get().LoadModule("WebSockets"))
 		{
-			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Cannot connect - WebSockets plugin is not available. Please ensure the WebSockets plugin is enabled in your Unreal Engine installation."));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Cannot connect - WebSockets plugin is not available at runtime."));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: The mod will work in REST-only mode (all core features still work)."));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: To enable Gateway features, ensure WebSockets plugin is in your Unreal Engine installation."));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: See WEBSOCKET_ALTERNATIVES.md for options."));
 			ConnectionState = EGatewayConnectionState::Disconnected;
 			OnDisconnected.ExecuteIfBound(TEXT("WebSockets plugin not available"));
 			return;

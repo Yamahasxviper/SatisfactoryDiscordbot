@@ -507,6 +507,13 @@ void UDiscordAPI::OnGatewayDisconnected(const FString& Reason)
 {
 	UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway disconnected: %s"), *Reason);
 	
+	// If disconnected because WebSockets is not available, provide helpful information
+	if (Reason.Contains(TEXT("WebSockets plugin not available")))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway features are disabled but core functionality (chat sync) still works."));
+		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: To enable Gateway/presence features, see WEBSOCKET_ALTERNATIVES.md"));
+	}
+	
 	// Optionally implement auto-reconnect logic here
 	// For now, just log the disconnection
 }
