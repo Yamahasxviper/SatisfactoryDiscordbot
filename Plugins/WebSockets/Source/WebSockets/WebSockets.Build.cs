@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class WebSockets : ModuleRules
 {
@@ -14,6 +15,24 @@ public class WebSockets : ModuleRules
 				Target.Platform == UnrealTargetPlatform.Mac ||
 				Target.IsInPlatformGroup(UnrealPlatformGroup.Unix) ||
 				Target.Platform == UnrealTargetPlatform.IOS;
+		}
+	}
+
+	protected virtual bool LibWebSocketsAvailable
+	{
+		get
+		{
+			// Check if libWebSockets third-party library exists in the engine
+			string LibWebSocketsPath = Path.Combine(EngineDirectory, "Source", "ThirdParty", "libWebSockets");
+			bool bExists = Directory.Exists(LibWebSocketsPath);
+			
+			if (!bExists && PlatformSupportsLibWebsockets)
+			{
+				System.Console.WriteLine($"[WebSockets] Warning: libWebSockets third-party library not found at {LibWebSocketsPath}");
+				System.Console.WriteLine($"[WebSockets] WebSocket support will be disabled. The plugin will not function.");
+			}
+			
+			return bExists;
 		}
 	}
 
@@ -48,7 +67,7 @@ public class WebSockets : ModuleRules
 	{
 		get
 		{
-			if (PlatformSupportsLibWebsockets)
+			if (PlatformSupportsLibWebsockets && LibWebSocketsAvailable)
 			{
 				return "Lws/LwsWebSocketsManager.h";
 			}
@@ -67,7 +86,7 @@ public class WebSockets : ModuleRules
 	{
 		get
 		{
-			if (PlatformSupportsLibWebsockets)
+			if (PlatformSupportsLibWebsockets && LibWebSocketsAvailable)
 			{
 				return "FLwsWebSocketsManager";
 			}
@@ -97,10 +116,9 @@ public class WebSockets : ModuleRules
 
 		if (ShouldUseModule)
 		{
-			bWithWebSockets = true;
-
-			if (PlatformSupportsLibWebsockets)
+			if (PlatformSupportsLibWebsockets && LibWebSocketsAvailable)
 			{
+				bWithWebSockets = true;
 				bWithLibWebSockets = true;
 
 				if (UsePlatformSSL)
@@ -117,9 +135,16 @@ public class WebSockets : ModuleRules
 			else if (bPlatformSupportsWinHttpWebSockets)
 			{
 				// Enable WinHttp Support
+				bWithWebSockets = true;
 				bWithWinHttpWebSockets = true;
 
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "WinHttp");
+			}
+			else if (PlatformSupportsLibWebsockets && !LibWebSocketsAvailable)
+			{
+				// Platform needs libWebSockets but it's not available - disable WebSockets entirely
+				System.Console.WriteLine($"[WebSockets] Platform requires libWebSockets but it's not available. WebSockets will be disabled.");
+				bWithWebSockets = false;
 			}
 		}
 
