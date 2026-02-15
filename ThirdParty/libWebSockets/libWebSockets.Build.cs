@@ -43,24 +43,34 @@ public class libWebSockets : ModuleRules
 				// In some versions of UE, the architecture name is accessed via LinuxName
 				archName = Target.Architecture.LinuxName;
 			}
-			catch (System.Exception ex) when (ex is System.Reflection.TargetException || 
-			                                   ex is System.MissingMemberException || 
-			                                   ex is Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
+			catch (System.Reflection.TargetException)
 			{
-				// LinuxName property might not exist, try ToString() as fallback
+				// LinuxName property invocation failed
+			}
+			catch (System.MissingMemberException)
+			{
+				// LinuxName property doesn't exist in this UE version
+			}
+			catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
+			{
+				// Dynamic binding failed for LinuxName property
+			}
+			
+			// If LinuxName failed, try ToString() as fallback
+			if (string.IsNullOrEmpty(archName))
+			{
 				try
 				{
 					archName = Target.Architecture.ToString();
 				}
 				catch
 				{
-					// Fallback if ToString() also fails
-					archName = null;
+					// ToString() failed - suppressing exception as we have a reasonable default
 				}
 			}
 		}
 		
-		// Handle null or empty architecture name
+		// Handle null or empty architecture name with sensible default
 		if (string.IsNullOrEmpty(archName))
 		{
 			archName = "x86_64"; // Default to x86_64 for Linux (most common case for server builds)
