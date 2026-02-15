@@ -40,9 +40,9 @@
 
 ### 4. Configure the Mod (1 minute)
 
-**OPTION A: ServerDefaults TXT Format (Recommended)** ⭐ NEW!
+**OPTION A: config TXT Format (Recommended)** ⭐ NEW!
 
-Edit the file in your project: `Mods/DiscordChatBridge/ServerDefaults/DiscordChatBridge.txt`
+Edit the file in your project: `Mods/DiscordChatBridge/config/DiscordChatBridge.txt`
 
 ```txt
 # Discord Chat Bridge Configuration
@@ -111,4 +111,4 @@ You now have two-way chat between Satisfactory and Discord! 🎉
 
 ---
 
-**Need Help?** Check the [full documentation](README.md) or [setup guide](SETUP_GUIDE.md).
+**Need Help?** Check the [full documentation](../README.md) or [setup guide](SETUP_GUIDE.md).

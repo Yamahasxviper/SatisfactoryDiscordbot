@@ -19,7 +19,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ Two-way chat synchronization between Satisfactory and Discord
 - ✅ Uses Discord Bot Token (no webhooks required)
 - ✅ Configurable through INI or TXT file formats
-- ✅ **NEW: ServerDefaults TXT configuration** - Simple KEY=VALUE format with automatic SML persistence!
+- ✅ **NEW: config TXT configuration** - Simple KEY=VALUE format with automatic SML persistence!
 - ✅ Custom message formatting with player names
 - ✅ Prevents message loops by ignoring bot messages
 - ✅ Server-side only (no client installation required)
@@ -32,13 +32,13 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 ## Quick Links
 
-- 🚀 [Quick Start Guide](QUICKSTART.md) - Get up and running in 5 minutes
-- 📖 [Setup Guide](SETUP_GUIDE.md) - Detailed step-by-step instructions
-- 🎨 [**Configuration Examples**](EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
-- ⚙️ [**ServerDefaults Configuration**](ServerDefaults/README.md) - **NEW! Simple TXT format with SML persistence**
+- 🚀 [Quick Start Guide](help/QUICKSTART.md) - Get up and running in 5 minutes
+- 📖 [Setup Guide](help/SETUP_GUIDE.md) - Detailed step-by-step instructions
+- 🎨 [**Configuration Examples**](help/EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
+- ⚙️ [**Config Folder README**](config/README.md) - **NEW! Simple TXT format with SML persistence**
 - ⚙️ [Default INI Configuration](Config/DefaultDiscordChatBridge.ini) - Traditional INI template configuration file
-- 🔧 [Dependency Explanation](DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
-- 📦 [Packaging Notes](PACKAGING_NOTES.md) - Build and packaging information (documentation files now included!)
+- 🔧 [Dependency Explanation](help/DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
+- 📦 [Packaging Notes](help/PACKAGING_NOTES.md) - Build and packaging information (documentation files now included!)
 
 > **Note:** All documentation files are now automatically included when you build/package this mod!
 
@@ -73,11 +73,11 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 The Discord Chat Bridge mod supports **two configuration formats**:
 
-### Option 1: ServerDefaults TXT Format (Recommended) ⭐ NEW!
+### Option 1: config TXT Format (Recommended) ⭐ NEW!
 
 The easiest and most server-friendly option:
 
-1. Navigate to `Mods/DiscordChatBridge/ServerDefaults/DiscordChatBridge.txt` in your project
+1. Navigate to `Mods/DiscordChatBridge/config/DiscordChatBridge.txt` in your project
 2. Edit the file using simple `KEY=VALUE` format:
 
 ```txt
@@ -96,7 +96,7 @@ GameNameFormat=**[{username}]** {message}
 - ✅ Extensive inline documentation
 - ✅ No need to copy files to runtime directories
 
-See [ServerDefaults/README.md](ServerDefaults/README.md) for complete documentation.
+See [config/README.md](config/README.md) for complete documentation.
 
 ### Option 2: Traditional INI Format (Legacy)
 
@@ -564,7 +564,7 @@ This mod requires the **WebSockets** plugin, which is a built-in Unreal Engine p
 
 **WebSockets Dependency:**
 
-For technical details about how and why WebSockets is configured, see [DEPENDENCY_EXPLANATION.md](DEPENDENCY_EXPLANATION.md).
+For technical details about how and why WebSockets is configured, see [help/DEPENDENCY_EXPLANATION.md](help/DEPENDENCY_EXPLANATION.md).
 
 ### File Structure
 

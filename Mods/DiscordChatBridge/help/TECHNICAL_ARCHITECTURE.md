@@ -312,6 +312,6 @@ If players are still experiencing connection issues after this fix, it's likely 
 ---
 
 **For questions or issues, please check:**
-- [README.md](README.md) - General documentation
-- [FAQ Section](README.md#frequently-asked-questions-faq) - Common questions
+- [README.md](../README.md) - General documentation
+- [FAQ Section](../README.md#frequently-asked-questions-faq) - Common questions
 - [SETUP_GUIDE.md](SETUP_GUIDE.md) - Installation instructions

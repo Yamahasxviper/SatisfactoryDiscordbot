@@ -1,10 +1,10 @@
-# Server Defaults Configuration
+# Configuration Folder
 
-This folder contains default configuration files in TXT format that work with SML (Satisfactory Mod Loader) and persist settings across server restarts.
+This folder contains configuration files in TXT format that work with SML (Satisfactory Mod Loader) and persist settings across server restarts.
 
 ## About This Folder
 
-The `ServerDefaults` folder provides an alternative configuration system that:
+The `config` folder provides an alternative configuration system that:
 - ✅ Uses simple **TXT format** for easy editing
 - ✅ **Loads automatically** when the server starts
 - ✅ **Persists settings** across server restarts via SML's configuration system
@@ -41,7 +41,7 @@ PollIntervalSeconds=2.0
 ### Loading Process
 1. Server starts and loads SML (Satisfactory Mod Loader)
 2. DiscordChatBridge mod initializes
-3. Configuration loader checks for `ServerDefaults/DiscordChatBridge.txt`
+3. Configuration loader checks for `config/DiscordChatBridge.txt`
 4. Settings are parsed and loaded into memory
 5. SML's configuration system persists these settings
 
@@ -64,7 +64,7 @@ PollIntervalSeconds=2.0
 
 ### Configuration Priority
 If both INI and TXT configurations exist:
-1. TXT format (ServerDefaults) is checked first
+1. TXT format (config) is checked first
 2. INI format (Config folders) is used as fallback
 3. SML persisted configuration has highest priority for runtime changes
 
@@ -91,7 +91,7 @@ If both INI and TXT configurations exist:
 
 ### Settings Not Loading
 1. Check file name is exactly `DiscordChatBridge.txt`
-2. Verify file is in `Mods/DiscordChatBridge/ServerDefaults/` folder
+2. Verify file is in `Mods/DiscordChatBridge/config/` folder
 3. Check server logs for configuration loading messages
 4. Ensure no syntax errors in the TXT file (KEY=VALUE format)
 

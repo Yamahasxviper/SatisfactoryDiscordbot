@@ -13,7 +13,7 @@ class DISCORDCHATBRIDGE_API FServerDefaultsConfigLoader
 {
 public:
 	/**
-	 * Load configuration from ServerDefaults/DiscordChatBridge.txt
+	 * Load configuration from config/DiscordChatBridge.txt
 	 * @param OutConfig The configuration struct to fill
 	 * @return true if configuration was loaded successfully, false otherwise
 	 */
@@ -38,8 +38,8 @@ private:
 	static bool ParseConfigLine(const FString& Line, FString& OutKey, FString& OutValue);
 
 	/**
-	 * Get the path to the ServerDefaults directory
-	 * @return Full path to ServerDefaults directory
+	 * Get the path to the config directory
+	 * @return Full path to config directory
 	 */
 	static FString GetServerDefaultsPath();
 

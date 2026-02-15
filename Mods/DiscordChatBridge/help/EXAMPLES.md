@@ -501,7 +501,7 @@ ServerStopMessage=🔴 Server has gone OFFLINE
 
 ## Need More Help?
 
-- Check [README.md](README.md) for full documentation
+- Check [README.md](../README.md) for full documentation
 - See [SETUP_GUIDE.md](SETUP_GUIDE.md) for detailed setup instructions
 - Visit [QUICKSTART.md](QUICKSTART.md) for fast setup
 
