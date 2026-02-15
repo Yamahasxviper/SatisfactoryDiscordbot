@@ -169,12 +169,13 @@ The Discord Chat Bridge mod is designed to work **without WebSockets**. The mod 
 ### What Works Without WebSockets:
 
 ✅ **All Core Features Work:**
-- ✅ Two-way chat synchronization (Discord ↔ Game)
+- ✅ Two-way chat synchronization (Discord <-> Game)
 - ✅ Player join/leave notifications
 - ✅ Server start/stop notifications
 - ✅ All Discord bot commands
 - ✅ Message formatting and filtering
 - ✅ Configuration through INI files
+
 
 ### What Doesn't Work Without WebSockets:
 
@@ -269,25 +270,26 @@ DiscordChatBridge: Running in REST-only mode
 ## Recommendations by Use Case
 
 ### For Development/Testing:
-**→ Use Option 4** (without WebSockets)
+**- Use Option 4** (without WebSockets)
 - Faster setup
 - All core features work
 - Focus on mod development, not infrastructure
 
 ### For Production Server:
-**→ Use Option 1** (copy from standard UE) or **Option 4**
+**- Use Option 1** (copy from standard UE) or **Option 4**
 - Option 1 if you want presence features
 - Option 4 if you don't need presence (simpler)
 
 ### For CI/Automated Builds:
-**→ Use Option 1** or **ensure UE build includes WebSockets**
+**- Use Option 1** or **ensure UE build includes WebSockets**
 - Script the plugin copy process
 - Or use standard UE with WebSockets included
 
 ### For Learning/Understanding:
-**→ Use Option 2** (build from source)
+**- Use Option 2** (build from source)
 - Learn how UE plugins work
 - Understand WebSocket implementation
+
 
 
 ## Common Questions
