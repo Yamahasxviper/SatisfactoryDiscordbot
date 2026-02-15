@@ -45,15 +45,15 @@ public class libWebSockets : ModuleRules
 			}
 			catch (System.Reflection.TargetException)
 			{
-				// LinuxName property invocation failed
+				// LinuxName property invocation failed - will try ToString() below
 			}
 			catch (System.MissingMemberException)
 			{
-				// LinuxName property doesn't exist in this UE version
+				// LinuxName property doesn't exist in this UE version - will try ToString() below
 			}
 			catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
 			{
-				// Dynamic binding failed for LinuxName property
+				// Dynamic binding failed for LinuxName property - will try ToString() below
 			}
 			
 			// If LinuxName failed, try ToString() as fallback
@@ -63,9 +63,10 @@ public class libWebSockets : ModuleRules
 				{
 					archName = Target.Architecture.ToString();
 				}
-				catch
+				catch (System.Exception)
 				{
-					// ToString() failed - suppressing exception as we have a reasonable default
+					// ToString() failed - will use default x86_64 below
+					// Exception suppressed as we have a reasonable default for this case
 				}
 			}
 		}
