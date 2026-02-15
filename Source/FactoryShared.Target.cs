@@ -52,7 +52,7 @@ public class FactorySharedTarget : TargetRules
 		});
 		if (UseChecksInShippingOverride || LinkTypeOverride != TargetLinkType.Default)
 		{
-			Logger.LogInformation($"{Target.Name}: Building with command line overrides: ChecksInShipping: {bUseChecksInShipping} (default: false); LinkType: {LinkType} (default: {defaultLinkTypeForPlatform})");
+			Logger.LogInformation($"{Target.Name}: Build configuration: ChecksInShipping: {bUseChecksInShipping} (default: true); LinkType: {LinkType} (default: {defaultLinkTypeForPlatform})");
 		}
 	}
 }
