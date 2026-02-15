@@ -106,11 +106,12 @@ public class WebSockets : ModuleRules
 				if (UsePlatformSSL)
 				{
 					PrivateDefinitions.Add("WITH_SSL=0");
-					AddEngineThirdPartyPrivateStaticDependencies(Target, "libWebSockets");
+					PrivateDependencyModuleNames.Add("libWebSockets");
 				}
 				else
 				{
-					AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
+					AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "zlib");
+					PrivateDependencyModuleNames.Add("libWebSockets");
 					PrivateDependencyModuleNames.Add("SSL");
 				}
 			}
