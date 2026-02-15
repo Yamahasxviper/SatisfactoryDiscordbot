@@ -12,6 +12,8 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 **This mod is 100% server-side.** Only the server administrator needs to install and configure it.
 
+> **Technical Note:** This mod uses `"RequiredOnRemote": false` in its plugin descriptor, which tells SML (Satisfactory Mod Loader) that clients can connect without having the mod installed. Combined with the `SpawnOnServer` replication policy in the code, this ensures the mod runs entirely on the server.
+
 ## Features
 
 - ✅ Two-way chat synchronization between Satisfactory and Discord

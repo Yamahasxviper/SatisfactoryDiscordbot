@@ -6,7 +6,31 @@ This document explains the technical implementation that makes the Discord Chat 
 
 ## Code Evidence
 
-### 1. Replication Policy
+### 1. Plugin Descriptor - RequiredOnRemote Field
+
+**File:** `DiscordChatBridge.uplugin`  
+**Line 19:**
+```json
+"RequiredOnRemote": false,
+```
+
+This is the **CRITICAL** field that tells SML the mod is optional on remote clients. Without this field, SML defaults to `bRequiredOnRemote = true` and will **reject clients** that don't have the mod installed, even if the code uses server-only spawning.
+
+**SML Source Reference:**  
+**File:** `Mods/SML/Source/SML/Private/ModLoading/ModLoadingLibrary.cpp`  
+**Line 47:**
+```cpp
+Source->TryGetBoolField(TEXT("RequiredOnRemote"), bRequiredOnRemote);
+```
+
+**Line 19:** (default value when field is missing)
+```cpp
+this->bRequiredOnRemote = true;
+```
+
+### 2. Replication Policy
+
+### 2. Replication Policy
 
 **File:** `Source/DiscordChatBridge/Private/DiscordChatSubsystem.cpp`  
 **Line 15:**
@@ -16,7 +40,9 @@ ReplicationPolicy = ESubsystemReplicationPolicy::SpawnOnServer;
 
 This explicitly sets the subsystem to spawn **only on the server** with **no replication** to clients.
 
-### 2. Replication Policy Definition
+### 3. Replication Policy Definition
+
+### 3. Replication Policy Definition
 
 **File:** `Mods/SML/Source/SML/Public/Subsystem/ModSubsystem.h`  
 **Lines 9-10:**
@@ -30,7 +56,9 @@ The SML framework defines `SpawnOnServer` policy as:
 - ❌ Does NOT spawn on clients
 - ❌ Does NOT replicate to clients
 
-### 3. Module Type
+### 4. Module Type
+
+### 4. Module Type
 
 **File:** `DiscordChatBridge.uplugin`  
 **Lines 21-24:**
@@ -45,6 +73,24 @@ The SML framework defines `SpawnOnServer` policy as:
 ```
 
 The module is marked as `Runtime` type, which means it loads during normal game runtime, but the replication policy controls where it spawns.
+
+## The Two-Part Solution
+
+For a mod to be truly server-side only in SML, **BOTH** of these must be configured:
+
+### Part 1: Plugin Descriptor (SML Network Layer)
+```json
+"RequiredOnRemote": false
+```
+This tells SML's network manager that clients can join without having the mod. Without this, SML will reject clients during the connection handshake.
+
+### Part 2: Code Replication Policy (Unreal Spawning)
+```cpp
+ReplicationPolicy = ESubsystemReplicationPolicy::SpawnOnServer;
+```
+This tells Unreal/SML where to spawn the subsystem actor. With `SpawnOnServer`, it only spawns on the server.
+
+**Both are required!** Without `RequiredOnRemote: false`, clients will be blocked by SML before the game even attempts to spawn the subsystem.
 
 ## How It Works
 
@@ -95,6 +141,33 @@ All players see message (including vanilla clients)
 ```
 
 ## Why Clients Don't Need The Mod
+
+### The Previous Problem (Before Adding RequiredOnRemote: false)
+
+Even though the code used `SpawnOnServer` replication policy, clients were still being **rejected** by SML during connection. Here's why:
+
+**Connection Flow:**
+1. Client attempts to connect to server
+2. **SML Network Manager runs version/mod check** (happens BEFORE Unreal spawns any actors)
+3. Server checks: Does client have all mods marked with `RequiredOnRemote: true`?
+4. If Discord Chat Bridge is missing from client: **CONNECTION REJECTED**
+5. Client never gets to the game, subsystem never attempts to spawn
+
+The `SpawnOnServer` policy only controls **where Unreal spawns the actor** (step that never happened because connection was rejected at step 4).
+
+### The Solution
+
+Adding `"RequiredOnRemote": false` to the plugin descriptor fixes this:
+
+**New Connection Flow:**
+1. Client attempts to connect to server
+2. SML Network Manager runs version/mod check
+3. Server sees `RequiredOnRemote: false` for Discord Chat Bridge
+4. **Connection ACCEPTED** (mod is optional on client)
+5. Client joins the game successfully
+6. Server spawns `ADiscordChatSubsystem` (due to `SpawnOnServer` policy)
+7. Client does NOT spawn subsystem (as expected)
+8. Chat works normally using game's built-in replication
 
 ### 1. No Client-Side Code Execution
 The `SpawnOnServer` policy ensures the subsystem never instantiates on clients. Clients never execute any Discord Chat Bridge code.
@@ -187,20 +260,54 @@ You can test this yourself:
 
 ## Conclusion
 
-The Discord Chat Bridge mod is **definitively server-side only** by design and implementation. The code explicitly uses `ESubsystemReplicationPolicy::SpawnOnServer`, which is documented to mean "spawns on server, does not replicate to clients."
+The Discord Chat Bridge mod is **definitively server-side only** by design and implementation, **but required a configuration fix** to work properly.
 
-Players joining a server with this mod:
+### The Fix
+
+**Added to DiscordChatBridge.uplugin:**
+```json
+"RequiredOnRemote": false,
+```
+
+This critical field was missing, causing SML to default to `bRequiredOnRemote = true`, which blocked clients from connecting even though the code was correctly using `SpawnOnServer` policy.
+
+### How to Verify
+
+Players joining a server with this mod (after the fix):
 - ✅ Do NOT need to install SML
 - ✅ Do NOT need to install this mod
 - ✅ Do NOT need any Discord configuration
 - ✅ Can use vanilla Satisfactory client
 - ✅ Will see and can participate in Discord chat automatically
+- ✅ **WILL NOT** be rejected by SML's network manager
 
-If players are experiencing connection issues or being told they need mods, it's likely due to:
-- **Other mods** on the server that DO require client installation
-- **Confusion** between "this mod" and "other mods"
-- **Server configuration** issues unrelated to this mod
-- **Misunderstanding** of how SML works
+### Testing
+
+You can test this yourself:
+
+1. **Server Setup:**
+   - Install Satisfactory dedicated server
+   - Install SML on server
+   - Install Discord Chat Bridge mod on server (with `RequiredOnRemote: false`)
+   - Configure Discord bot token
+
+2. **Client Setup:**
+   - Install vanilla Satisfactory (no SML, no mods)
+   - Connect to server using server IP
+
+3. **Expected Result:**
+   - ✅ Client connects successfully (no version mismatch or mod required errors)
+   - ✅ Client can see all chat messages including Discord messages
+   - ✅ Client can send chat messages that appear in Discord
+   - ✅ No errors or version mismatches
+
+### If Issues Persist
+
+If players are still experiencing connection issues after this fix, it's likely due to:
+- **Other mods** on the server that DO require client installation (check their `RequiredOnRemote` settings)
+- **Cached mod list** - server may need restart after adding the field
+- **SML version mismatch** - ensure server has SML 3.11.3+
+- **Different mod** entirely - verify the Discord Chat Bridge specifically
 
 ---
 
