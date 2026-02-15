@@ -90,7 +90,10 @@ public class libWebSockets : ModuleRules
 		}
 		else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
 		{
-			// Add include paths for all Unix architectures to ensure headers are found
+			// Add include paths for all Unix architectures to ensure headers are found during cross-compilation
+			// Target.Architecture.LinuxName may not match the actual include directory names (e.g., returns "x64" instead of "x86_64-unknown-linux-gnu")
+			// Similar to Android multi-architecture support above, we add all available architecture include paths
+			// The compiler will use the appropriate headers, and LibraryDirectory will resolve to the correct library for linking
 			PublicSystemIncludePaths.Add(Path.Combine(WebSocketsPackagePath, "include", "Unix", "x86_64-unknown-linux-gnu"));
 			PublicSystemIncludePaths.Add(Path.Combine(WebSocketsPackagePath, "include", "Unix", "aarch64-unknown-linux-gnueabi"));
 			PublicAdditionalLibraries.Add(Path.Combine(LibraryDirectory, DefaultLibraryName));
