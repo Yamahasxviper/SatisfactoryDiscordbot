@@ -111,7 +111,7 @@ Mods/SML/ThirdParty/
 2. Try building your project:
 ```bash
 # Using Unreal Engine Build Tool
-.\\ue\\Engine\\Build\\BatchFiles\\Build.bat FactoryEditor Win64 Development -project="path\\to\\FactoryGame.uproject"
+.\ue\Engine\Build\BatchFiles\Build.bat FactoryEditor Win64 Development -project="path\to\FactoryGame.uproject"
 ```
 
 3. If you get linker errors about undefined symbols, you may need to:
