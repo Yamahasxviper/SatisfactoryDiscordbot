@@ -20,6 +20,8 @@ public class WebSockets : ModuleRules
 
 	// Cache for LibWebSocketsAvailable to avoid repeated directory checks and warnings
 	private bool? _libWebSocketsAvailableCache = null;
+	private string _libWebSocketsPath = null;
+	private bool _usingLocalLibWebSockets = false;
 	
 	protected virtual bool LibWebSocketsAvailable
 	{
@@ -30,18 +32,51 @@ public class WebSockets : ModuleRules
 				return _libWebSocketsAvailableCache.Value;
 			}
 			
-			// Check if libWebSockets third-party library exists in the engine
-			string LibWebSocketsPath = Path.Combine(EngineDirectory, "Source", "ThirdParty", "libWebSockets");
-			bool bExists = Directory.Exists(LibWebSocketsPath);
+			// First check for local libWebSockets in plugin ThirdParty directory
+			string LocalLibWebSocketsPath = Path.Combine(ModuleDirectory, "..", "..", "ThirdParty", "libwebsockets");
+			bool bLocalExists = Directory.Exists(LocalLibWebSocketsPath);
 			
-			if (!bExists && PlatformSupportsLibWebsockets)
+			if (bLocalExists)
 			{
-				Log.TraceWarning($"[WebSockets] libWebSockets third-party library not found at {LibWebSocketsPath}");
+				// Check if include directory exists with headers
+				string LocalIncludePath = Path.Combine(LocalLibWebSocketsPath, "include");
+				bool bHasHeaders = Directory.Exists(LocalIncludePath) && 
+				                   (File.Exists(Path.Combine(LocalIncludePath, "libwebsockets.h")) ||
+				                    Directory.GetFiles(LocalIncludePath, "*.h").Length > 0);
+				
+				if (bHasHeaders)
+				{
+					Log.TraceInformation($"[WebSockets] Using local libwebsockets from plugin ThirdParty directory: {LocalLibWebSocketsPath}");
+					_libWebSocketsPath = LocalLibWebSocketsPath;
+					_usingLocalLibWebSockets = true;
+					_libWebSocketsAvailableCache = true;
+					return true;
+				}
+			}
+			
+			// Fall back to checking engine ThirdParty directory
+			string EngineLibWebSocketsPath = Path.Combine(EngineDirectory, "Source", "ThirdParty", "libWebSockets");
+			bool bEngineExists = Directory.Exists(EngineLibWebSocketsPath);
+			
+			if (bEngineExists)
+			{
+				Log.TraceInformation($"[WebSockets] Using engine libwebsockets from: {EngineLibWebSocketsPath}");
+				_libWebSocketsPath = EngineLibWebSocketsPath;
+				_usingLocalLibWebSockets = false;
+				_libWebSocketsAvailableCache = true;
+				return true;
+			}
+			
+			// Not found in either location
+			if (PlatformSupportsLibWebsockets)
+			{
+				Log.TraceWarning($"[WebSockets] libWebSockets not found in plugin ThirdParty: {LocalLibWebSocketsPath}");
+				Log.TraceWarning($"[WebSockets] libWebSockets not found in engine ThirdParty: {EngineLibWebSocketsPath}");
 				Log.TraceWarning($"[WebSockets] WebSocket functionality will be disabled. Dependent features (like Discord Gateway) will not work.");
 			}
 			
-			_libWebSocketsAvailableCache = bExists;
-			return bExists;
+			_libWebSocketsAvailableCache = false;
+			return false;
 		}
 	}
 
@@ -130,15 +165,72 @@ public class WebSockets : ModuleRules
 				bWithWebSockets = true;
 				bWithLibWebSockets = true;
 
-				if (UsePlatformSSL)
+				if (_usingLocalLibWebSockets)
 				{
-					PrivateDefinitions.Add("WITH_SSL=0");
-					AddEngineThirdPartyPrivateStaticDependencies(Target, "libWebSockets");
+					// Using local libwebsockets from plugin ThirdParty
+					Log.TraceInformation("[WebSockets] Configuring build with local libwebsockets");
+					
+					// Add include path
+					string IncludePath = Path.Combine(_libWebSocketsPath, "include");
+					PublicSystemIncludePaths.Add(IncludePath);
+					
+					// Add library path based on platform
+					if (Target.Platform == UnrealTargetPlatform.Linux)
+					{
+						string LibPath = Path.Combine(_libWebSocketsPath, "lib", "Linux", "x86_64-unknown-linux-gnu");
+						PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libwebsockets.a"));
+						
+						// Still need OpenSSL and zlib from engine
+						AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "zlib");
+						PrivateDependencyModuleNames.Add("SSL");
+					}
+					else if (Target.Platform == UnrealTargetPlatform.Win64)
+					{
+						string LibPath = Path.Combine(_libWebSocketsPath, "lib", "Win64");
+						
+						// Try to find static lib first
+						string StaticLib = Path.Combine(LibPath, "websockets_static.lib");
+						if (File.Exists(StaticLib))
+						{
+							PublicAdditionalLibraries.Add(StaticLib);
+						}
+						else
+						{
+							// Try regular lib
+							string ImportLib = Path.Combine(LibPath, "websockets.lib");
+							if (File.Exists(ImportLib))
+							{
+								PublicAdditionalLibraries.Add(ImportLib);
+							}
+						}
+						
+						// Add OpenSSL and zlib from engine
+						AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "zlib");
+						PrivateDependencyModuleNames.Add("SSL");
+					}
+					else if (Target.Platform == UnrealTargetPlatform.Mac)
+					{
+						string LibPath = Path.Combine(_libWebSocketsPath, "lib", "Mac");
+						PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libwebsockets.a"));
+						
+						// Add OpenSSL and zlib from engine
+						AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "zlib");
+						PrivateDependencyModuleNames.Add("SSL");
+					}
 				}
 				else
 				{
-					AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
-					PrivateDependencyModuleNames.Add("SSL");
+					// Using engine's libwebsockets
+					if (UsePlatformSSL)
+					{
+						PrivateDefinitions.Add("WITH_SSL=0");
+						AddEngineThirdPartyPrivateStaticDependencies(Target, "libWebSockets");
+					}
+					else
+					{
+						AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
+						PrivateDependencyModuleNames.Add("SSL");
+					}
 				}
 			}
 			else if (bPlatformSupportsWinHttpWebSockets)
