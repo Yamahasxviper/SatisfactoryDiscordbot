@@ -389,8 +389,31 @@ void UDiscordAPI::StopActivityUpdates()
 		World->GetTimerManager().ClearTimer(ActivityUpdateTimerHandle);
 	}
 
-	// Disconnect Gateway if active
-	if (Gateway)
+	// Set bot to offline before disconnecting Gateway
+	if (Gateway && Gateway->IsConnected())
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Setting bot status to offline before disconnecting"));
+		Gateway->SetOfflineStatus();
+		
+		// Give the offline status message a moment to be sent before disconnecting
+		// Use a small delay to ensure the message is transmitted
+		if (World)
+		{
+			FTimerHandle DisconnectTimer;
+			World->GetTimerManager().SetTimer(DisconnectTimer, [this]()
+			{
+				if (Gateway)
+				{
+					Gateway->Disconnect();
+				}
+			}, 0.5f, false);
+		}
+		else
+		{
+			Gateway->Disconnect();
+		}
+	}
+	else if (Gateway)
 	{
 		Gateway->Disconnect();
 	}

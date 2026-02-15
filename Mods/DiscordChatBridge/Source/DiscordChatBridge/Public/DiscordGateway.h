@@ -68,6 +68,9 @@ public:
 	/** Update bot presence with activity */
 	void UpdatePresence(const FString& ActivityName, int32 ActivityType = 0);
 
+	/** Set bot status to offline (invisible) */
+	void SetOfflineStatus();
+
 	/** Check if Gateway is connected */
 	bool IsConnected() const { return ConnectionState == EGatewayConnectionState::Connected; }
 
