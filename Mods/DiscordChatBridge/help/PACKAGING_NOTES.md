@@ -22,7 +22,7 @@ The following are now included when you build/package the mod:
 
 2. **Configuration Directories**:
    - `Config/` - Contains DefaultDiscordChatBridge.ini and example configurations
-   - `ServerDefaults/` - Contains the TXT format configuration system
+   - `config/` - Contains the TXT format configuration system
 
 ### How It Works
 The `PluginSettings.ini` file uses the `[StageSettings]` section to tell Unreal Engine's build system which additional directories to include:
@@ -30,7 +30,7 @@ The `PluginSettings.ini` file uses the `[StageSettings]` section to tell Unreal 
 ```ini
 [StageSettings]
 +AdditionalNonUSFDirectories=Config
-+AdditionalNonUSFDirectories=ServerDefaults
++AdditionalNonUSFDirectories=config
 ```
 
 Markdown files at the mod root are automatically included by Alpakit's packaging system when `CanContainContent` is set to `true` in the `.uplugin` file (which it is).
@@ -51,7 +51,7 @@ DiscordChatBridge/
 │   ├── DefaultDiscordChatBridge.ini
 │   ├── PluginSettings.ini
 │   └── ExampleConfigs/
-└── ServerDefaults/
+└── config/
     ├── DiscordChatBridge.txt
     └── README.md
 ```

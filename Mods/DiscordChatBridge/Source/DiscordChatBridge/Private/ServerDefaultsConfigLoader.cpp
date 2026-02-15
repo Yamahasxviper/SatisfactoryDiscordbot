@@ -100,8 +100,8 @@ FString FServerDefaultsConfigLoader::GetServerDefaultsPath()
 	// Get the Mods directory path
 	FString ModsPath = FPaths::ProjectModsDir();
 	
-	// Combine with DiscordChatBridge/ServerDefaults
-	FString ServerDefaultsPath = FPaths::Combine(ModsPath, TEXT("DiscordChatBridge"), TEXT("ServerDefaults"));
+	// Combine with DiscordChatBridge/config
+	FString ServerDefaultsPath = FPaths::Combine(ModsPath, TEXT("DiscordChatBridge"), TEXT("config"));
 	
 	return FPaths::ConvertRelativePathToFull(ServerDefaultsPath);
 }

@@ -66,7 +66,7 @@ This directory contains ready-to-use configuration file examples for different c
 
 ## Need More?
 
-Check out [EXAMPLES.md](../EXAMPLES.md) in the parent directory for:
+Check out [EXAMPLES.md](../../help/EXAMPLES.md) in the help directory for:
 - Detailed visual examples
 - More customization ideas
 - Tips and best practices

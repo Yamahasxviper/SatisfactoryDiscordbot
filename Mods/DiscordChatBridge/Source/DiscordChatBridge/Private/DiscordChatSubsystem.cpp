@@ -142,11 +142,11 @@ void ADiscordChatSubsystem::LoadConfiguration()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Loading configuration"));
 	
-	// Try to load from ServerDefaults TXT format first (new system)
+	// Try to load from config TXT format first (new system)
 	bool bLoadedFromTxt = FServerDefaultsConfigLoader::LoadFromServerDefaults(BotConfig);
 	if (bLoadedFromTxt)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded from ServerDefaults/DiscordChatBridge.txt"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Configuration loaded from config/DiscordChatBridge.txt"));
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
 			*BotConfig.ChannelId, BotConfig.PollIntervalSeconds, 
 			BotConfig.bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), 
@@ -155,7 +155,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		return;
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ServerDefaults TXT config not found, falling back to INI config"));
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: config TXT config not found, falling back to INI config"));
 	
 	// Fallback to INI format (legacy system)
 	FString ConfigSection = TEXT("/Script/DiscordChatBridge.DiscordChatSubsystem");
@@ -264,7 +264,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set in DiscordChatBridge.ini"));
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: The mod will load but remain inactive until configured. See QUICKSTART.md for setup instructions."));
+			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: The mod will load but remain inactive until configured. See help/QUICKSTART.md for setup instructions."));
 			
 			// Ensure all feature flags are disabled when configuration is incomplete
 			BotConfig.bEnableServerNotifications = false;
