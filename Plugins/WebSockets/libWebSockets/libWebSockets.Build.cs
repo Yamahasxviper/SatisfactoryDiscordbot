@@ -88,6 +88,13 @@ public class libWebSockets : ModuleRules
 			PublicAdditionalLibraries.Add(Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "ARM64", ConfigName, "libwebsockets.a"));
 			PublicAdditionalLibraries.Add(Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "x64", ConfigName, "libwebsockets.a"));
 		}
+		else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
+		{
+			// Add include paths for all Unix architectures to ensure headers are found
+			PublicSystemIncludePaths.Add(Path.Combine(WebSocketsPackagePath, "include", "Unix", "x86_64-unknown-linux-gnu"));
+			PublicSystemIncludePaths.Add(Path.Combine(WebSocketsPackagePath, "include", "Unix", "aarch64-unknown-linux-gnueabi"));
+			PublicAdditionalLibraries.Add(Path.Combine(LibraryDirectory, DefaultLibraryName));
+		}
 		else
 		{
 			PublicSystemIncludePaths.Add(IncludeDirectory);
