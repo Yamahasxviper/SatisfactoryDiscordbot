@@ -21,7 +21,8 @@ For information about building this project, including engine requirements and p
 Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
 
 **Common build errors:**
-- "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- "Unable to find plugin 'WebSockets'" → See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md), [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md), or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- Custom Unreal build missing WebSockets → See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md) for how to add it or use the mod without it
 
 ## Discord Chat Bridge Mod
 

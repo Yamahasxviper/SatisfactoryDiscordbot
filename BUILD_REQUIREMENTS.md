@@ -41,49 +41,47 @@ The WebSockets plugin builds as part of the Unreal Engine itself, **not** as par
 - Gateway/presence features will be disabled at runtime if WebSockets was not available at compile time
 - If WebSockets is found during build, full Gateway functionality is enabled
 
-**Troubleshooting "Unable to find plugin 'WebSockets'" error:**
+**If your custom Unreal Engine build doesn't have WebSockets:**
 
-**Note:** As of the latest update, this specific build error is significantly less likely to occur due to automatic detection of WebSockets availability. While the changes address the primary cause (missing WebSockets plugin), errors may still occur in edge cases such as corrupted build files or misconfigured paths. If you encounter this error, verify the build system changes are present and check your build environment configuration.
+📖 **See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md) for a comprehensive guide on:**
+- How to add WebSockets to custom Unreal Engine builds
+- Alternative options when WebSockets is not available
+- Using the mod without WebSockets (REST-only mode)
 
-If you want to use the DiscordChatBridge mod with full Gateway/presence features, ensure the WebSockets plugin is present in your Unreal Engine installation:
+**Quick Summary:**
+
+The DiscordChatBridge mod **works without WebSockets** - it will automatically use REST API instead of Gateway. The only missing feature without WebSockets is real-time bot presence ("Playing with X players" status).
 
 **For CI/Automated Builds:**
 - The official CI workflow automatically downloads the correct UE build which includes WebSockets
 - No action needed if using the standard CI workflow
 
-**For Local Development:**
+**For Local Development - Quick Options:**
 
-1. **Check if WebSockets exists in your engine:**
-   ```bash
-   # Check engine plugins directory
-   # Replace <UE_ROOT> with your engine installation path
-   ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
-   # or
-   ls "<UE_ROOT>/Engine/Plugins/Experimental/WebSockets/"
-   ```
+1. **Use without WebSockets (Recommended for most users)**
+   - No additional setup required
+   - All core features work (chat, notifications, commands)
+   - Only missing: real-time presence updates
+   - See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md#option-4-use-without-websockets-recommended-for-most-users)
 
-2. **If WebSockets is missing from your engine:**
-   
-   Option A: **Use the official CSS Unreal Engine build** (Recommended)
-   - The CSS custom build includes all required plugins
-   - Download from `satisfactorymodding/UnrealEngine` repository (requires authentication)
-   - Follow the SML documentation for setting up the development environment
+2. **Copy WebSockets from standard UE (If you need presence features)**
+   - Copy `Engine/Plugins/Runtime/WebSockets/` from standard UE 5.3.2 to your custom build
+   - Fastest way to enable WebSockets
+   - See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md#option-1-copy-websocket-plugin-from-standard-unreal-engine-easiest)
 
-   Option B: **Use a standard UE 5.3.2 build**
-   - WebSockets should be included by default in UE 5.3.2
-   - If missing, you may need to enable it via the Epic Games Launcher
-   - Note: Some CSS-specific features may not work with standard UE
+3. **Build from source**
+   - Build WebSockets plugin from UE source code
+   - See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md#option-2-build-websocket-plugin-from-unreal-engine-source)
 
-   Option C: **Build WebSockets from source**
-   - If you have UE source code, WebSockets should build automatically
-   - Located in `Engine/Plugins/Runtime/WebSockets/`
-   - Builds as part of the engine compile process
+**Verify WebSockets Installation:**
+```bash
+# Check if plugin exists
+ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
+# or
+ls "<UE_ROOT>/Engine/Plugins/Experimental/WebSockets/"
+```
 
-3. **If WebSockets is present but still getting errors:**
-   - Ensure the plugin is enabled in your UE installation
-   - Check that UnrealBuildTool can find the plugin
-   - Verify no path issues in your engine installation
-   - Clean and regenerate project files: Delete `.sln` files and `Intermediate/` folder, then regenerate
+**Still having issues?** Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) or see the detailed guide in [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md).
 
 ## Other Required Plugins
 

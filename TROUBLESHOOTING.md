@@ -16,9 +16,24 @@ or
 cannot open input file '..\Intermediate\Build\Win64\x64\UnrealEditor\Development\WebSockets\UnrealEditor-WebSockets.lib'
 ```
 
-**Solution:**
+**Quick Solution:**
 
 **Note:** As of the latest update, this error is significantly less likely to occur. The DiscordChatBridge.Build.cs now automatically detects WebSockets availability and only includes it if present. If you still encounter this error, please verify you have the latest code and check for configuration issues, corrupted build files, or path problems.
+
+📖 **For comprehensive solutions, see [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md)**
+
+**Quick Options:**
+
+1. **Use without WebSockets** (Recommended - easiest)
+   - The mod works fine without WebSockets!
+   - All core features function normally (chat, notifications, commands)
+   - Only missing: real-time bot presence updates
+   - No additional setup required
+   - See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md#option-4-use-without-websockets-recommended-for-most-users)
+
+2. **Add WebSockets to your custom build** (If you need presence)
+   - Copy from standard UE 5.3.2 → See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md#option-1-copy-websocket-plugin-from-standard-unreal-engine-easiest)
+   - Build from source → See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md#option-2-build-websocket-plugin-from-unreal-engine-source)
 
 **What Changed:**
 - WebSockets is marked as **optional** in `FactoryGame.uproject` and `DiscordChatBridge.uplugin`
@@ -26,26 +41,20 @@ cannot open input file '..\Intermediate\Build\Win64\x64\UnrealEditor\Development
 - If WebSockets is not found, the mod builds successfully **without Gateway/presence features**
 - If WebSockets is found, full functionality is enabled
 
-**For Full Gateway Features:**
+**Verify Your Setup:**
 
-If you want to use Discord Gateway/presence features, ensure WebSockets is in your engine installation:
+Check if WebSockets exists in your engine:
+```bash
+# Windows:
+dir "<UE_ROOT>\Engine\Plugins\Runtime\WebSockets\"
 
-1. **For CI/Automated Builds:** The official workflow downloads UE 5.3.2-CSS which includes WebSockets.
+# Linux/Mac:
+ls "<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/"
+```
 
-2. **For Local Development:**
-   
-   a. Verify you're using **Unreal Engine 5.3.2-CSS** (the Coffee Stain Studios custom build)
-   
-   b. Check if WebSockets exists:
-      - Windows: `<UE_ROOT>\Engine\Plugins\Runtime\WebSockets\`
-      - Linux/Mac: `<UE_ROOT>/Engine/Plugins/Runtime/WebSockets/`
-   
-   c. If missing, you need to:
-      - Use the official CSS UE build (recommended)
-      - Or use standard UE 5.3.2 from Epic (WebSockets should be included)
-      - Or build UE from source (WebSockets will compile automatically)
-
-**Detailed Information:** See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) for complete details about when and how WebSockets builds.
+**For More Help:**
+- Complete guide: [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md)
+- Build details: [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
 
 ### "Cannot find Wwise plugin"
 
@@ -149,6 +158,7 @@ rm -rf ~/.local/share/UnrealBuildTool   # Linux
 
 Still having issues? Here are additional resources:
 
+- **WebSocket Solutions:** [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md) ← Start here for WebSocket issues
 - **Build Requirements:** [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
 - **Discord Chat Bridge Setup:** [Mods/DiscordChatBridge/SETUP_GUIDE.md](Mods/DiscordChatBridge/SETUP_GUIDE.md)
 - **Discord Chat Bridge README:** [Mods/DiscordChatBridge/README.md](Mods/DiscordChatBridge/README.md)
@@ -160,8 +170,9 @@ Still having issues? Here are additional resources:
 
 | Issue | Solution |
 |-------|----------|
-| WebSockets build error | Should auto-resolve now; builds without WebSockets if not available |
-| Gateway features not working | Ensure WebSockets plugin is in engine (optional) |
+| WebSockets build error | See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md) - mod works without it! |
+| Custom Unreal missing WebSockets | See [WEBSOCKET_ALTERNATIVES.md](WEBSOCKET_ALTERNATIVES.md) for 4 options |
+| Gateway features not working | Either add WebSockets or use REST-only mode (see guide) |
 | Build files outdated | Delete Intermediate/, regenerate project |
 | Discord messages not working | Check bot token, channel ID, permissions |
 | Wwise missing | CI downloads it automatically, or download manually |
