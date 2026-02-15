@@ -497,6 +497,8 @@ Once configured and the server is running:
 
 **No!** This is a **server-side only** mod. Players can join your server with a completely vanilla Satisfactory client (no mods, no SML). The chat bridge works automatically for all players.
 
+**Technical Details:** The mod uses `"RequiredOnRemote": false` in its plugin descriptor, which tells SML that clients don't need the mod. Combined with the `SpawnOnServer` replication policy in the code, this ensures vanilla clients can connect and the mod only runs on the server.
+
 ### Do players need to install SML (Satisfactory Mod Loader)?
 
 **No!** Only the server needs SML installed. Players can connect with the base game without any modifications.
@@ -529,6 +531,17 @@ That's it! No installation instructions needed for players.
 ### I'm a player, what do I install?
 
 **Nothing!** If you're connecting to a server that has this mod, you don't need to install anything. Just launch Satisfactory and join the server normally.
+
+### What if the server rejects me saying I need mods?
+
+If you're being rejected with a "missing mod" or "version mismatch" error:
+
+1. **Verify it's this mod causing the issue** - The server may have OTHER mods that require client installation
+2. **Check the server updated the mod** - The server needs version 1.0.0+ with `RequiredOnRemote: false` in the plugin descriptor
+3. **Try after server restart** - The server may need to restart after updating the mod
+4. **Check with server admin** - They may have other mods requiring client installation
+
+This Discord Chat Bridge mod specifically does NOT require client installation when properly configured with `RequiredOnRemote: false`.
 
 ## Development
 

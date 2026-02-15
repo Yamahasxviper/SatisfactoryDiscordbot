@@ -29,6 +29,8 @@ This repository includes the **Discord Chat Bridge** mod, which provides two-way
 
 > **✅ NO CLIENT INSTALLATION REQUIRED**  
 > Players connecting to your server **do not need to install anything**. This mod runs entirely on the server side. Only the server administrator needs to install and configure the mod.
+> 
+> **Technical Implementation:** The mod uses `"RequiredOnRemote": false` in its plugin descriptor and `SpawnOnServer` replication policy to ensure it runs only on the server and allows vanilla clients to connect.
 
 ### Features
 - Two-way chat synchronization between Satisfactory and Discord
