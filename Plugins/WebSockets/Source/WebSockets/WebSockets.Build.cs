@@ -18,20 +18,29 @@ public class WebSockets : ModuleRules
 		}
 	}
 
+	// Cache for LibWebSocketsAvailable to avoid repeated directory checks and warnings
+	private bool? _libWebSocketsAvailableCache = null;
+	
 	protected virtual bool LibWebSocketsAvailable
 	{
 		get
 		{
+			if (_libWebSocketsAvailableCache.HasValue)
+			{
+				return _libWebSocketsAvailableCache.Value;
+			}
+			
 			// Check if libWebSockets third-party library exists in the engine
 			string LibWebSocketsPath = Path.Combine(EngineDirectory, "Source", "ThirdParty", "libWebSockets");
 			bool bExists = Directory.Exists(LibWebSocketsPath);
 			
 			if (!bExists && PlatformSupportsLibWebsockets)
 			{
-				System.Console.WriteLine($"[WebSockets] Warning: libWebSockets third-party library not found at {LibWebSocketsPath}");
-				System.Console.WriteLine($"[WebSockets] WebSocket functionality will be disabled. Dependent features (like Discord Gateway) will not work.");
+				Log.TraceWarning($"[WebSockets] libWebSockets third-party library not found at {LibWebSocketsPath}");
+				Log.TraceWarning($"[WebSockets] WebSocket functionality will be disabled. Dependent features (like Discord Gateway) will not work.");
 			}
 			
+			_libWebSocketsAvailableCache = bExists;
 			return bExists;
 		}
 	}
