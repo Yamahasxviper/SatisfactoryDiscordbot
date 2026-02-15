@@ -15,6 +15,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ **Server start and stop notifications** - Get notified when the server goes online or offline with custom channel support!
 - ✅ **Player count status updates** - Automatically post player count to Discord with customizable format and interval!
 - ✅ **Discord Gateway bot presence** ⭐ - True "Playing with X players" status via WebSocket!
+- ✅ **Bot online/offline status** ⭐ NEW! - Bot shows as online when server is running, offline when stopped!
 - ✅ **Settings persist across server restarts** - Powered by SML's configuration system!
 
 ## Quick Links
@@ -298,6 +299,9 @@ This appears:
 - In the bot's user profile
 - Exactly like official game integrations
 
+**Bot Online/Offline Status:**
+When using Gateway mode, the bot will automatically show as **online** when the server is running and **offline** when the server stops. This gives your community instant visual feedback about server availability without needing to check messages or channels.
+
 #### Enabling Gateway Mode
 
 Set `UseGatewayForPresence=true` in your configuration:
@@ -428,6 +432,10 @@ Once configured and the server is running:
 - **Player Count Updates** (if enabled): 
   - REST API mode: Posts to channel periodically
   - Gateway mode: Updates bot presence in real-time
+- **Bot Online/Offline Status** (Gateway mode only): 
+  - Bot shows as **online** when the server is running
+  - Bot shows as **offline** when the server stops
+  - Provides instant visual feedback about server availability
 
 ## Troubleshooting
 

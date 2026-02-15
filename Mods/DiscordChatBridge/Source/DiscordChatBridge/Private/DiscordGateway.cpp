@@ -118,6 +118,33 @@ void UDiscordGateway::UpdatePresence(const FString& ActivityName, int32 Activity
 	SendPresenceUpdate(ActivityName, ActivityType);
 }
 
+void UDiscordGateway::SetOfflineStatus()
+{
+	if (!IsConnected())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Cannot set offline status - not connected"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Setting bot status to offline"));
+
+	TSharedPtr<FJsonObject> Payload = MakeShareable(new FJsonObject());
+	Payload->SetNumberField(TEXT("op"), static_cast<int32>(EDiscordGatewayOpcode::PresenceUpdate));
+
+	TSharedPtr<FJsonObject> Data = MakeShareable(new FJsonObject());
+	Data->SetField(TEXT("since"), MakeShareable(new FJsonValueNull()));
+	Data->SetStringField(TEXT("status"), TEXT("invisible"));  // Use "invisible" to show as offline
+	Data->SetBoolField(TEXT("afk"), false);
+
+	// Empty activities array
+	TArray<TSharedPtr<FJsonValue>> Activities;
+	Data->SetArrayField(TEXT("activities"), Activities);
+
+	Payload->SetObjectField(TEXT("d"), Data);
+
+	SendPayload(Payload);
+}
+
 void UDiscordGateway::OnWebSocketConnected()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSocket connected, waiting for HELLO..."));
