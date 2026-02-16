@@ -140,21 +140,66 @@ public class libWebSockets : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			PublicSystemIncludePaths.Add(IncludeDirectory);
-			PublicAdditionalLibraries.Add(Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName(), ConfigName, "websockets_static.lib"));
+			string IncludePath = IncludeDirectory;
+			string LibraryPath = Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName(), ConfigName, "websockets_static.lib");
+			
+			if (Directory.Exists(IncludePath))
+			{
+				PublicSystemIncludePaths.Add(IncludePath);
+			}
+			
+			if (File.Exists(LibraryPath))
+			{
+				PublicAdditionalLibraries.Add(LibraryPath);
+			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			PublicSystemIncludePaths.Add(Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString(), "ARM64"));
-			PublicSystemIncludePaths.Add(Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString(), "x64"));
-			PublicSystemIncludePaths.Add(Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString()));
-			PublicAdditionalLibraries.Add(Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "ARM64", ConfigName, "libwebsockets.a"));
-			PublicAdditionalLibraries.Add(Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "x64", ConfigName, "libwebsockets.a"));
+			string IncludePathARM64 = Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString(), "ARM64");
+			string IncludePathx64 = Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString(), "x64");
+			string IncludePathBase = Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString());
+			string LibraryPathARM64 = Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "ARM64", ConfigName, "libwebsockets.a");
+			string LibraryPathx64 = Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "x64", ConfigName, "libwebsockets.a");
+			
+			if (Directory.Exists(IncludePathARM64))
+			{
+				PublicSystemIncludePaths.Add(IncludePathARM64);
+			}
+			if (Directory.Exists(IncludePathx64))
+			{
+				PublicSystemIncludePaths.Add(IncludePathx64);
+			}
+			if (Directory.Exists(IncludePathBase))
+			{
+				PublicSystemIncludePaths.Add(IncludePathBase);
+			}
+			
+			if (File.Exists(LibraryPathARM64))
+			{
+				PublicAdditionalLibraries.Add(LibraryPathARM64);
+			}
+			if (File.Exists(LibraryPathx64))
+			{
+				PublicAdditionalLibraries.Add(LibraryPathx64);
+			}
 		}
 		else
 		{
-			PublicSystemIncludePaths.Add(IncludeDirectory);
-			PublicAdditionalLibraries.Add(Path.Combine(LibraryDirectory, DefaultLibraryName));
+			string IncludePath = IncludeDirectory;
+			string LibPath = LibraryDirectory;
+			string FullLibraryPath = Path.Combine(LibPath, DefaultLibraryName);
+			
+			if (Directory.Exists(IncludePath))
+			{
+				PublicSystemIncludePaths.Add(IncludePath);
+			}
+			
+			// Use PublicSystemLibraryPaths for better performance and dependency checking
+			if (Directory.Exists(LibPath) && File.Exists(FullLibraryPath))
+			{
+				PublicSystemLibraryPaths.Add(LibPath);
+				PublicAdditionalLibraries.Add("websockets");
+			}
 		}
 
 		if (bRequireOpenSSL)
