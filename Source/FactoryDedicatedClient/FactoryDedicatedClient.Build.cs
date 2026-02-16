@@ -17,7 +17,7 @@ public class FactoryDedicatedClient : ModuleRules
 			PrivateDefinitions.Add("WITH_CURL=1");
 			PrivateDefinitions.Add("WITH_CURL_XCURL=0");
 		}
-		// Commented out unreachable else block to avoid unreachable code warnings
+		// Commented out else block that was unreachable due to if (true) condition above to avoid CS0162 warnings
 		// else
 		// {
 		// 	PrivateDefinitions.Add("WITH_CURL=0");

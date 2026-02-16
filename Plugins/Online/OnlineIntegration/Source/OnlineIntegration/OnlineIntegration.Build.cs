@@ -49,7 +49,7 @@ public class OnlineIntegration : ModuleRules
 			});
 		
 		// <FL> [ZimmermannA] Needed to display xbox system messages during joining
-		// Disabled platform-specific code to avoid unreachable code warnings
+		// Commented out previously disabled (if false) platform-specific code to avoid CS0162 unreachable code warnings
 		// if (Target.Platform == UnrealTargetPlatform.XSX)
 		// {
 		// 	PrivateDependencyModuleNames.AddRange(new string[] {
@@ -58,7 +58,7 @@ public class OnlineIntegration : ModuleRules
 		// }
 		// </FL> 
 		//<FL>[KonradA]
-		// Disabled platform-specific code to avoid unreachable code warnings
+		// Commented out previously disabled (if false) platform-specific code to avoid CS0162 unreachable code warnings
 		// if (Target.Platform == UnrealTargetPlatform.PS5)
 		// {
 		// 	PrivateDependencyModuleNames.AddRange(new string[] {
@@ -66,7 +66,7 @@ public class OnlineIntegration : ModuleRules
 		// 		});
 		// }
 		//</FL>
-		// Disabled platform-specific code to avoid unreachable code warnings
+		// Commented out previously disabled (if false) platform-specific code to avoid CS0162 unreachable code warnings
 		// if (Target.Platform == UnrealTargetPlatform.PS5 || Target.Platform == UnrealTargetPlatform.XSX)
 		// {
 		// 	PrivateDependencyModuleNames.AddRange(new string[] {
