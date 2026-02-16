@@ -2,6 +2,8 @@
 
 This directory contains ready-to-use configuration file examples for different chat formatting styles.
 
+> **💡 Note:** These examples use the traditional Config/ approach (Option 2). If you prefer the simpler config/ folder approach (Option 1 - Recommended), you can copy the relevant settings from these examples into `Mods/DiscordChatBridge/config/DiscordChatBridge.ini` instead. See [Which Config Should I Use?](../../README.md#-which-config-should-i-use) for guidance.
+
 ## How to Use
 
 1. Choose the style that fits your server
