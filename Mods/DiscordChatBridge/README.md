@@ -109,10 +109,8 @@ See [config/README.md](config/README.md) for complete documentation.
    - Windows: `%localappdata%/FactoryGame/Saved/Config/WindowsServer/DiscordChatBridge.ini`
    - Linux: `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini`
    
-   If the file doesn't exist, create it or copy from one of these template files:
+   If the file doesn't exist, create it or copy from the template file:
    - `Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini` (comprehensive template with all options)
-   - `Config/WindowsServer/DiscordChatBridge.ini` (project template for Windows servers)
-   - `Config/LinuxServer/DiscordChatBridge.ini` (project template for Linux servers)
 
 2. Edit the configuration file:
 
@@ -439,7 +437,7 @@ When Gateway is enabled, the mod will:
 
 #### Example Configuration
 
-See `Config/ExampleConfigs/gateway-presence.ini` for a complete example configuration with Gateway mode enabled.
+See `Mods/DiscordChatBridge/Config/ExampleConfigs/gateway-presence.ini` for a complete example configuration with Gateway mode enabled.
 
 ## Usage
 
