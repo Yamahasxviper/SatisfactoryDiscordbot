@@ -49,26 +49,29 @@ public class OnlineIntegration : ModuleRules
 			});
 		
 		// <FL> [ZimmermannA] Needed to display xbox system messages during joining
-			if (/*Target.Platform == UnrealTargetPlatform.XSX*/ false)
-			{
-				PrivateDependencyModuleNames.AddRange(new string[] {
-					"OnlineSubsystemGDK",
-				});
-			}
+		// Commented out previously disabled (if false) platform-specific code to avoid CS0162 unreachable code warnings
+		// if (Target.Platform == UnrealTargetPlatform.XSX)
+		// {
+		// 	PrivateDependencyModuleNames.AddRange(new string[] {
+		// 		"OnlineSubsystemGDK",
+		// 	});
+		// }
 		// </FL> 
 		//<FL>[KonradA]
-		if (/*Target.Platform == UnrealTargetPlatform.PS5*/ false)
-		{
-			PrivateDependencyModuleNames.AddRange(new string[] {
-					"OnlineSubsystemSony"
-				});
-		}
+		// Commented out previously disabled (if false) platform-specific code to avoid CS0162 unreachable code warnings
+		// if (Target.Platform == UnrealTargetPlatform.PS5)
+		// {
+		// 	PrivateDependencyModuleNames.AddRange(new string[] {
+		// 			"OnlineSubsystemSony"
+		// 		});
+		// }
 		//</FL>
-		if (/*Target.Platform == UnrealTargetPlatform.PS5 || Target.Platform == UnrealTargetPlatform.XSX*/ false)
-		{
-			PrivateDependencyModuleNames.AddRange(new string[] {
-				"OnlineServicesOSSAdapter"
-			});
-		}
+		// Commented out previously disabled (if false) platform-specific code to avoid CS0162 unreachable code warnings
+		// if (Target.Platform == UnrealTargetPlatform.PS5 || Target.Platform == UnrealTargetPlatform.XSX)
+		// {
+		// 	PrivateDependencyModuleNames.AddRange(new string[] {
+		// 		"OnlineServicesOSSAdapter"
+		// 	});
+		// }
 	}
 }
