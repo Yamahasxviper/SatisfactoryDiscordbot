@@ -233,6 +233,7 @@ public class WebSockets : ModuleRules
 				}
 				else
 				{
+					PrivateDefinitions.Add("WITH_SSL=1");
 					AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "zlib");
 					// SSL module dependency removed to prevent conflict with engine's libWebSockets.
 					// The paths are manually configured above via PrivateIncludePaths
