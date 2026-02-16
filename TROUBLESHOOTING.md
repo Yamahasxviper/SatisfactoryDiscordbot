@@ -1,6 +1,10 @@
 # Troubleshooting Guide
 
-Quick solutions to common build and setup issues.
+> **📚 For comprehensive troubleshooting, see [COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md](COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md)**
+>
+> This guide consolidates all build, configuration, WebSocket, platform-specific, and deployment troubleshooting into one complete reference.
+
+Quick solutions to common build and setup issues:
 
 ## Build Errors
 
@@ -178,10 +182,11 @@ rm -rf ~/.local/share/UnrealBuildTool   # Linux
 
 Still having issues? Here are additional resources:
 
+- **📚 Comprehensive Troubleshooting:** [COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md](COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md) - **Complete reference with all troubleshooting topics**
 - **Build Requirements:** [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
-- **Discord Chat Bridge Setup:** [Mods/DiscordChatBridge/SETUP_GUIDE.md](Mods/DiscordChatBridge/SETUP_GUIDE.md)
+- **Discord Chat Bridge Setup:** [Mods/DiscordChatBridge/help/SETUP_GUIDE.md](Mods/DiscordChatBridge/help/SETUP_GUIDE.md)
 - **Discord Chat Bridge README:** [Mods/DiscordChatBridge/README.md](Mods/DiscordChatBridge/README.md)
-- **WebSockets Dependency Details:** [Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md](Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md)
+- **Quick Start:** [Mods/DiscordChatBridge/help/QUICKSTART.md](Mods/DiscordChatBridge/help/QUICKSTART.md)
 - **Satisfactory Modding Docs:** [docs.ficsit.app](https://docs.ficsit.app/)
 - **Discord Community:** [discord.gg/QzcG9nX](https://discord.gg/QzcG9nX)
 

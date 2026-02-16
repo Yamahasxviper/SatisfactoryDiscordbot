@@ -18,10 +18,22 @@ For information about building this project, including engine requirements and p
 
 ### Troubleshooting
 
-Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
+Having issues? Check the troubleshooting guides:
+
+- **[COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md](COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md)** - Complete reference covering all topics:
+  - Build errors and solutions
+  - WebSocket integration and compatibility
+  - Discord Chat Bridge configuration
+  - Platform-specific issues (Windows, Linux, macOS)
+  - Development setup
+  - SML compatibility
+  - Deployment guide
+  - Testing and validation
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Quick reference for common issues
 
 **Common build errors:**
-- "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- "Unable to find plugin 'WebSockets'" → See troubleshooting guides above
+- Discord features disabled → This is normal; configuration is optional
 
 ### WebSocket Server Compatibility
 
