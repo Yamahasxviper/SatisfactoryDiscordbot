@@ -186,19 +186,16 @@ public class libWebSockets : ModuleRules
 		else
 		{
 			string IncludePath = IncludeDirectory;
-			string LibPath = LibraryDirectory;
-			string FullLibraryPath = Path.Combine(LibPath, DefaultLibraryName);
+			string FullLibraryPath = Path.Combine(LibraryDirectory, DefaultLibraryName);
 			
 			if (Directory.Exists(IncludePath))
 			{
 				PublicSystemIncludePaths.Add(IncludePath);
 			}
 			
-			// Use PublicSystemLibraryPaths for better performance and dependency checking
-			if (Directory.Exists(LibPath) && File.Exists(FullLibraryPath))
+			if (File.Exists(FullLibraryPath))
 			{
-				PublicSystemLibraryPaths.Add(LibPath);
-				PublicAdditionalLibraries.Add("websockets");
+				PublicAdditionalLibraries.Add(FullLibraryPath);
 			}
 		}
 
