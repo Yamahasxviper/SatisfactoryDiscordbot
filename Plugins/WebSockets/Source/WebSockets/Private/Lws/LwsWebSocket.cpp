@@ -7,6 +7,9 @@
 #include "LwsWebSocketsManager.h"
 #include "WebSocketsModule.h"
 #include "WebSocketsLog.h"
+#if WITH_SSL
+#include "Ssl.h"
+#endif
 #include "Misc/EmbeddedCommunication.h"
 #include "Misc/ScopeLock.h"
 #include "Misc/ConfigCacheIni.h"

@@ -6,6 +6,9 @@
 
 #include "WebSocketsModule.h"
 #include "HAL/RunnableThread.h"
+#if WITH_SSL
+#include "Ssl.h"
+#endif
 #include "HttpModule.h"
 #include "WebSocketsLog.h"
 #include "Containers/BackgroundableTicker.h"
