@@ -166,12 +166,12 @@ void ADiscordChatSubsystem::LoadConfiguration()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: === BEGIN CONFIGURATION LOADING ==="));
 	
-	// Try to load from config TXT format first (new system)
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Attempting to load from config/DiscordChatBridge.txt..."));
-	bool bLoadedFromTxt = FServerDefaultsConfigLoader::LoadFromServerDefaults(BotConfig);
-	if (bLoadedFromTxt)
+	// Try to load from config INI format first (new system)
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Attempting to load from config/DiscordChatBridge.ini..."));
+	bool bLoadedFromIni = FServerDefaultsConfigLoader::LoadFromServerDefaults(BotConfig);
+	if (bLoadedFromIni)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from config/DiscordChatBridge.txt"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from config/DiscordChatBridge.ini"));
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
 			*BotConfig.ChannelId, BotConfig.PollIntervalSeconds, 
 			BotConfig.bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), 
@@ -181,7 +181,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		return;
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: TXT config not found - falling back to INI config system"));
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: config/DiscordChatBridge.ini not found - falling back to Unreal Engine config system"));
 	
 	// Fallback to INI format (legacy system)
 	FString ConfigSection = TEXT("/Script/DiscordChatBridge.DiscordChatSubsystem");

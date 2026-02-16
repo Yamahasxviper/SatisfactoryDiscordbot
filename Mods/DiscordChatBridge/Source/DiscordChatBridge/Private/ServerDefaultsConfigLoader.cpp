@@ -8,7 +8,7 @@
 bool FServerDefaultsConfigLoader::LoadFromServerDefaults(FDiscordBotConfig& OutConfig)
 {
 	FString ServerDefaultsPath = GetServerDefaultsPath();
-	FString ConfigFilePath = FPaths::Combine(ServerDefaultsPath, TEXT("DiscordChatBridge.txt"));
+	FString ConfigFilePath = FPaths::Combine(ServerDefaultsPath, TEXT("DiscordChatBridge.ini"));
 	
 	UE_LOG(LogTemp, Log, TEXT("ServerDefaultsConfigLoader: Attempting to load config from: %s"), *ConfigFilePath);
 	
@@ -18,10 +18,10 @@ bool FServerDefaultsConfigLoader::LoadFromServerDefaults(FDiscordBotConfig& OutC
 		return false;
 	}
 	
-	return ParseTxtConfig(ConfigFilePath, OutConfig);
+	return ParseIniConfig(ConfigFilePath, OutConfig);
 }
 
-bool FServerDefaultsConfigLoader::ParseTxtConfig(const FString& FilePath, FDiscordBotConfig& OutConfig)
+bool FServerDefaultsConfigLoader::ParseIniConfig(const FString& FilePath, FDiscordBotConfig& OutConfig)
 {
 	FString FileContent = TEXT("");
 	if (!FFileHelper::LoadFileToString(FileContent, *FilePath))
@@ -34,18 +34,41 @@ bool FServerDefaultsConfigLoader::ParseTxtConfig(const FString& FilePath, FDisco
 	FileContent.ParseIntoArrayLines(Lines);
 	
 	int32 LoadedSettings = 0;
+	bool bInCorrectSection = false;
 	
 	for (const FString& Line : Lines)
 	{
-		FString Key, Value;
-		if (ParseConfigLine(Line, Key, Value))
+		FString TrimmedLine = Line.TrimStartAndEnd();
+		
+		// Check for section header
+		if (TrimmedLine.StartsWith(TEXT("[")))
 		{
-			SetConfigValue(Key, Value, OutConfig);
-			LoadedSettings++;
+			// Check if this is our section
+			if (TrimmedLine.Equals(TEXT("[/Script/DiscordChatBridge.DiscordChatSubsystem]"), ESearchCase::IgnoreCase))
+			{
+				bInCorrectSection = true;
+				UE_LOG(LogTemp, Verbose, TEXT("ServerDefaultsConfigLoader: Found correct INI section"));
+			}
+			else
+			{
+				bInCorrectSection = false;
+			}
+			continue;
+		}
+		
+		// Only parse lines if we're in the correct section
+		if (bInCorrectSection)
+		{
+			FString Key, Value;
+			if (ParseConfigLine(Line, Key, Value))
+			{
+				SetConfigValue(Key, Value, OutConfig);
+				LoadedSettings++;
+			}
 		}
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("ServerDefaultsConfigLoader: Successfully loaded %d settings from TXT config"), LoadedSettings);
+	UE_LOG(LogTemp, Log, TEXT("ServerDefaultsConfigLoader: Successfully loaded %d settings from INI config"), LoadedSettings);
 	
 	// Validate required settings
 	if (OutConfig.BotToken.IsEmpty() || OutConfig.ChannelId.IsEmpty())
@@ -68,8 +91,8 @@ bool FServerDefaultsConfigLoader::ParseConfigLine(const FString& Line, FString& 
 		return false;
 	}
 	
-	// Skip comments (lines starting with #)
-	if (TrimmedLine.StartsWith(TEXT("#")))
+	// Skip comments (lines starting with ; or #)
+	if (TrimmedLine.StartsWith(TEXT(";")) || TrimmedLine.StartsWith(TEXT("#")))
 	{
 		return false;
 	}
