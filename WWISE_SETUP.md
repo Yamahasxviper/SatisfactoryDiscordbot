@@ -253,15 +253,15 @@ The base game uses Wwise extensively. While you can disable it for development, 
 
 - [Wwise Official Documentation](https://www.audiokinetic.com/library/)
 - [Unreal Engine Wwise Integration](https://www.audiokinetic.com/library/edge/?source=UE4&id=index.html)
-- [BUILD_REQUIREMENTS.md](../../BUILD_REQUIREMENTS.md) - General build requirements
-- [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md) - General troubleshooting guide
+- [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) - General build requirements
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - General troubleshooting guide
 - [Satisfactory Modding Documentation](https://docs.ficsit.app/) - Modding community docs
 
 ## Getting Help
 
 If you're still having issues:
 
-1. Check the [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md) guide
+1. Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide
 2. Review the CI workflow in `.github/workflows/build.yml` to see how automated builds work
 3. Join the [Satisfactory Modding Discord](https://discord.gg/QzcG9nX)
 4. Open an issue on GitHub with:
