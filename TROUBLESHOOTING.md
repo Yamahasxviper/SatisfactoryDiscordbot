@@ -68,27 +68,54 @@ rm -rf Intermediate/ Saved/ *.sln *.vcxproj*
 ### Server won't start or mod doesn't load
 
 **Symptoms:**
-- Server fails to start after installing the mod
-- Mod loads but doesn't work
-- Warning messages in server logs
+- Server starts but Discord bot doesn't work
+- No messages being bridged between Discord and game
+- Error messages in server logs about missing configuration
 
 **Solution:**
 
 The mod requires configuration before it will function. If `BotToken` and `ChannelId` are not set in the configuration file, the mod will load but remain inactive.
 
-1. **Check server logs** for these messages:
-   - `"DiscordChatSubsystem: Initialized but not configured - mod will not be active"`
-   - `"DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set"`
+**🔍 How to check:** Look for these prominent error messages in your server logs:
 
-2. **Configure the mod:**
-   - Create/edit the configuration file (see config file location below)
+**When bot is NOT configured (missing settings):**
+```
+====================================================================
+❌ ERROR: Discord Chat Bridge is NOT CONFIGURED
+   - The mod loaded but will NOT function
+   - Server started successfully, but Discord features are DISABLED
+   - REQUIRED: Configure BotToken and ChannelId in config file
+   - Config location: Mods/DiscordChatBridge/config/DiscordChatBridge.ini
+   - OR: See TROUBLESHOOTING.md for setup instructions
+====================================================================
+```
+
+**When bot IS configured and working:**
+```
+====================================================================
+✅ SUCCESS: Discord Chat Bridge is ACTIVE and READY
+   - Bot is configured and will connect to Discord
+   - Chat messages will be synchronized
+====================================================================
+```
+
+**Steps to fix:**
+
+1. **Locate your configuration file** (in order of priority):
+   - Primary: `Mods/DiscordChatBridge/config/DiscordChatBridge.ini` (recommended)
+   - Legacy: `Config/DefaultDiscordChatBridge.ini`
+   - Platform-specific runtime configs also supported
+
+2. **Configure the required settings:**
    - Set your `BotToken` (from Discord Developer Portal)
    - Set your `ChannelId` (from Discord, with Developer Mode enabled)
-   - See [QUICKSTART.md](Mods/DiscordChatBridge/QUICKSTART.md) for detailed setup instructions
+   - See [Quick Start Guide](Mods/DiscordChatBridge/help/QUICKSTART.md) for step-by-step setup
 
 3. **Restart the server** after configuration
 
-**Important:** The mod will NOT work without valid `BotToken` and `ChannelId`. The server will start successfully but the Discord bridge will be inactive until properly configured.
+4. **Verify in logs** - You should see the success message with ✅ checkmark
+
+**Important:** The mod will NOT work without valid `BotToken` and `ChannelId`. The server will start successfully but the Discord bridge will be inactive until properly configured. **The new error messages (v1.1.0+) make this immediately obvious in your logs.**
 
 ### Messages not sending/receiving
 

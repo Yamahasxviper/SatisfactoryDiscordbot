@@ -19,7 +19,9 @@ void ADiscordChatSubsystem::Init()
 {
 	Super::Init();
 	
+	UE_LOG(LogTemp, Log, TEXT("===================================================================="));
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Initializing Discord Chat Bridge mod"));
+	UE_LOG(LogTemp, Log, TEXT("===================================================================="));
 	
 	// Load configuration
 	LoadConfiguration();
@@ -33,22 +35,34 @@ void ADiscordChatSubsystem::Init()
 		DiscordAPI->Initialize(BotConfig);
 		DiscordAPI->OnMessageReceived.BindUObject(this, &ADiscordChatSubsystem::OnDiscordMessageReceived);
 		
-		// Log initialization status
+		// Log initialization status with clear visual indicators
 		if (DiscordAPI->IsInitialized())
 		{
-			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Successfully initialized with valid configuration"));
+			UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Warning, TEXT("✅ SUCCESS: Discord Chat Bridge is ACTIVE and READY"));
+			UE_LOG(LogTemp, Warning, TEXT("   - Bot is configured and will connect to Discord"));
+			UE_LOG(LogTemp, Warning, TEXT("   - Chat messages will be synchronized"));
+			UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Initialized but not configured - mod will not be active"));
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: To use this mod, configure BotToken and ChannelId in DiscordChatBridge.ini"));
+			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Error, TEXT("❌ ERROR: Discord Chat Bridge is NOT CONFIGURED"));
+			UE_LOG(LogTemp, Error, TEXT("   - The mod loaded but will NOT function"));
+			UE_LOG(LogTemp, Error, TEXT("   - Server started successfully, but Discord features are DISABLED"));
+			UE_LOG(LogTemp, Error, TEXT("   - REQUIRED: Configure BotToken and ChannelId in config file"));
+			UE_LOG(LogTemp, Error, TEXT("   - Config location: Mods/DiscordChatBridge/config/DiscordChatBridge.ini"));
+			UE_LOG(LogTemp, Error, TEXT("   - OR: See TROUBLESHOOTING.md for setup instructions"));
+			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: CRITICAL ERROR - Failed to create UDiscordAPI object!"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: This may indicate memory allocation failure or object system issues"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: Discord chat bridge will NOT function"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("❌ CRITICAL ERROR: Failed to create UDiscordAPI object!"));
+		UE_LOG(LogTemp, Error, TEXT("   - This may indicate memory allocation failure or object system issues"));
+		UE_LOG(LogTemp, Error, TEXT("   - Discord chat bridge will NOT function"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 	}
 }
 
@@ -56,22 +70,31 @@ void ADiscordChatSubsystem::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: BeginPlay called - starting subsystem initialization"));
+	UE_LOG(LogTemp, Log, TEXT("===================================================================="));
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: BeginPlay - Starting subsystem"));
+	UE_LOG(LogTemp, Log, TEXT("===================================================================="));
 	
 	// Validate World pointer
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: CRITICAL ERROR - GetWorld() returned nullptr!"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: Cannot initialize without valid World pointer"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("❌ CRITICAL ERROR: GetWorld() returned nullptr!"));
+		UE_LOG(LogTemp, Error, TEXT("   Cannot initialize without valid World pointer"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 		return;
 	}
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: World pointer validated successfully"));
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ World pointer validated"));
 	
 	// Early exit if Discord API is not initialized (missing configuration)
 	if (!DiscordAPI || !DiscordAPI->IsInitialized())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: BeginPlay called but mod is not configured - skipping initialization"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("❌ Discord Chat Bridge SKIPPED - Not Configured"));
+		UE_LOG(LogTemp, Error, TEXT("   BeginPlay called but mod is not configured"));
+		UE_LOG(LogTemp, Error, TEXT("   The Discord bot will NOT start or function"));
+		UE_LOG(LogTemp, Error, TEXT("   Configure BotToken and ChannelId to enable Discord features"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 		return;
 	}
 	
@@ -83,7 +106,7 @@ void ADiscordChatSubsystem::BeginPlay()
 	{
 		// Bind to chat message event
 		ChatManager->OnChatMessageAdded.AddDynamic(this, &ADiscordChatSubsystem::OnGameChatMessageAdded);
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Successfully bound to chat manager"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ Successfully bound to chat manager"));
 	}
 	else
 	{
@@ -94,6 +117,7 @@ void ADiscordChatSubsystem::BeginPlay()
 	// Start polling Discord for messages
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Starting Discord message polling..."));
 	DiscordAPI->StartPolling();
+	UE_LOG(LogTemp, Warning, TEXT("✅ Discord message polling STARTED - Bot is now active"));
 	
 	// Send server start notification if enabled
 	if (BotConfig.bEnableServerNotifications)
@@ -120,7 +144,11 @@ void ADiscordChatSubsystem::BeginPlay()
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Activity update timer started (interval: %f seconds)"), BotConfig.ActivityUpdateIntervalSeconds);
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: BeginPlay initialization complete"));
+	UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+	UE_LOG(LogTemp, Warning, TEXT("✅ Discord Chat Bridge FULLY OPERATIONAL"));
+	UE_LOG(LogTemp, Warning, TEXT("   - Two-way chat synchronization is active"));
+	UE_LOG(LogTemp, Warning, TEXT("   - Messages will be bridged between Discord and game"));
+	UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
 }
 
 void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -172,11 +200,30 @@ void ADiscordChatSubsystem::LoadConfiguration()
 	if (bLoadedFromIni)
 	{
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from config/DiscordChatBridge.ini"));
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
-			*BotConfig.ChannelId, BotConfig.PollIntervalSeconds, 
-			BotConfig.bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), 
-			BotConfig.bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), 
-			BotConfig.bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
+		
+		// Validate loaded configuration
+		if (BotConfig.BotToken.IsEmpty())
+		{
+			UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: ERROR - BotToken is EMPTY in config file!"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ BotToken is configured"));
+		}
+		
+		if (BotConfig.ChannelId.IsEmpty())
+		{
+			UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: ERROR - ChannelId is EMPTY in config file!"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ ChannelId: %s"), *BotConfig.ChannelId);
+		}
+		
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Poll Interval: %.1fs"), BotConfig.PollIntervalSeconds);
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Server Notifications: %s"), BotConfig.bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Bot Activity Updates: %s"), BotConfig.bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Gateway Presence: %s"), BotConfig.bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: === END CONFIGURATION LOADING ==="));
 		return;
 	}
@@ -298,24 +345,48 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		}
 		BotConfig.GatewayActivityType = GatewayActivityType;
 		
-		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from INI - Channel ID: %s, Poll Interval: %.1fs, Notifications: %s, Bot Activity: %s, Gateway: %s"), 
-			*ChannelId, PollInterval, bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"), bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from INI"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ BotToken is configured"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ ChannelId: %s"), *ChannelId);
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Poll Interval: %.1fs"), PollInterval);
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Server Notifications: %s"), bEnableServerNotifications ? TEXT("Enabled") : TEXT("Disabled"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Bot Activity Updates: %s"), bEnableBotActivity ? TEXT("Enabled") : TEXT("Disabled"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: - Gateway Presence: %s"), bUseGatewayForPresence ? TEXT("Enabled") : TEXT("Disabled"));
 	}
 	else
 	{
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("❌ CONFIGURATION ERROR: Missing Required Settings"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 		if (BotToken.IsEmpty())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: BotToken not found in INI configuration"));
+			UE_LOG(LogTemp, Error, TEXT("   ❌ BotToken is MISSING or EMPTY"));
+			UE_LOG(LogTemp, Error, TEXT("      → Get your bot token from: https://discord.com/developers/applications"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("   ✓ BotToken is configured"));
 		}
 		if (ChannelId.IsEmpty())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: ChannelId not found in INI configuration"));
+			UE_LOG(LogTemp, Error, TEXT("   ❌ ChannelId is MISSING or EMPTY"));
+			UE_LOG(LogTemp, Error, TEXT("      → Enable Developer Mode in Discord, right-click channel, Copy ID"));
 		}
-		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set"));
-		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Expected location: Config/DefaultDiscordChatBridge.ini"));
-		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: Expected section: %s"), *ConfigSection);
-		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: The mod will load but remain inactive until configured"));
-		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: See help/QUICKSTART.md for setup instructions"));
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("   ✓ ChannelId is configured"));
+		}
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("   Configuration Locations (in order of priority):"));
+		UE_LOG(LogTemp, Error, TEXT("   1. Mods/DiscordChatBridge/config/DiscordChatBridge.ini (recommended)"));
+		UE_LOG(LogTemp, Error, TEXT("   2. Config/DefaultDiscordChatBridge.ini (legacy)"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("   For setup help, see:"));
+		UE_LOG(LogTemp, Error, TEXT("   - Mods/DiscordChatBridge/help/QUICKSTART.md"));
+		UE_LOG(LogTemp, Error, TEXT("   - TROUBLESHOOTING.md"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("   The mod will load but remain INACTIVE until configured!"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 		
 		// Ensure all feature flags are disabled when configuration is incomplete
 		BotConfig.bEnableServerNotifications = false;
