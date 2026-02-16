@@ -63,13 +63,18 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 ## Installation
 
+> **⚠️ IMPORTANT:** After installation, the mod **requires configuration** before it will work. The server will start normally, but Discord integration will be **inactive** until you complete the configuration steps below.
+
 1. Install [Satisfactory Mod Loader (SML)](https://ficsit.app/sml-versions) if you haven't already
 2. Download the `DiscordChatBridge` mod
 3. Place the mod folder in your Satisfactory mods directory:
    - Windows: `%localappdata%/FactoryGame/Saved/Mods/`
    - Linux: `~/.config/Epic/FactoryGame/Saved/Mods/`
+4. **Configure the mod** (see Configuration section below) - **This step is required!**
 
 ## Configuration
+
+> **🔴 REQUIRED:** You must configure `BotToken` and `ChannelId` for the mod to work. Without configuration, the server will start but Discord integration will be inactive.
 
 The Discord Chat Bridge mod supports **two configuration formats**:
 

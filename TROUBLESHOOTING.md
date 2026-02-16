@@ -2,6 +2,43 @@
 
 Quick solutions to common build and setup issues.
 
+## ⚠️ IMPORTANT: Server Starts But Discord Doesn't Work?
+
+**This is normal if you haven't configured the mod yet!**
+
+### Symptoms:
+- Server starts successfully with no errors
+- Players can join and play normally
+- Discord messages don't sync
+- You see warnings in logs about "NOT CONFIGURED" or "INACTIVE"
+
+### Solution:
+
+**The DiscordChatBridge mod requires configuration before it will work.** The server will start normally, but Discord integration will be inactive until you configure it.
+
+**What you need to do:**
+
+1. **Create a Discord bot** at https://discord.com/developers/applications
+2. **Get your bot token** (from the Bot section)
+3. **Get your channel ID** (enable Developer Mode in Discord, right-click channel, Copy ID)
+4. **Configure the mod** - Edit the unified config file:
+   
+   **Unified Config Location (Recommended):**
+   - Edit: `Config/DiscordChatBridge.ini`
+   - Set: `BotToken=YOUR_TOKEN_HERE`
+   - Set: `ChannelId=YOUR_CHANNEL_ID_HERE`
+   
+   **Alternative Legacy Locations:**
+   - `Mods/DiscordChatBridge/config/DiscordChatBridge.txt` (TXT format)
+   - Windows: `%localappdata%\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini`
+   - Linux: `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini`
+
+5. **Restart the server** - Discord integration will now be active!
+
+**See the [Quick Start Guide](Config/help/QUICKSTART.ini) for step-by-step setup instructions.**
+
+---
+
 ## Build Errors
 
 ### "Unable to find plugin 'WebSockets'" or "cannot open input file UnrealEditor-WebSockets.lib"
@@ -65,30 +102,19 @@ rm -rf Intermediate/ Saved/ *.sln *.vcxproj*
 
 ## Discord Chat Bridge Issues
 
-### Server won't start or mod doesn't load
+### Server starts but Discord integration doesn't work
+
+**This is the #1 most common issue - see the section at the top of this document.**
 
 **Symptoms:**
-- Server fails to start after installing the mod
-- Mod loads but doesn't work
-- Warning messages in server logs
+- Server starts successfully (no errors!)
+- Players can join and play normally
+- Discord messages don't sync
+- Warnings in logs: "NOT CONFIGURED" or "INACTIVE"
 
-**Solution:**
+**Root Cause:** The mod requires configuration before it works. Without configuration, the server starts normally but Discord integration is inactive.
 
-The mod requires configuration before it will function. If `BotToken` and `ChannelId` are not set in the configuration file, the mod will load but remain inactive.
-
-1. **Check server logs** for these messages:
-   - `"DiscordChatSubsystem: Initialized but not configured - mod will not be active"`
-   - `"DiscordChatSubsystem: Configuration incomplete - BotToken and ChannelId must be set"`
-
-2. **Configure the mod:**
-   - Create/edit the configuration file (see config file location below)
-   - Set your `BotToken` (from Discord Developer Portal)
-   - Set your `ChannelId` (from Discord, with Developer Mode enabled)
-   - See [QUICKSTART.md](Mods/DiscordChatBridge/QUICKSTART.md) for detailed setup instructions
-
-3. **Restart the server** after configuration
-
-**Important:** The mod will NOT work without valid `BotToken` and `ChannelId`. The server will start successfully but the Discord bridge will be inactive until properly configured.
+**Solution:** Follow the configuration steps at the top of this troubleshooting guide or see [QUICKSTART.md](Mods/DiscordChatBridge/help/QUICKSTART.md).
 
 ### Messages not sending/receiving
 
@@ -150,9 +176,12 @@ rm -rf ~/.local/share/UnrealBuildTool   # Linux
 Still having issues? Here are additional resources:
 
 - **Build Requirements:** [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
-- **Discord Chat Bridge Setup:** [Mods/DiscordChatBridge/SETUP_GUIDE.md](Mods/DiscordChatBridge/SETUP_GUIDE.md)
+- **Quick Start Guide:** [Config/help/QUICKSTART.ini](Config/help/QUICKSTART.ini)
+- **Setup Guide:** [Config/help/SETUP_GUIDE.ini](Config/help/SETUP_GUIDE.ini)
+- **Configuration Examples:** [Config/help/EXAMPLES.ini](Config/help/EXAMPLES.ini)
 - **Discord Chat Bridge README:** [Mods/DiscordChatBridge/README.md](Mods/DiscordChatBridge/README.md)
-- **WebSockets Dependency Details:** [Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md](Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md)
+- **WebSockets Dependency Details:** [Config/help/DEPENDENCY_EXPLANATION.ini](Config/help/DEPENDENCY_EXPLANATION.ini)
+- **Technical Architecture:** [Config/help/TECHNICAL_ARCHITECTURE.ini](Config/help/TECHNICAL_ARCHITECTURE.ini)
 - **Satisfactory Modding Docs:** [docs.ficsit.app](https://docs.ficsit.app/)
 - **Discord Community:** [discord.gg/QzcG9nX](https://discord.gg/QzcG9nX)
 
@@ -171,6 +200,7 @@ Still having issues? Here are additional resources:
 
 - Always check the server logs for detailed error messages
 - Verify your configuration file has no extra spaces or quotes
-- Use the example configurations in `Mods/DiscordChatBridge/Config/ExampleConfigs/`
+- Use the unified configuration at `Config/DiscordChatBridge.ini`
+- See configuration examples in `Config/help/EXAMPLES.ini`
 - Test bot permissions in Discord first before troubleshooting the mod
 - For build issues, try a clean build after deleting generated files
