@@ -49,6 +49,10 @@ This repository includes the **Discord Chat Bridge** mod, which provides two-way
 > 
 > **Technical Implementation:** The mod uses `"RequiredOnRemote": false` in its plugin descriptor and `SpawnOnServer` replication policy to ensure it runs only on the server and allows vanilla clients to connect.
 
+### SML Compatibility
+
+**✅ FULLY COMPATIBLE** - This Discord mod works perfectly with SML 3.11.3+. See [SML_COMPATIBILITY.md](SML_COMPATIBILITY.md) for detailed compatibility information.
+
 ### Features
 - Two-way chat synchronization between Satisfactory and Discord
 - Uses Discord Bot Token (no webhooks required)
@@ -56,6 +60,7 @@ This repository includes the **Discord Chat Bridge** mod, which provides two-way
 - **Server-side only** - Players join and chat normally, no mod installation needed
 
 ### Quick Links
+- [SML Compatibility Status](SML_COMPATIBILITY.md) - **Will my Discord project work with SML?**
 - [Mod README](Mods/DiscordChatBridge/README.md)
 - [Setup Guide](Mods/DiscordChatBridge/SETUP_GUIDE.md)
 - [Configuration](Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini)

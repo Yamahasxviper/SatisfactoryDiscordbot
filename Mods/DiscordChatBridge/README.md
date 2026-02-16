@@ -32,6 +32,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 ## Quick Links
 
+- ✅ [**SML Compatibility Status**](../../SML_COMPATIBILITY.md) - **Will this Discord mod work with SML?** YES! ✅
 - 🚀 [Quick Start Guide](help/QUICKSTART.md) - Get up and running in 5 minutes
 - 📖 [Setup Guide](help/SETUP_GUIDE.md) - Detailed step-by-step instructions
 - 🎨 [**Configuration Examples**](help/EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
