@@ -27,6 +27,7 @@
 | Issue | Quick Solution | Details |
 |-------|---------------|----------|
 | WebSockets build error | Should auto-resolve; builds without WebSockets if unavailable | [Build Errors](#websockets-plugin-errors) |
+| Linux runtime loading error | Fixed - WebSockets now pre-loaded at startup | [Linux Runtime Issues](#linux-runtime-loading-issues) |
 | Discord not working | Optional feature - configure BotToken & ChannelId to enable | [Discord Config](#discord-features-disabled) |
 | Alpakit ExitCode 6 | Fixed - uses module's public API | [Alpakit Issues](#alpakit-exitcode-6) |
 | SML compatibility | ✅ Fully compatible with SML ^3.11.3 | [SML Compatibility](#sml-compatibility) |
@@ -302,6 +303,53 @@ Run the comprehensive test:
 ```
 
 Expected result: ✅ LINUX SERVER COMPATIBLE (Compatibility Score: 100%)
+
+#### Linux Runtime Loading Issues
+
+**Error Messages:**
+```
+LogCore: Warning: dlopen failed: libFactoryServer-WebSockets-Linux-Shipping.so: cannot open shared object file: No such file or directory
+LogPluginManager: Error: Plugin 'DiscordChatBridge' failed to load because module 'DiscordChatBridge' could not be loaded.
+```
+
+**Root Cause:**
+This error occurs when the WebSockets shared library fails to load at runtime on Linux servers. This typically happens when:
+1. The WebSockets module binaries are not properly packaged with the server build
+2. The module is being loaded dynamically after the plugin starts instead of at startup
+
+**Solution:**
+**This has been fixed** in the latest version. The DiscordChatBridge module now pre-loads the WebSockets module during its StartupModule() phase, which ensures the library is loaded before it's needed by the DiscordGateway.
+
+**What Changed:**
+- WebSockets module is now loaded during DiscordChatBridge startup (not during Connect())
+- Better error messages that explain if WebSockets fails to load
+- Graceful degradation - the mod will log an error but won't crash if WebSockets is unavailable
+
+**Verification:**
+Look for these log messages during server startup:
+```
+DiscordChatBridge: Module Started
+DiscordChatBridge: Pre-loading WebSockets module...
+DiscordChatBridge: WebSockets module loaded successfully at startup
+```
+
+If you see an error instead:
+```
+DiscordChatBridge: Failed to load WebSockets module at startup
+DiscordChatBridge: Discord Gateway features will not be available
+```
+
+This means:
+1. The WebSockets plugin binaries are missing from your packaged build
+2. Or there are missing system dependencies (libssl, libcrypto, libz)
+
+**Manual Workaround (if needed):**
+1. Ensure WebSockets plugin is properly packaged with the Linux server build
+2. Verify that the WebSockets .so files are in the correct location relative to the server executable
+3. Check that required system libraries are installed:
+   ```bash
+   ldd <path-to-websockets-library.so>  # Check dependencies
+   ```
 
 ### WebSocket Validation
 
