@@ -63,6 +63,36 @@ rm -rf Intermediate/ Saved/ *.sln *.vcxproj*
 # Or use UnrealBuildTool to regenerate
 ```
 
+### DLL Loading Warnings (aqProf.dll, VtuneApi.dll, etc.)
+
+**Warning Messages:**
+```
+LogWindows: Failed to load 'aqProf.dll' (GetLastError=126)
+LogWindows: Failed to load 'VtuneApi.dll' (GetLastError=126)
+LogWindows: Failed to load 'VtuneApi32e.dll' (GetLastError=126)
+```
+
+**Explanation:**
+
+These warnings are **informational messages** that appear when Unreal Engine attempts to load optional third-party profiling tools:
+- **aqProf.dll** - AQtime profiler (performance profiling)
+- **VtuneApi.dll / VtuneApi32e.dll** - Intel VTune profiler (performance analysis)
+
+These warnings are **harmless and can be safely ignored** if you don't use these profiling tools.
+
+**Solution:**
+
+The project already disables these profiler integrations in `Config/DefaultEngine.ini`:
+```ini
+[Core.System]
+ProfilerDisabled=True
+```
+
+This prevents the engine from attempting to load these optional DLLs. If you still see these warnings:
+1. Ensure you're using the latest version of the project
+2. Clear cached build files and rebuild
+3. These warnings may appear during early engine initialization before configs are loaded, but won't affect functionality
+
 ## Discord Chat Bridge Issues
 
 ### Server won't start or mod doesn't load
