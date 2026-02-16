@@ -234,9 +234,10 @@ public class WebSockets : ModuleRules
 				else
 				{
 					AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "zlib");
-					// Module dependency removed: paths are manually configured above via PrivateIncludePaths
-					// and PublicAdditionalLibraries to use project's local libWebSockets instead of engine's
-					PrivateDependencyModuleNames.Add("SSL");
+					// SSL module dependency removed to prevent conflict with engine's libWebSockets.
+					// The paths are manually configured above via PrivateIncludePaths
+					// and PublicAdditionalLibraries to use project's local libWebSockets instead of engine's.
+					// OpenSSL and zlib are already added via AddEngineThirdPartyPrivateStaticDependencies above.
 				}
 			}
 			else if (bPlatformSupportsWinHttpWebSockets)
