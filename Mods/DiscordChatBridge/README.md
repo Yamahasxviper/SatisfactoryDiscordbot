@@ -18,8 +18,8 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 - ✅ Two-way chat synchronization between Satisfactory and Discord
 - ✅ Uses Discord Bot Token (no webhooks required)
-- ✅ Configurable through INI or TXT file formats
-- ✅ **NEW: config TXT configuration** - Simple KEY=VALUE format with automatic SML persistence!
+- ✅ Configurable through INI file formats
+- ✅ **config/ INI configuration** - Standard INI format with automatic SML persistence!
 - ✅ Custom message formatting with player names
 - ✅ Prevents message loops by ignoring bot messages
 - ✅ Server-side only (no client installation required)
@@ -35,7 +35,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - 🚀 [Quick Start Guide](help/QUICKSTART.md) - Get up and running in 5 minutes
 - 📖 [Setup Guide](help/SETUP_GUIDE.md) - Detailed step-by-step instructions
 - 🎨 [**Configuration Examples**](help/EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
-- ⚙️ [**Config Folder README**](config/README.md) - **NEW! Simple TXT format with SML persistence**
+- ⚙️ [**Config Folder README**](config/README.md) - Standard INI format with SML persistence
 - ⚙️ [Default INI Configuration](Config/DefaultDiscordChatBridge.ini) - Traditional INI template configuration file
 - 🔧 [Dependency Explanation](help/DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
 - 📦 [Packaging Notes](help/PACKAGING_NOTES.md) - Build and packaging information (documentation files now included!)
@@ -71,17 +71,18 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 ## Configuration
 
-The Discord Chat Bridge mod supports **two configuration formats**:
+The Discord Chat Bridge mod supports **two configuration locations**:
 
-### Option 1: config TXT Format (Recommended) ⭐ NEW!
+### Option 1: config/ INI Format (Recommended) ⭐
 
 The easiest and most server-friendly option:
 
-1. Navigate to `Mods/DiscordChatBridge/config/DiscordChatBridge.txt` in your project
-2. Edit the file using simple `KEY=VALUE` format:
+1. Navigate to `Mods/DiscordChatBridge/config/DiscordChatBridge.ini` in your project
+2. Edit the file using standard INI format:
 
-```txt
-# Discord Chat Bridge Configuration
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+; Discord Chat Bridge Configuration
 BotToken=YOUR_BOT_TOKEN_HERE
 ChannelId=YOUR_CHANNEL_ID_HERE
 PollIntervalSeconds=2.0
@@ -90,7 +91,7 @@ GameNameFormat=**[{username}]** {message}
 ```
 
 **Benefits:**
-- ✅ Simple KEY=VALUE format (no complex INI sections)
+- ✅ Standard INI format with sections
 - ✅ Automatically persists via SML configuration system
 - ✅ Settings survive server restarts
 - ✅ Extensive inline documentation
@@ -98,7 +99,7 @@ GameNameFormat=**[{username}]** {message}
 
 See [config/README.md](config/README.md) for complete documentation.
 
-### Option 2: Traditional INI Format (Legacy)
+### Option 2: Config/ INI Format (Traditional)
 
 1. Navigate to the mod's configuration file:
    - Windows: `%localappdata%/FactoryGame/Saved/Config/WindowsServer/DiscordChatBridge.ini`

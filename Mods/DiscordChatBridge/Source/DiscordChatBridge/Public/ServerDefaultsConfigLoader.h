@@ -6,30 +6,30 @@
 #include "DiscordAPI.h"
 
 /**
- * Configuration loader that supports TXT format files with KEY=VALUE pairs
+ * Configuration loader that supports INI format files with [Section] and KEY=VALUE pairs
  * Provides automatic loading and persistence via SML configuration system
  */
 class DISCORDCHATBRIDGE_API FServerDefaultsConfigLoader
 {
 public:
 	/**
-	 * Load configuration from config/DiscordChatBridge.txt
+	 * Load configuration from config/DiscordChatBridge.ini
 	 * @param OutConfig The configuration struct to fill
 	 * @return true if configuration was loaded successfully, false otherwise
 	 */
 	static bool LoadFromServerDefaults(FDiscordBotConfig& OutConfig);
 
 	/**
-	 * Parse a TXT format configuration file
-	 * @param FilePath Full path to the TXT file
+	 * Parse an INI format configuration file
+	 * @param FilePath Full path to the INI file
 	 * @param OutConfig The configuration struct to fill
 	 * @return true if file was parsed successfully, false otherwise
 	 */
-	static bool ParseTxtConfig(const FString& FilePath, FDiscordBotConfig& OutConfig);
+	static bool ParseIniConfig(const FString& FilePath, FDiscordBotConfig& OutConfig);
 
 private:
 	/**
-	 * Parse a single line from the TXT config file
+	 * Parse a single line from the INI config file
 	 * @param Line The line to parse (KEY=VALUE format)
 	 * @param OutKey The parsed key
 	 * @param OutValue The parsed value
