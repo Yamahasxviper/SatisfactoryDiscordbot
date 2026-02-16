@@ -8,6 +8,10 @@ a collection of editor utilities,
 and more.
 It also serves as the Unreal project used for developing mods.
 
+## Features
+
+- **WebSocket Support**: Real-time bidirectional communication for Discord bots and external applications. See [WEBSOCKET_USAGE.md](WEBSOCKET_USAGE.md) for details.
+
 ## Documentation
 
 Learn how to set up and use this repo on the [modding documentation](https://docs.ficsit.app/).
