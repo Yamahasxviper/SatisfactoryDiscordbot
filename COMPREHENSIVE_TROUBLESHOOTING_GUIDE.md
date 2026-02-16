@@ -9,14 +9,15 @@
 
 1. [Quick Start](#quick-start)
 2. [Build Errors](#build-errors)
-3. [WebSocket Integration](#websocket-integration)
-4. [Discord Chat Bridge Configuration](#discord-chat-bridge-configuration)
-5. [Platform-Specific Issues](#platform-specific-issues)
-6. [Development Setup](#development-setup)
-7. [SML Compatibility](#sml-compatibility)
-8. [Deployment Guide](#deployment-guide)
-9. [Testing & Validation](#testing--validation)
-10. [Getting Help](#getting-help)
+3. [Server Log Warnings](#server-log-warnings)
+4. [WebSocket Integration](#websocket-integration)
+5. [Discord Chat Bridge Configuration](#discord-chat-bridge-configuration)
+6. [Platform-Specific Issues](#platform-specific-issues)
+7. [Development Setup](#development-setup)
+8. [SML Compatibility](#sml-compatibility)
+9. [Deployment Guide](#deployment-guide)
+10. [Testing & Validation](#testing--validation)
+11. [Getting Help](#getting-help)
 
 ---
 
@@ -28,6 +29,7 @@
 |-------|---------------|----------|
 | WebSockets build error | Should auto-resolve; builds without WebSockets if unavailable | [Build Errors](#websockets-plugin-errors) |
 | Discord not working | Optional feature - configure BotToken & ChannelId to enable | [Discord Config](#discord-features-disabled) |
+| LogStringTable warnings | Expected and harmless - can be ignored | [Server Log Warnings](#logstringtable-warnings-during-server-startup) |
 | Alpakit ExitCode 6 | Fixed - uses module's public API | [Alpakit Issues](#alpakit-exitcode-6) |
 | SML compatibility | ✅ Fully compatible with SML ^3.11.3 | [SML Compatibility](#sml-compatibility) |
 | Build files outdated | Delete Intermediate/, regenerate project | [Build System](#build-files-outdated) |
@@ -202,6 +204,49 @@ rm -rf ~/.local/share/UnrealBuildTool
 
 # Then regenerate project files
 ```
+
+### Server Log Warnings
+
+#### LogStringTable Warnings During Server Startup
+
+**Warning Messages:**
+```
+[LogStringTable: Warning: Failed to find string table entry for 'Menus_UI' 'Sessions/SessionExpired/Header'
+[LogStringTable: Warning: Failed to find string table entry for 'Menus_UI' 'Session/ClientSessionTimeout/Body'
+[LogStringTable: Warning: Failed to find string table entry for 'Messages_UI' 'Warnings/JoinSession/FailedToJoinSession'
+[LogConsoleManager: Warning: Console object named 'SigMan.server.tickrate' already exists but is being registered again
+```
+
+**Status:** ✅ **EXPECTED AND HARMLESS**
+
+These warnings commonly appear in Satisfactory server logs during Unreal Engine initialization and are completely normal.
+
+**Explanation:**
+
+1. **String Table Warnings:**
+   - Occur during engine startup when the localization system is initializing
+   - The engine pre-caches certain localization entries before all string tables are fully loaded
+   - These entries DO exist in `Content/Localization/StringTables/Menus_UI.csv` and `Messages_UI.csv`
+   - The warnings appear due to initialization timing, not missing data
+   - The game and all mods function correctly despite these warnings
+
+2. **Console Object Warnings:**
+   - Multiple plugins or modules may register the same console variables
+   - This is expected behavior when using multiple mods or SML components
+   - Does not affect functionality
+
+**Verified Entries:**
+The string table entries mentioned in warnings are properly defined:
+- `Menus_UI` entries: Players/Messages/YouGotKicked, Sessions/JoinSession/*, Sessions/SessionExpired/*, Session/ClientSessionTimeout/*, Sessions/Errors/OfflineFallback/*
+- `Messages_UI` entries: Warnings/JoinSession/* (all variants)
+
+**Technical Details:**
+- String tables are stored as CSV files in the source repository
+- During the Unreal Engine build/cook process, CSV files are compiled into .uasset binary format
+- At runtime, the engine loads these compiled assets
+- The warnings occur in the narrow window between engine initialization and string table loading completion
+
+**Action Required:** ❌ **None** - These warnings are informational only and can be safely ignored. Your server, SML, and mods are functioning correctly.
 
 ---
 

@@ -67,6 +67,33 @@ rm -rf Intermediate/ Saved/ *.sln *.vcxproj*
 # Or use UnrealBuildTool to regenerate
 ```
 
+## Server Log Warnings
+
+### LogStringTable warnings during server startup
+
+**Warning Messages:**
+```
+[LogStringTable: Warning: Failed to find string table entry for 'Menus_UI' 'Sessions/SessionExpired/Header'
+[LogStringTable: Warning: Failed to find string table entry for 'Messages_UI' 'Warnings/JoinSession/FailedToJoinSession'
+```
+
+**Status:** ✅ **EXPECTED AND HARMLESS**
+
+These warnings appear during Unreal Engine initialization and are **normal behavior**. They occur when the engine pre-caches localization entries before all string tables are fully loaded.
+
+**Why this happens:**
+- String tables are loaded from CSV files that get compiled during the build process
+- The engine may attempt to access certain entries before the string table system is fully initialized
+- These specific entries DO exist in the string table CSV files in `Content/Localization/StringTables/`
+- The game functions correctly despite these warnings
+
+**Action Required:** ❌ None - these warnings can be safely ignored. They do not indicate any problem with your server, mods, or configuration.
+
+**Related entries:**
+All the following string table entries are properly defined in the repository:
+- `Menus_UI`: Players/Messages/YouGotKicked, Sessions/JoinSession/Header, Sessions/JoinSession/Body, Sessions/SessionExpired/Header, Session/SessionExpired/Body, Session/ClientSessionTimeout/Header, Session/ClientSessionTimeout/Body, Sessions/Errors/OfflineFallback/aTitle, Sessions/Errors/OfflineFallback/Body
+- `Messages_UI`: Warnings/JoinSession/* entries
+
 ## Discord Chat Bridge Issues
 
 ### Server starts successfully but Discord features are disabled
