@@ -8,6 +8,9 @@ a collection of editor utilities,
 and more.
 It also serves as the Unreal project used for developing mods.
 
+> **🔌 Looking for WebSocket information?**  
+> WebSockets are **already included** in this repository! See [Quick Reference](WEBSOCKET_QUICK_REFERENCE.md) or [Complete Guide](WEBSOCKET_HOW_TO.md).
+
 ## Documentation
 
 Learn how to set up and use this repo on the [modding documentation](https://docs.ficsit.app/).
