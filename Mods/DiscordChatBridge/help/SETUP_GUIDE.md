@@ -82,8 +82,7 @@ If you're setting up a Satisfactory server with Discord chat integration, follow
 2. Create a file named `DiscordChatBridge.ini` with the following content:
 
    **Note:** If you've compiled the project from source, you can copy the template file from the project directory:
-   - `Config/WindowsServer/DiscordChatBridge.ini` (for Windows servers)
-   - `Config/LinuxServer/DiscordChatBridge.ini` (for Linux servers)
+   - `Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini`
    
    Otherwise, create a new file with the following content:
 
