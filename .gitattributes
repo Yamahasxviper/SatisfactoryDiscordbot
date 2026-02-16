@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Explicitly normalize INI files to LF for cross-platform compatibility
+# This ensures Discord config files work correctly on both Windows and Linux servers
+*.ini text eol=lf
