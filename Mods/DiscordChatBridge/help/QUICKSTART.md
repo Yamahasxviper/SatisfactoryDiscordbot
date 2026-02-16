@@ -40,6 +40,10 @@
 
 ### 4. Configure the Mod (1 minute)
 
+> **🎯 Which config should I use?**  
+> - **New to this?** → Use **Option A** (simpler, recommended) ⭐  
+> - **Need traditional Unreal config?** → Use **Option B**
+
 **OPTION A: config/ INI Format (Recommended)** ⭐
 
 Edit the file in your project: `Mods/DiscordChatBridge/config/DiscordChatBridge.ini`
