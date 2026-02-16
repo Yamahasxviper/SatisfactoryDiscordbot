@@ -38,12 +38,12 @@ Having issues? Check the troubleshooting guides:
 ### WebSocket Server Compatibility
 
 #### Windows Servers
-WebSockets work perfectly on Windows dedicated servers! See [WEBSOCKET_WINDOWS_SERVER_COMPATIBILITY.md](WEBSOCKET_WINDOWS_SERVER_COMPATIBILITY.md) for comprehensive Windows server documentation.
+WebSockets work perfectly on Windows dedicated servers! See the [Comprehensive Troubleshooting Guide - Windows Server Compatibility](COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md#windows-server-compatibility) section for detailed information.
 
 **Status:** ✅ **FULLY COMPATIBLE** with Windows servers (Win64, requires Windows 8.1+/Server 2012 R2+)
 
 #### Linux Servers
-Testing WebSocket functionality for Linux servers? See [WEBSOCKET_LINUX_TESTING.md](WEBSOCKET_LINUX_TESTING.md) for comprehensive testing instructions.
+Testing WebSocket functionality for Linux servers? See the [Comprehensive Troubleshooting Guide - Linux Server Compatibility](COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md#linux-server-compatibility) section for comprehensive testing instructions.
 
 **Quick test:**
 ```bash
@@ -63,7 +63,7 @@ This repository includes the **Discord Chat Bridge** mod, which provides two-way
 
 ### SML Compatibility
 
-**✅ FULLY COMPATIBLE** - This Discord mod works perfectly with SML 3.11.3+. See [SML_COMPATIBILITY.md](SML_COMPATIBILITY.md) for detailed compatibility information.
+**✅ FULLY COMPATIBLE** - This Discord mod works perfectly with SML 3.11.3+. See the [Comprehensive Troubleshooting Guide - SML Compatibility](COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md#sml-compatibility) section for detailed compatibility information.
 
 ### Features
 - Two-way chat synchronization between Satisfactory and Discord
@@ -72,7 +72,7 @@ This repository includes the **Discord Chat Bridge** mod, which provides two-way
 - **Server-side only** - Players join and chat normally, no mod installation needed
 
 ### Quick Links
-- [SML Compatibility Status](SML_COMPATIBILITY.md) - **Will my Discord project work with SML?**
+- [Comprehensive Troubleshooting Guide](COMPREHENSIVE_TROUBLESHOOTING_GUIDE.md) - **Complete reference for build, WebSocket, SML, and deployment issues**
 - [Mod README](Mods/DiscordChatBridge/README.md)
 - [Quick Start Guide](Mods/DiscordChatBridge/help/QUICKSTART.md) - Get started in 5 minutes
 - [Setup Guide](Mods/DiscordChatBridge/help/SETUP_GUIDE.md) - Detailed instructions
