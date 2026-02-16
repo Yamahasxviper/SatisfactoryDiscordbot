@@ -40,6 +40,16 @@ Testing WebSocket functionality for Linux servers? See [WEBSOCKET_LINUX_TESTING.
 
 **Status:** ✅ **FULLY COMPATIBLE** with Linux servers (x86_64, ARM64)
 
+### Proxy Support
+
+Need to run the server behind a proxy? See [PROXY_SUPPORT.md](PROXY_SUPPORT.md) for information about automatic proxy detection on Linux.
+
+**Quick setup (Linux):**
+```bash
+export HTTPS_PROXY="http://proxy.example.com:8080"
+./YourServerExecutable
+```
+
 ## Discord Chat Bridge Mod
 
 This repository includes the **Discord Chat Bridge** mod, which provides two-way chat integration between Satisfactory in-game chat and Discord.

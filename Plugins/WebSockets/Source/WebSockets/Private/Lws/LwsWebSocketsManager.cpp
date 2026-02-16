@@ -19,6 +19,7 @@
 #include "Misc/CoreDelegates.h"
 #include "Misc/Fork.h"
 #include "Stats/Stats.h"
+#include "Misc/App.h"
 
 LLM_DEFINE_TAG(WebSockets);
 
@@ -118,7 +119,37 @@ void FLwsWebSocketsManager::InitWebSockets(TArrayView<const FString> Protocols)
 	ContextInfo.ws_ping_pong_interval = PingPongInterval;
 
 	// HTTP proxy
-	const FString& ProxyAddress = FHttpModule::Get().GetProxyAddress();
+	// First, try to get proxy from HTTP module
+	FString ProxyAddress = FHttpModule::Get().GetProxyAddress();
+	
+	// On Linux, if no proxy is configured in the HTTP module, check environment variables
+	#if PLATFORM_LINUX
+	if (ProxyAddress.IsEmpty())
+	{
+		// Check standard Linux proxy environment variables in order of precedence
+		// Try HTTPS_PROXY first (for secure connections), then HTTP_PROXY, then ALL_PROXY
+		const TCHAR* ProxyVarNames[] = {
+			TEXT("HTTPS_PROXY"),
+			TEXT("https_proxy"),
+			TEXT("HTTP_PROXY"),
+			TEXT("http_proxy"),
+			TEXT("ALL_PROXY"),
+			TEXT("all_proxy")
+		};
+		
+		for (const TCHAR* VarName : ProxyVarNames)
+		{
+			const TCHAR* EnvProxy = FPlatformMisc::GetEnvironmentVariable(VarName);
+			if (EnvProxy && FCString::Strlen(EnvProxy) > 0)
+			{
+				ProxyAddress = FString(EnvProxy);
+				UE_LOG(LogWebSockets, Log, TEXT("Using proxy from environment variable %s: %s"), VarName, *ProxyAddress);
+				break;
+			}
+		}
+	}
+	#endif
+	
 	TOptional<FTCHARToUTF8> Converter;
 	if (!ProxyAddress.IsEmpty())
 	{
