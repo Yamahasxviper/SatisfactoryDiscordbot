@@ -228,14 +228,14 @@ public class WebSockets : ModuleRules
 				if (UsePlatformSSL)
 				{
 					PrivateDefinitions.Add("WITH_SSL=0");
-					// Still try to add the module dependency in case it's found
-					PrivateDependencyModuleNames.Add("libWebSockets");
+					// Module dependency removed: paths are manually configured above via PrivateIncludePaths
+					// and PublicAdditionalLibraries to use project's local libWebSockets instead of engine's
 				}
 				else
 				{
 					AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "zlib");
-					// Still try to add the module dependency in case it's found
-					PrivateDependencyModuleNames.Add("libWebSockets");
+					// Module dependency removed: paths are manually configured above via PrivateIncludePaths
+					// and PublicAdditionalLibraries to use project's local libWebSockets instead of engine's
 					PrivateDependencyModuleNames.Add("SSL");
 				}
 			}
