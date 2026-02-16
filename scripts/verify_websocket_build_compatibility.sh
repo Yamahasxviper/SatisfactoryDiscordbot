@@ -58,7 +58,7 @@ print_header "WebSocket Build Compatibility Verification"
 # 1. Check WebSocket Plugin Structure
 print_section "1. WebSocket Plugin Structure"
 
-if [ -f "Plugins/WebSockets/WebSockets.Build.cs" ]; then
+if [ -f "Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs" ]; then
     print_pass "WebSockets.Build.cs exists"
 else
     print_fail "WebSockets.Build.cs not found"
@@ -71,7 +71,7 @@ else
 fi
 
 # Check for required source files
-required_sources=("Private/WebSocketsModule.cpp")
+required_sources=("Source/WebSockets/Private/WebSocketsModule.cpp")
 for src in "${required_sources[@]}"; do
     if [ -f "Plugins/WebSockets/$src" ]; then
         print_pass "Source file: $src"
@@ -86,14 +86,14 @@ echo ""
 print_section "2. Build.cs Module Dependencies"
 
 # Check Core module dependency
-if grep -q '"Core"' Plugins/WebSockets/WebSockets.Build.cs; then
+if grep -q '"Core"' Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
     print_pass "Core module dependency declared"
 else
     print_fail "Core module dependency missing"
 fi
 
 # Check HTTP module dependency
-if grep -q '"HTTP"' Plugins/WebSockets/WebSockets.Build.cs; then
+if grep -q '"HTTP"' Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
     print_pass "HTTP module dependency declared"
 else
     print_fail "HTTP module dependency missing"
@@ -105,21 +105,21 @@ echo ""
 print_section "3. Platform-Specific Build Configuration"
 
 # Check WinHttp support
-if grep -q "AddEngineThirdPartyPrivateStaticDependencies.*WinHttp" Plugins/WebSockets/WebSockets.Build.cs; then
+if grep -q "AddEngineThirdPartyPrivateStaticDependencies.*WinHttp" Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
     print_pass "WinHttp third-party dependency configured (Windows)"
 else
     print_warning "WinHttp dependency not found (Windows builds may fail)"
 fi
 
 # Check libWebSockets support
-if grep -q "AddEngineThirdPartyPrivateStaticDependencies.*libWebSockets" Plugins/WebSockets/WebSockets.Build.cs; then
-    print_pass "libWebSockets third-party dependency configured (Linux/Mac)"
+if grep -q "libWebSockets\|libwebsockets" Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
+    print_pass "libWebSockets library path configured (Linux/Mac)"
 else
     print_warning "libWebSockets dependency not found (Linux/Mac builds may fail)"
 fi
 
 # Check OpenSSL support
-if grep -q "OpenSSL" Plugins/WebSockets/WebSockets.Build.cs; then
+if grep -q "OpenSSL" Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
     print_pass "OpenSSL third-party dependency configured"
 else
     print_warning "OpenSSL dependency not found (SSL builds may fail)"
@@ -131,20 +131,20 @@ echo ""
 print_section "4. Platform Support Detection"
 
 # Check for platform detection
-if grep -q "PlatformSupportsLibWebsockets" Plugins/WebSockets/WebSockets.Build.cs; then
+if grep -q "PlatformSupportsLibWebsockets" Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
     print_pass "libWebSockets platform detection implemented"
 else
     print_fail "libWebSockets platform detection missing"
 fi
 
-if grep -q "bPlatformSupportsWinHttpWebSockets" Plugins/WebSockets/WebSockets.Build.cs; then
+if grep -q "bPlatformSupportsWinHttpWebSockets" Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
     print_pass "WinHttp platform detection implemented"
 else
     print_fail "WinHttp platform detection missing"
 fi
 
 # Check for conditional compilation
-if grep -q "ShouldUseModule" Plugins/WebSockets/WebSockets.Build.cs; then
+if grep -q "ShouldUseModule" Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
     print_pass "Conditional module usage logic present"
 else
     print_fail "Conditional module usage logic missing"
@@ -158,7 +158,7 @@ print_section "5. Compilation Flags and Definitions"
 # Check for required definitions
 definitions=("WEBSOCKETS_PACKAGE" "WITH_WEBSOCKETS" "WITH_LIBWEBSOCKETS" "WITH_WINHTTPWEBSOCKETS")
 for def in "${definitions[@]}"; do
-    if grep -q "PublicDefinitions.Add.*$def" Plugins/WebSockets/WebSockets.Build.cs; then
+    if grep -q "PublicDefinitions.Add.*$def" Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs; then
         print_pass "Definition: $def"
     else
         print_fail "Missing definition: $def"

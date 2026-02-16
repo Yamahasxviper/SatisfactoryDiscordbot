@@ -55,30 +55,30 @@ print_header "WebSocket Integration Validation"
 # 1. Check WebSocket Plugin Files
 print_section "1. WebSocket Plugin Files"
 
-# Define required files
+# Define required files (updated to match actual Source/WebSockets structure)
 declare -a REQUIRED_FILES=(
     "Plugins/WebSockets/WebSockets.uplugin"
-    "Plugins/WebSockets/WebSockets.Build.cs"
-    "Plugins/WebSockets/Public/IWebSocket.h"
-    "Plugins/WebSockets/Public/IWebSocketsManager.h"
-    "Plugins/WebSockets/Public/WebSocketsModule.h"
-    "Plugins/WebSockets/Private/WebSocketsModule.cpp"
-    "Plugins/WebSockets/Private/WebSocketsLog.h"
-    "Plugins/WebSockets/Private/PlatformWebSocket.h"
-    "Plugins/WebSockets/Private/Lws/LwsWebSocket.h"
-    "Plugins/WebSockets/Private/Lws/LwsWebSocket.cpp"
-    "Plugins/WebSockets/Private/Lws/LwsWebSocketsManager.h"
-    "Plugins/WebSockets/Private/Lws/LwsWebSocketsManager.cpp"
-    "Plugins/WebSockets/Private/WinHttp/WinHttpWebSocket.h"
-    "Plugins/WebSockets/Private/WinHttp/WinHttpWebSocket.cpp"
-    "Plugins/WebSockets/Private/WinHttp/WinHttpWebSocketsManager.h"
-    "Plugins/WebSockets/Private/WinHttp/WinHttpWebSocketsManager.cpp"
-    "Plugins/WebSockets/Private/WinHttp/Support/WinHttpConnectionWebSocket.h"
-    "Plugins/WebSockets/Private/WinHttp/Support/WinHttpConnectionWebSocket.cpp"
-    "Plugins/WebSockets/Private/WinHttp/Support/WinHttpWebSocketTypes.h"
-    "Plugins/WebSockets/Private/WinHttp/Support/WinHttpWebSocketTypes.cpp"
-    "Plugins/WebSockets/Private/WinHttp/Support/WinHttpWebSocketErrorHelper.h"
-    "Plugins/WebSockets/Private/WinHttp/Support/WinHttpWebSocketErrorHelper.cpp"
+    "Plugins/WebSockets/Source/WebSockets/WebSockets.Build.cs"
+    "Plugins/WebSockets/Source/WebSockets/Public/IWebSocket.h"
+    "Plugins/WebSockets/Source/WebSockets/Public/IWebSocketsManager.h"
+    "Plugins/WebSockets/Source/WebSockets/Public/WebSocketsModule.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/WebSocketsModule.cpp"
+    "Plugins/WebSockets/Source/WebSockets/Private/WebSocketsLog.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/PlatformWebSocket.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/Lws/LwsWebSocket.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/Lws/LwsWebSocket.cpp"
+    "Plugins/WebSockets/Source/WebSockets/Private/Lws/LwsWebSocketsManager.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/Lws/LwsWebSocketsManager.cpp"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/WinHttpWebSocket.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/WinHttpWebSocket.cpp"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/WinHttpWebSocketsManager.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/WinHttpWebSocketsManager.cpp"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/Support/WinHttpConnectionWebSocket.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/Support/WinHttpConnectionWebSocket.cpp"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/Support/WinHttpWebSocketTypes.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/Support/WinHttpWebSocketTypes.cpp"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/Support/WinHttpWebSocketErrorHelper.h"
+    "Plugins/WebSockets/Source/WebSockets/Private/WinHttp/Support/WinHttpWebSocketErrorHelper.cpp"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -263,8 +263,8 @@ echo ""
 # 7. File Count Verification
 print_section "7. File Count Verification"
 
-cpp_count=$(find Plugins/WebSockets -name "*.cpp" -type f 2>/dev/null | wc -l)
-h_count=$(find Plugins/WebSockets -name "*.h" -type f 2>/dev/null | wc -l)
+cpp_count=$(find Plugins/WebSockets/Source/WebSockets -name "*.cpp" -type f 2>/dev/null | wc -l)
+h_count=$(find Plugins/WebSockets/Source/WebSockets -name "*.h" -type f 2>/dev/null | wc -l)
 
 if [ "$cpp_count" -ge 8 ]; then
     print_pass "Found $cpp_count C++ source files (expected: 8+)"
