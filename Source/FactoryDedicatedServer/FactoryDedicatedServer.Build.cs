@@ -32,7 +32,8 @@ public class FactoryDedicatedServer : ModuleRules
 			"Sockets",
 			"zlib",
 			"JsonUtilities",
-			"NetCore"
+			"NetCore",
+			"WebSockets"
 		});
 
 		if (Target.bCompileAgainstEditor)

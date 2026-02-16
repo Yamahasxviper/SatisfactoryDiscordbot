@@ -81,6 +81,7 @@ public class FactoryGame : ModuleRules
 			"MovieScene",
 			"ReliableMessaging",
 			"GeometryFramework",
+			"WebSockets",
 		} );
 
 		if (Target.Type == TargetType.Server)
