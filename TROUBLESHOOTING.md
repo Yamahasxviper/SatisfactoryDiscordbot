@@ -4,6 +4,31 @@ Quick solutions to common build and setup issues.
 
 ## Build Errors
 
+### Expected Warnings: Missing Profiling DLLs
+
+**Warning Messages:**
+```
+LogWindows: Failed to load 'aqProf.dll' (GetLastError=126)
+LogWindows: File 'aqProf.dll' does not exist
+LogWindows: Failed to load 'VtuneApi.dll' (GetLastError=126)
+LogWindows: File 'VtuneApi.dll' does not exist
+LogWindows: Failed to load 'VtuneApi32e.dll' (GetLastError=126)
+LogWindows: File 'VtuneApi32e.dll' does not exist
+```
+
+**Status:** ✅ **This is normal and safe to ignore**
+
+**Explanation:**
+
+These warnings appear during Unreal Engine startup and are completely harmless. They occur because:
+
+- **aqProf.dll**: AutoDesk/AQTime profiler integration (optional)
+- **VtuneApi.dll / VtuneApi32e.dll**: Intel VTune performance profiler integration (optional)
+
+Unreal Engine automatically attempts to load these optional profiling tools at startup. If they're not installed (which is the normal case), the engine logs these warnings and continues normally. The warnings do not indicate any problem with your build or installation.
+
+**Action Required:** None. These warnings can be safely ignored. The engine, editor, and all mods will function perfectly without these optional profiling tools.
+
 ### "Unable to find plugin 'WebSockets'" or "cannot open input file UnrealEditor-WebSockets.lib"
 
 **Error Messages:**
@@ -160,6 +185,7 @@ Still having issues? Here are additional resources:
 
 | Issue | Solution |
 |-------|----------|
+| Missing profiling DLLs (aqProf, VtuneApi) | ✅ Safe to ignore - optional profiling tools |
 | WebSockets build error | Should auto-resolve now; builds without WebSockets if not available |
 | Gateway features not working | Ensure WebSockets plugin is in engine (optional) |
 | Build files outdated | Delete Intermediate/, regenerate project |
