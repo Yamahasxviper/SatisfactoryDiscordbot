@@ -133,7 +133,7 @@ FPrimitiveSceneProxy* UInstancedSplineMeshComponent::CreateSceneProxy()
 		}
 		else
 		{
-			return ::new FSplineInstancedStaticMeshSceneProxy(this, GetWorld()->FeatureLevel);
+			return ::new FSplineInstancedStaticMeshSceneProxy(this, GetWorld()->GetFeatureLevel());
 		}
 	}
 	
