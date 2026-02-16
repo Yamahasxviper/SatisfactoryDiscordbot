@@ -20,8 +20,25 @@ For information about building this project, including engine requirements and p
 
 Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
 
-**Common build errors:**
-- "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+**Common questions:**
+- "Does this have WebSockets?" → ✅ **YES!** Already included. See [WEBSOCKET_HOW_TO.md](WEBSOCKET_HOW_TO.md)
+- "Unable to find plugin 'WebSockets'" → See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) or [WEBSOCKET_FAQ.md](WEBSOCKET_FAQ.md)
+
+### WebSocket Plugin Status
+
+**✅ WebSockets are INCLUDED and READY TO USE!**
+
+The WebSocket plugin is located at `Plugins/WebSockets/` and builds automatically with the project. You don't need to add or install anything.
+
+**Quick verification:**
+```bash
+./scripts/verify_websocket_build_compatibility.sh
+```
+
+**Need help?**
+- 📖 [How to Use WebSockets](WEBSOCKET_HOW_TO.md) - Complete guide
+- ❓ [WebSocket FAQ](WEBSOCKET_FAQ.md) - Common questions answered
+- 🔧 [Build Requirements](BUILD_REQUIREMENTS.md) - Technical details
 
 ### WebSocket Server Compatibility
 
