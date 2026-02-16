@@ -2,8 +2,10 @@
 
 #include "DiscordChatSubsystem.h"
 #include "ServerDefaultsConfigLoader.h"
+#include "DiscordChatLogger.h"
 #include "FGChatManager.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/Paths.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
@@ -25,6 +27,41 @@ void ADiscordChatSubsystem::Init()
 	
 	// Load configuration
 	LoadConfiguration();
+	
+	// Initialize file logger
+	FString LogDirectory;
+	if (!BotConfig.LogFilePath.IsEmpty())
+	{
+		// Use configured path
+		LogDirectory = BotConfig.LogFilePath;
+	}
+	else
+	{
+		// Use default path: Mods/DiscordChatBridge/Logs
+		FString ModsPath = FPaths::ProjectModsDir();
+		LogDirectory = FPaths::Combine(ModsPath, TEXT("DiscordChatBridge"), TEXT("Logs"));
+	}
+	
+	// Convert to full path
+	LogDirectory = FPaths::ConvertRelativePathToFull(LogDirectory);
+	
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Initializing file logger at: %s"), *LogDirectory);
+	FDiscordChatLogger::Get().Initialize(LogDirectory);
+	
+	if (FDiscordChatLogger::Get().IsInitialized())
+	{
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ File logger initialized successfully"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Log file: %s"), *FDiscordChatLogger::Get().GetLogFilePath());
+		
+		// Log initialization message to file
+		DISCORD_LOG_INFO(TEXT("===================================================================="));
+		DISCORD_LOG_INFO(TEXT("Discord Chat Bridge - Initializing"));
+		DISCORD_LOG_INFO(TEXT("===================================================================="));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscordChatSubsystem: ⚠️  File logger failed to initialize - logs will only go to console"));
+	}
 	
 	// Create Discord API instance
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Creating UDiscordAPI object..."));
@@ -62,11 +99,11 @@ void ADiscordChatSubsystem::Init()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("❌ CRITICAL ERROR: Failed to create UDiscordAPI object!"));
-		UE_LOG(LogTemp, Error, TEXT("   - This may indicate memory allocation failure or object system issues"));
-		UE_LOG(LogTemp, Error, TEXT("   - Discord chat bridge will NOT function"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		DISCORD_LOG_ERROR(TEXT("===================================================================="));
+		DISCORD_LOG_ERROR(TEXT("❌ CRITICAL ERROR: Failed to create UDiscordAPI object!"));
+		DISCORD_LOG_ERROR(TEXT("   - This may indicate memory allocation failure or object system issues"));
+		DISCORD_LOG_ERROR(TEXT("   - Discord chat bridge will NOT function"));
+		DISCORD_LOG_ERROR(TEXT("===================================================================="));
 	}
 }
 
@@ -82,10 +119,10 @@ void ADiscordChatSubsystem::BeginPlay()
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("❌ CRITICAL ERROR: GetWorld() returned nullptr!"));
-		UE_LOG(LogTemp, Error, TEXT("   Cannot initialize without valid World pointer"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		DISCORD_LOG_ERROR(TEXT("===================================================================="));
+		DISCORD_LOG_ERROR(TEXT("❌ CRITICAL ERROR: GetWorld() returned nullptr!"));
+		DISCORD_LOG_ERROR(TEXT("   Cannot initialize without valid World pointer"));
+		DISCORD_LOG_ERROR(TEXT("===================================================================="));
 		return;
 	}
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ World pointer validated"));
@@ -187,6 +224,11 @@ void ADiscordChatSubsystem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		ChatManager->OnChatMessageAdded.RemoveDynamic(this, &ADiscordChatSubsystem::OnGameChatMessageAdded);
 	}
 	
+	// Shutdown file logger
+	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Shutting down file logger"));
+	DISCORD_LOG_INFO(TEXT("Discord Chat Bridge - Shutting down"));
+	FDiscordChatLogger::Get().Shutdown();
+	
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -235,10 +277,10 @@ void ADiscordChatSubsystem::LoadConfiguration()
 	
 	if (!GConfig)
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: CRITICAL ERROR - GConfig is nullptr!"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: Cannot load configuration from INI files"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: This indicates a serious engine initialization problem"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordChatSubsystem: === END CONFIGURATION LOADING (FAILED) ==="));
+		DISCORD_LOG_ERROR(TEXT("DiscordChatSubsystem: CRITICAL ERROR - GConfig is nullptr!"));
+		DISCORD_LOG_ERROR(TEXT("DiscordChatSubsystem: Cannot load configuration from INI files"));
+		DISCORD_LOG_ERROR(TEXT("DiscordChatSubsystem: This indicates a serious engine initialization problem"));
+		DISCORD_LOG_ERROR(TEXT("DiscordChatSubsystem: === END CONFIGURATION LOADING (FAILED) ==="));
 		return;
 	}
 	
@@ -262,6 +304,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 	bool bUseGatewayForPresence = false;
 	FString GatewayPresenceFormat;
 	int32 GatewayActivityType = 0;
+	FString LogFilePath;
 	
 	// Load settings from Config/DefaultDiscordChatBridge.ini
 	GConfig->GetString(*ConfigSection, TEXT("BotToken"), BotToken, GGameIni);
@@ -282,6 +325,7 @@ void ADiscordChatSubsystem::LoadConfiguration()
 	GConfig->GetBool(*ConfigSection, TEXT("UseGatewayForPresence"), bUseGatewayForPresence, GGameIni);
 	GConfig->GetString(*ConfigSection, TEXT("GatewayPresenceFormat"), GatewayPresenceFormat, GGameIni);
 	GConfig->GetInt(*ConfigSection, TEXT("GatewayActivityType"), GatewayActivityType, GGameIni);
+	GConfig->GetString(*ConfigSection, TEXT("LogFilePath"), LogFilePath, GGameIni);
 	
 	UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: INI values read - BotToken: %s, ChannelId: %s"), 
 		BotToken.IsEmpty() ? TEXT("EMPTY") : TEXT("SET"), 
@@ -344,6 +388,12 @@ void ADiscordChatSubsystem::LoadConfiguration()
 			BotConfig.GatewayPresenceFormat = GatewayPresenceFormat;
 		}
 		BotConfig.GatewayActivityType = GatewayActivityType;
+		
+		// Load log file path
+		if (!LogFilePath.IsEmpty())
+		{
+			BotConfig.LogFilePath = LogFilePath;
+		}
 		
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: SUCCESS - Configuration loaded from INI"));
 		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: ✓ BotToken is configured"));

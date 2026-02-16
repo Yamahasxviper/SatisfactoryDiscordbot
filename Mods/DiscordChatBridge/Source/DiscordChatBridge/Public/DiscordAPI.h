@@ -74,6 +74,9 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 	UPROPERTY(BlueprintReadWrite, Category = "Discord")
 	int32 GatewayActivityType = 0;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Discord")
+	FString LogFilePath;
+
 	FDiscordBotConfig()
 		: BotToken(TEXT(""))
 		, ChannelId(TEXT(""))
@@ -93,6 +96,7 @@ struct DISCORDCHATBRIDGE_API FDiscordBotConfig
 		, bUseGatewayForPresence(false)
 		, GatewayPresenceFormat(TEXT("with {playercount} players"))
 		, GatewayActivityType(0)
+		, LogFilePath(TEXT(""))
 	{}
 };
 
