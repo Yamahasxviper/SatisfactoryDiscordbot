@@ -66,7 +66,12 @@ The automatic proxy detection is implemented in `Plugins/WebSockets/Source/WebSo
 
 When a proxy is detected from environment variables, it is logged to the WebSockets log with the message:
 ```
-Using proxy from environment variable: <proxy_url>
+Using proxy from environment variable <variable_name>: <proxy_url>
+```
+
+For example:
+```
+Using proxy from environment variable HTTPS_PROXY: http://proxy.example.com:8080
 ```
 
 This helps with debugging and confirming that the proxy configuration is being applied correctly.
