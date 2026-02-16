@@ -95,9 +95,10 @@ public class WebSockets : ModuleRules
 			{
 				archName = Target.Architecture.LinuxName;
 			}
-			catch
+			catch (System.Exception)
 			{
-				// LinuxName property doesn't exist or failed - will try ToString() below
+				// LinuxName property doesn't exist or invocation failed - will try ToString() below
+				// This is expected for some UE versions that don't have LinuxName property
 			}
 			
 			// If LinuxName failed, try ToString() as fallback
@@ -107,9 +108,10 @@ public class WebSockets : ModuleRules
 				{
 					archName = Target.Architecture.ToString();
 				}
-				catch
+				catch (System.Exception)
 				{
 					// ToString() failed - will use default x86_64 below
+					// This is a last-resort fallback for unexpected architecture configurations
 				}
 			}
 		}
