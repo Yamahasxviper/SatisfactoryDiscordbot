@@ -2,6 +2,8 @@
 
 This directory contains ready-to-use configuration file examples for different chat formatting styles.
 
+> **Note:** These examples use INI format. If you prefer a simpler TXT format, see [../../WHICH_CONFIG.md](../../WHICH_CONFIG.md) for guidance.
+
 ## How to Use
 
 1. Choose the style that fits your server

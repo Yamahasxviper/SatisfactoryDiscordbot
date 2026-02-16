@@ -32,6 +32,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 ## Quick Links
 
+- ❓ [**Which Config Should I Use?**](WHICH_CONFIG.md) - **Confused about TXT vs INI? Start here!**
 - 🚀 [Quick Start Guide](help/QUICKSTART.md) - Get up and running in 5 minutes
 - 📖 [Setup Guide](help/SETUP_GUIDE.md) - Detailed step-by-step instructions
 - 🎨 [**Configuration Examples**](help/EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
@@ -75,6 +76,8 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 ## Configuration
 
 > **🔴 REQUIRED:** You must configure `BotToken` and `ChannelId` for the mod to work. Without configuration, the server will start but Discord integration will be inactive.
+
+> **❓ Confused about which config file to use?** See **[WHICH_CONFIG.md](WHICH_CONFIG.md)** for a clear guide on choosing between TXT and INI formats.
 
 The Discord Chat Bridge mod supports **two configuration formats**:
 

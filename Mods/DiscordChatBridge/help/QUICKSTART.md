@@ -40,6 +40,8 @@
 
 ### 4. Configure the Mod (1 minute)
 
+> **Confused about TXT vs INI?** See [WHICH_CONFIG.md](../WHICH_CONFIG.md) - Both work great, choose what you prefer!
+
 **OPTION A: config TXT Format (Recommended)** ⭐ NEW!
 
 Edit the file in your project: `Mods/DiscordChatBridge/config/DiscordChatBridge.txt`
