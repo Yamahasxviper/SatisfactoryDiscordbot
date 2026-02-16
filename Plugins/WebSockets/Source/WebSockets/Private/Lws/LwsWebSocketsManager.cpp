@@ -128,32 +128,24 @@ void FLwsWebSocketsManager::InitWebSockets(TArrayView<const FString> Protocols)
 	{
 		// Check standard Linux proxy environment variables in order of precedence
 		// Try HTTPS_PROXY first (for secure connections), then HTTP_PROXY, then ALL_PROXY
-		const TCHAR* EnvProxy = FPlatformMisc::GetEnvironmentVariable(TEXT("HTTPS_PROXY"));
-		if (!EnvProxy || FCString::Strlen(EnvProxy) == 0)
-		{
-			EnvProxy = FPlatformMisc::GetEnvironmentVariable(TEXT("https_proxy"));
-		}
-		if (!EnvProxy || FCString::Strlen(EnvProxy) == 0)
-		{
-			EnvProxy = FPlatformMisc::GetEnvironmentVariable(TEXT("HTTP_PROXY"));
-		}
-		if (!EnvProxy || FCString::Strlen(EnvProxy) == 0)
-		{
-			EnvProxy = FPlatformMisc::GetEnvironmentVariable(TEXT("http_proxy"));
-		}
-		if (!EnvProxy || FCString::Strlen(EnvProxy) == 0)
-		{
-			EnvProxy = FPlatformMisc::GetEnvironmentVariable(TEXT("ALL_PROXY"));
-		}
-		if (!EnvProxy || FCString::Strlen(EnvProxy) == 0)
-		{
-			EnvProxy = FPlatformMisc::GetEnvironmentVariable(TEXT("all_proxy"));
-		}
+		const TCHAR* ProxyVarNames[] = {
+			TEXT("HTTPS_PROXY"),
+			TEXT("https_proxy"),
+			TEXT("HTTP_PROXY"),
+			TEXT("http_proxy"),
+			TEXT("ALL_PROXY"),
+			TEXT("all_proxy")
+		};
 		
-		if (EnvProxy && FCString::Strlen(EnvProxy) > 0)
+		for (const TCHAR* VarName : ProxyVarNames)
 		{
-			ProxyAddress = FString(EnvProxy);
-			UE_LOG(LogWebSockets, Log, TEXT("Using proxy from environment variable: %s"), *ProxyAddress);
+			const TCHAR* EnvProxy = FPlatformMisc::GetEnvironmentVariable(VarName);
+			if (EnvProxy && FCString::Strlen(EnvProxy) > 0)
+			{
+				ProxyAddress = FString(EnvProxy);
+				UE_LOG(LogWebSockets, Log, TEXT("Using proxy from environment variable %s: %s"), VarName, *ProxyAddress);
+				break;
+			}
 		}
 	}
 	#endif
