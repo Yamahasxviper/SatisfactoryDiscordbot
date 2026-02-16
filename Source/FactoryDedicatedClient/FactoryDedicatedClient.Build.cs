@@ -17,11 +17,12 @@ public class FactoryDedicatedClient : ModuleRules
 			PrivateDefinitions.Add("WITH_CURL=1");
 			PrivateDefinitions.Add("WITH_CURL_XCURL=0");
 		}
-		else
-		{
-			PrivateDefinitions.Add("WITH_CURL=0");
-			PrivateDefinitions.Add("WITH_CURL_XCURL=0");
-		}
+		// Commented out unreachable else block to avoid unreachable code warnings
+		// else
+		// {
+		// 	PrivateDefinitions.Add("WITH_CURL=0");
+		// 	PrivateDefinitions.Add("WITH_CURL_XCURL=0");
+		// }
         
         PublicDependencyModuleNames.AddRange(
             new string[]
