@@ -69,20 +69,8 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("❌ DiscordAPI Initialization FAILED"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		if (BotConfig.BotToken.IsEmpty())
-		{
-			UE_LOG(LogTemp, Error, TEXT("   ❌ BotToken is EMPTY - Cannot authenticate with Discord"));
-		}
-		if (BotConfig.ChannelId.IsEmpty())
-		{
-			UE_LOG(LogTemp, Error, TEXT("   ❌ ChannelId is EMPTY - No target channel for messages"));
-		}
-		UE_LOG(LogTemp, Error, TEXT("   Please configure both BotToken and ChannelId"));
-		UE_LOG(LogTemp, Error, TEXT("   See configuration file: config/DiscordChatBridge.ini"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Not initialized - Discord configuration not provided"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: This is normal if you haven't set up Discord integration yet"));
 	}
 }
 

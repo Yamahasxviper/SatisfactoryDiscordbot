@@ -46,14 +46,18 @@ void ADiscordChatSubsystem::Init()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-			UE_LOG(LogTemp, Error, TEXT("❌ ERROR: Discord Chat Bridge is NOT CONFIGURED"));
-			UE_LOG(LogTemp, Error, TEXT("   - The mod loaded but will NOT function"));
-			UE_LOG(LogTemp, Error, TEXT("   - Server started successfully, but Discord features are DISABLED"));
-			UE_LOG(LogTemp, Error, TEXT("   - REQUIRED: Configure BotToken and ChannelId in config file"));
-			UE_LOG(LogTemp, Error, TEXT("   - Config location: Mods/DiscordChatBridge/config/DiscordChatBridge.ini"));
-			UE_LOG(LogTemp, Error, TEXT("   - OR: See TROUBLESHOOTING.md for setup instructions"));
-			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Warning, TEXT("⚠️  Discord Chat Bridge - No Configuration Found"));
+			UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Warning, TEXT("   ✅ SERVER IS RUNNING NORMALLY"));
+			UE_LOG(LogTemp, Warning, TEXT("   ℹ️  Discord features are disabled (configuration not provided)"));
+			UE_LOG(LogTemp, Warning, TEXT("   ℹ️  This is OPTIONAL - server will work fine without it"));
+			UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Warning, TEXT("   To enable Discord integration (optional):"));
+			UE_LOG(LogTemp, Warning, TEXT("   1. Get Bot Token from: https://discord.com/developers/applications"));
+			UE_LOG(LogTemp, Warning, TEXT("   2. Configure: Mods/DiscordChatBridge/config/DiscordChatBridge.ini"));
+			UE_LOG(LogTemp, Warning, TEXT("   3. See QUICKSTART.md for 5-minute setup guide"));
+			UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
 		}
 	}
 	else
@@ -89,12 +93,8 @@ void ADiscordChatSubsystem::BeginPlay()
 	// Early exit if Discord API is not initialized (missing configuration)
 	if (!DiscordAPI || !DiscordAPI->IsInitialized())
 	{
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("❌ Discord Chat Bridge SKIPPED - Not Configured"));
-		UE_LOG(LogTemp, Error, TEXT("   BeginPlay called but mod is not configured"));
-		UE_LOG(LogTemp, Error, TEXT("   The Discord bot will NOT start or function"));
-		UE_LOG(LogTemp, Error, TEXT("   Configure BotToken and ChannelId to enable Discord features"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: BeginPlay - Discord features disabled (not configured)"));
+		UE_LOG(LogTemp, Log, TEXT("DiscordChatSubsystem: Server continues normally without Discord integration"));
 		return;
 	}
 	
@@ -355,13 +355,16 @@ void ADiscordChatSubsystem::LoadConfiguration()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("❌ CONFIGURATION ERROR: Missing Required Settings"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Warning, TEXT("⚠️  Discord Configuration Incomplete"));
+		UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Warning, TEXT("   ✅ SERVER IS RUNNING - No issues detected"));
+		UE_LOG(LogTemp, Warning, TEXT("   ℹ️  Discord integration is OPTIONAL and currently disabled"));
+		UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
 		if (BotToken.IsEmpty())
 		{
-			UE_LOG(LogTemp, Error, TEXT("   ❌ BotToken is MISSING or EMPTY"));
-			UE_LOG(LogTemp, Error, TEXT("      → Get your bot token from: https://discord.com/developers/applications"));
+			UE_LOG(LogTemp, Warning, TEXT("   Missing: BotToken"));
+			UE_LOG(LogTemp, Warning, TEXT("      → Get from: https://discord.com/developers/applications"));
 		}
 		else
 		{
@@ -369,24 +372,19 @@ void ADiscordChatSubsystem::LoadConfiguration()
 		}
 		if (ChannelId.IsEmpty())
 		{
-			UE_LOG(LogTemp, Error, TEXT("   ❌ ChannelId is MISSING or EMPTY"));
-			UE_LOG(LogTemp, Error, TEXT("      → Enable Developer Mode in Discord, right-click channel, Copy ID"));
+			UE_LOG(LogTemp, Warning, TEXT("   Missing: ChannelId"));
+			UE_LOG(LogTemp, Warning, TEXT("      → Enable Developer Mode in Discord, right-click channel, Copy ID"));
 		}
 		else
 		{
 			UE_LOG(LogTemp, Log, TEXT("   ✓ ChannelId is configured"));
 		}
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("   Configuration Locations (in order of priority):"));
-		UE_LOG(LogTemp, Error, TEXT("   1. Mods/DiscordChatBridge/config/DiscordChatBridge.ini (recommended)"));
-		UE_LOG(LogTemp, Error, TEXT("   2. Config/DefaultDiscordChatBridge.ini (legacy)"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("   For setup help, see:"));
-		UE_LOG(LogTemp, Error, TEXT("   - Mods/DiscordChatBridge/help/QUICKSTART.md"));
-		UE_LOG(LogTemp, Error, TEXT("   - TROUBLESHOOTING.md"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-		UE_LOG(LogTemp, Error, TEXT("   The mod will load but remain INACTIVE until configured!"));
-		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Warning, TEXT("   To enable Discord features (optional):"));
+		UE_LOG(LogTemp, Warning, TEXT("   1. Mods/DiscordChatBridge/config/DiscordChatBridge.ini (recommended)"));
+		UE_LOG(LogTemp, Warning, TEXT("   2. Config/DefaultDiscordChatBridge.ini (legacy)"));
+		UE_LOG(LogTemp, Warning, TEXT("   3. See Mods/DiscordChatBridge/help/QUICKSTART.md for setup"));
+		UE_LOG(LogTemp, Warning, TEXT("===================================================================="));
 		
 		// Ensure all feature flags are disabled when configuration is incomplete
 		BotConfig.bEnableServerNotifications = false;
