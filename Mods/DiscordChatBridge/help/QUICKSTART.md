@@ -40,12 +40,13 @@
 
 ### 4. Configure the Mod (1 minute)
 
-**OPTION A: config TXT Format (Recommended)** ⭐ NEW!
+**OPTION A: config/ INI Format (Recommended)** ⭐
 
-Edit the file in your project: `Mods/DiscordChatBridge/config/DiscordChatBridge.txt`
+Edit the file in your project: `Mods/DiscordChatBridge/config/DiscordChatBridge.ini`
 
-```txt
-# Discord Chat Bridge Configuration
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+; Discord Chat Bridge Configuration
 BotToken=paste_your_bot_token_here
 ChannelId=paste_your_channel_id_here
 PollIntervalSeconds=2.0
@@ -53,9 +54,9 @@ DiscordNameFormat=[Discord] {username}
 GameNameFormat=**[{username}]** {message}
 ```
 
-**Benefits:** Simple format, automatically persists across restarts via SML!
+**Benefits:** Standard INI format, automatically persists across restarts via SML!
 
-**OPTION B: Traditional INI Format**
+**OPTION B: Config/ INI Format (Traditional)**
 
 Create/edit this file on your server:
 

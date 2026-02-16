@@ -22,7 +22,7 @@ The following are now included when you build/package the mod:
 
 2. **Configuration Directories**:
    - `Config/` - Contains DefaultDiscordChatBridge.ini and example configurations
-   - `config/` - Contains the TXT format configuration system
+   - `config/` - Contains the INI format configuration system
 
 ### How It Works
 The `PluginSettings.ini` file uses the `[StageSettings]` section to tell Unreal Engine's build system which additional directories to include:
@@ -52,7 +52,7 @@ DiscordChatBridge/
 │   ├── PluginSettings.ini
 │   └── ExampleConfigs/
 └── config/
-    ├── DiscordChatBridge.txt
+    ├── DiscordChatBridge.ini
     └── README.md
 ```
 
