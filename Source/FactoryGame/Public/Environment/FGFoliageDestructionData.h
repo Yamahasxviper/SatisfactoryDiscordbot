@@ -29,7 +29,7 @@ public:
 	UPROPERTY( BlueprintReadOnly ,EditDefaultsOnly, Category="Crumble")
 	FName mFoliageCrumbleEffectSocketName;
 
-	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Crumble", AdvancedDisplay = true )
+	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Crumble", AdvancedDisplay )
 	FName mFoliageCrumbleParticleIDName = FName("Index");
 
 	UPROPERTY( BlueprintReadOnly ,EditDefaultsOnly, Category="Crumble")
@@ -38,7 +38,7 @@ public:
 	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Leaves")
 	TObjectPtr<UNiagaraSystem> mFoliageLeafSplatterEffect;
 	
-	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Leaves", AdvancedDisplay = true )
+	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Leaves", AdvancedDisplay )
 	FName mFoliageLeafParticleIDName = FName("Index");
 
 	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Leaves")
@@ -62,7 +62,7 @@ public:
 	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Falling")
 	TObjectPtr<UNiagaraSystem> mFoliageTrunkCollisionEffect;
 	
-	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Falling", AdvancedDisplay = true )
+	UPROPERTY( BlueprintReadOnly, EditDefaultsOnly, Category="Falling", AdvancedDisplay )
 	FName mFoliageTrunkCollisionEffectIDName = FName("Index");
 	
 	/* AK event fired when the tree hits a surface.*/
