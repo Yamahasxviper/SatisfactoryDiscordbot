@@ -93,7 +93,7 @@ void UDiscordGateway::Connect()
 	if (!WebSocket.IsValid())
 	{
 		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CRITICAL ERROR - Failed to create WebSocket!"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: FWebSocketsModule::Get().CreateWebSocket() returned invalid pointer"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: WebSocketsModule.CreateWebSocket() returned invalid pointer"));
 		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: This may indicate:"));
 		UE_LOG(LogTemp, Error, TEXT("  1. Invalid URL format (current: %s)"), GATEWAY_URL);
 		UE_LOG(LogTemp, Error, TEXT("  2. WebSocket module internal error"));
