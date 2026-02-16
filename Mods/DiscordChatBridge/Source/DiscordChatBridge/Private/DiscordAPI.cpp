@@ -2,6 +2,7 @@
 
 #include "DiscordAPI.h"
 #include "DiscordGateway.h"
+#include "DiscordChatLogger.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Dom/JsonObject.h"
@@ -47,19 +48,19 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 			}
 			else
 			{
-				UE_LOG(LogTemp, Error, TEXT("DiscordAPI: CRITICAL ERROR - Failed to create UDiscordGateway object!"));
-				UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Gateway features will not be available"));
-				UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Bot presence/status updates are disabled"));
+				DISCORD_LOG_ERROR(TEXT("DiscordAPI: CRITICAL ERROR - Failed to create UDiscordGateway object!"));
+				DISCORD_LOG_ERROR(TEXT("DiscordAPI: Gateway features will not be available"));
+				DISCORD_LOG_ERROR(TEXT("DiscordAPI: Bot presence/status updates are disabled"));
 			}
 #else
-			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-			UE_LOG(LogTemp, Error, TEXT("❌ Gateway Feature NOT Available"));
-			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
-			UE_LOG(LogTemp, Error, TEXT("   Gateway requested but WITH_WEBSOCKETS_SUPPORT=0"));
-			UE_LOG(LogTemp, Error, TEXT("   WebSockets plugin was not found during compilation"));
-			UE_LOG(LogTemp, Error, TEXT("   Gateway features are disabled - only REST API will work"));
-			UE_LOG(LogTemp, Error, TEXT("   To enable Gateway, ensure WebSockets plugin is available"));
-			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+			DISCORD_LOG_ERROR(TEXT("===================================================================="));
+			DISCORD_LOG_ERROR(TEXT("❌ Gateway Feature NOT Available"));
+			DISCORD_LOG_ERROR(TEXT("===================================================================="));
+			DISCORD_LOG_ERROR(TEXT("   Gateway requested but WITH_WEBSOCKETS_SUPPORT=0"));
+			DISCORD_LOG_ERROR(TEXT("   WebSockets plugin was not found during compilation"));
+			DISCORD_LOG_ERROR(TEXT("   Gateway features are disabled - only REST API will work"));
+			DISCORD_LOG_ERROR(TEXT("   To enable Gateway, ensure WebSockets plugin is available"));
+			DISCORD_LOG_ERROR(TEXT("===================================================================="));
 #endif
 		}
 		else
@@ -112,7 +113,7 @@ void UDiscordAPI::SendMessage(const FString& Username, const FString& Message)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to process send message request"));
+		DISCORD_LOG_ERROR(TEXT("DiscordAPI: Failed to process send message request"));
 	}
 }
 
@@ -127,13 +128,13 @@ void UDiscordAPI::OnSendMessageResponse(FHttpRequestPtr Request, FHttpResponsePt
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to send message - Response code: %d, Body: %s"), 
+			DISCORD_LOG_WARNING(TEXT("DiscordAPI: Failed to send message - Response code: %d, Body: %s"), 
 				ResponseCode, *Response->GetContentAsString());
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Failed to send message - Request failed"));
+		DISCORD_LOG_ERROR(TEXT("DiscordAPI: Failed to send message - Request failed"));
 	}
 }
 
@@ -203,8 +204,8 @@ void UDiscordAPI::StartPolling()
 {
 	if (!bIsInitialized)
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: ❌ Cannot start polling - API not initialized"));
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Check that BotToken and ChannelId are configured"));
+		DISCORD_LOG_ERROR(TEXT("DiscordAPI: ❌ Cannot start polling - API not initialized"));
+		DISCORD_LOG_ERROR(TEXT("DiscordAPI: Check that BotToken and ChannelId are configured"));
 		return;
 	}
 
@@ -232,7 +233,7 @@ void UDiscordAPI::StartPolling()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: ❌ Failed to start polling - World is nullptr"));
+		DISCORD_LOG_ERROR(TEXT("DiscordAPI: ❌ Failed to start polling - World is nullptr"));
 		bIsPolling = false;
 	}
 }

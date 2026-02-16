@@ -214,6 +214,11 @@ void FServerDefaultsConfigLoader::SetConfigValue(const FString& Key, const FStri
 	{
 		Config.BotActivityChannelId = Value;
 	}
+	else if (Key.Equals(TEXT("LogFilePath"), ESearchCase::IgnoreCase))
+	{
+		Config.LogFilePath = Value;
+		UE_LOG(LogTemp, Verbose, TEXT("ServerDefaultsConfigLoader: Set LogFilePath: %s"), *Value);
+	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ServerDefaultsConfigLoader: Unknown configuration key: %s"), *Key);
