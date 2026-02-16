@@ -86,7 +86,8 @@ void UDiscordGateway::Connect()
 
 	// Create WebSocket connection using built-in WebSockets module
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Creating WebSocket object..."));
-	WebSocket = FWebSocketsModule::Get().CreateWebSocket(GATEWAY_URL, TEXT(""));
+	FWebSocketsModule& WebSocketsModule = FModuleManager::LoadModuleChecked<FWebSocketsModule>("WebSockets");
+	WebSocket = WebSocketsModule.CreateWebSocket(GATEWAY_URL, TEXT(""));
 	
 	// Validate WebSocket creation
 	if (!WebSocket.IsValid())
