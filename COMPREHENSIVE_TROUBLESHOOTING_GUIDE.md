@@ -316,14 +316,19 @@ LogPluginManager: Error: Plugin 'DiscordChatBridge' failed to load because modul
 This error occurs when the WebSockets shared library fails to load at runtime on Linux servers. This typically happens when:
 1. The WebSockets module binaries are not properly packaged with the server build
 2. The module is being loaded dynamically after the plugin starts instead of at startup
+3. The WebSockets plugin loading phase is not configured correctly for server builds
 
 **Solution:**
-**This has been fixed** in the latest version. The DiscordChatBridge module now pre-loads the WebSockets module during its StartupModule() phase, which ensures the library is loaded before it's needed by the DiscordGateway.
+**This has been fixed** in the latest version. The solution includes two key changes:
 
-**What Changed:**
-- WebSockets module is now loaded during DiscordChatBridge startup (not during Connect())
-- Better error messages that explain if WebSockets fails to load
-- Graceful degradation - the mod will log an error but won't crash if WebSockets is unavailable
+1. **WebSockets Plugin Loading Phase:** Changed from "Default" to "PreDefault" in `Plugins/WebSockets/WebSockets.uplugin`
+   - This ensures the WebSockets plugin loads before other plugins, making it available when DiscordChatBridge starts
+   - Prevents runtime loading issues on Linux dedicated servers
+
+2. **DiscordChatBridge Module Startup:** Pre-loads the WebSockets module during its StartupModule() phase
+   - Ensures the library is loaded before it's needed by the DiscordGateway
+   - Provides better error messages if WebSockets fails to load
+   - Graceful degradation - the mod will log an error but won't crash if WebSockets is unavailable
 
 **Verification:**
 Look for these log messages during server startup:
