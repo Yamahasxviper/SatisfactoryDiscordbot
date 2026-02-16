@@ -83,9 +83,21 @@ If you want to use Discord Gateway/presence features, ensure WebSockets is in yo
 
 **Detailed Information:** See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) for complete details about when and how WebSockets builds.
 
-### "Cannot find Wwise plugin"
+### "Cannot find Wwise plugin" or "Wwise Launcher won't open my project"
 
-**Solution:** Wwise is downloaded separately during the build process from a B2 bucket. Ensure you have the correct credentials configured in the CI workflow or download Wwise manually for local builds.
+**Solution:** Wwise is downloaded separately during the build process from a B2 bucket. The Wwise plugin is not included in this repository.
+
+**Common causes:**
+- The `Plugins/Wwise/` directory doesn't exist or is empty
+- You're trying to open a Wwise project file that doesn't exist in this repository
+- Patches were not applied correctly
+
+**Quick fix:**
+- For CI builds: Ensure B2 credentials are configured in GitHub secrets
+- For local builds: Download and extract the Wwise plugin to `Plugins/Wwise/`
+- **You don't need Wwise Launcher** to build this project - it's only needed for creating audio content
+
+**For detailed information**, see the comprehensive [Wwise Setup and Troubleshooting Guide](WWISE_SETUP.md).
 
 ### Build files are out of date
 
@@ -192,7 +204,7 @@ Still having issues? Here are additional resources:
 | Gateway features not working | Ensure WebSockets plugin is in engine (optional) |
 | Build files outdated | Delete Intermediate/, regenerate project |
 | Discord messages not working | Check bot token, channel ID, permissions |
-| Wwise missing | CI downloads it automatically, or download manually |
+| Wwise missing or launcher issues | See [WWISE_SETUP.md](WWISE_SETUP.md) for detailed guide |
 | Cannot build mod | Ensure SML is present and built first |
 
 ## Tips

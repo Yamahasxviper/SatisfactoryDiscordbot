@@ -16,6 +16,10 @@ Learn how to set up and use this repo on the [modding documentation](https://doc
 
 For information about building this project, including engine requirements and plugin dependencies, see [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md).
 
+### Wwise Setup
+
+Need help with Wwise? The Wwise audio plugin is not included in this repository. See [WWISE_SETUP.md](WWISE_SETUP.md) for a comprehensive guide on Wwise setup, patches, and troubleshooting.
+
 ### Troubleshooting
 
 Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quick solutions to common problems.
