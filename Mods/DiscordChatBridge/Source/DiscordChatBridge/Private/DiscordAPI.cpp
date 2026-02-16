@@ -28,7 +28,7 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 
 	if (bIsInitialized)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Configuration valid - Initialized with channel ID: %s"), *BotConfig.ChannelId);
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: ✓ Configuration valid - Initialized with channel ID: %s"), *BotConfig.ChannelId);
 
 		// Initialize Gateway if enabled
 		if (BotConfig.bUseGatewayForPresence)
@@ -52,10 +52,14 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 				UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Bot presence/status updates are disabled"));
 			}
 #else
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway requested but WITH_WEBSOCKETS_SUPPORT=0"));
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: WebSockets plugin was not found during compilation"));
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Gateway features are disabled - only REST API will work"));
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: To enable Gateway, ensure WebSockets plugin is available in Engine or Project plugins"));
+			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Error, TEXT("❌ Gateway Feature NOT Available"));
+			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+			UE_LOG(LogTemp, Error, TEXT("   Gateway requested but WITH_WEBSOCKETS_SUPPORT=0"));
+			UE_LOG(LogTemp, Error, TEXT("   WebSockets plugin was not found during compilation"));
+			UE_LOG(LogTemp, Error, TEXT("   Gateway features are disabled - only REST API will work"));
+			UE_LOG(LogTemp, Error, TEXT("   To enable Gateway, ensure WebSockets plugin is available"));
+			UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 #endif
 		}
 		else
@@ -65,15 +69,20 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 	}
 	else
 	{
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
+		UE_LOG(LogTemp, Error, TEXT("❌ DiscordAPI Initialization FAILED"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 		if (BotConfig.BotToken.IsEmpty())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to initialize - BotToken is empty"));
+			UE_LOG(LogTemp, Error, TEXT("   ❌ BotToken is EMPTY - Cannot authenticate with Discord"));
 		}
 		if (BotConfig.ChannelId.IsEmpty())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Failed to initialize - ChannelId is empty"));
+			UE_LOG(LogTemp, Error, TEXT("   ❌ ChannelId is EMPTY - No target channel for messages"));
 		}
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Please configure both BotToken and ChannelId in DiscordChatBridge.ini"));
+		UE_LOG(LogTemp, Error, TEXT("   Please configure both BotToken and ChannelId"));
+		UE_LOG(LogTemp, Error, TEXT("   See configuration file: config/DiscordChatBridge.ini"));
+		UE_LOG(LogTemp, Error, TEXT("===================================================================="));
 	}
 }
 
@@ -206,18 +215,19 @@ void UDiscordAPI::StartPolling()
 {
 	if (!bIsInitialized)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Cannot start polling - API not initialized"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: ❌ Cannot start polling - API not initialized"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: Check that BotToken and ChannelId are configured"));
 		return;
 	}
 
 	if (bIsPolling)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Already polling"));
+		UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: Already polling - ignoring duplicate start request"));
 		return;
 	}
 
 	bIsPolling = true;
-	UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Started polling for messages"));
+	UE_LOG(LogTemp, Warning, TEXT("DiscordAPI: ✅ Started polling for Discord messages"));
 
 	// Get the world for timer manager
 	UWorld* World = GetWorld();
@@ -230,6 +240,12 @@ void UDiscordAPI::StartPolling()
 			BotConfig.PollIntervalSeconds,
 			true
 		);
+		UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Poll timer set to %.1f seconds"), BotConfig.PollIntervalSeconds);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordAPI: ❌ Failed to start polling - World is nullptr"));
+		bIsPolling = false;
 	}
 }
 
