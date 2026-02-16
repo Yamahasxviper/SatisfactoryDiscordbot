@@ -55,30 +55,18 @@ void UDiscordGateway::Connect()
 		return;
 	}
 
-	// Check if WebSockets module is available
-	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Checking if WebSockets module is loaded..."));
+	// Verify WebSockets module is available (should be pre-loaded at module startup)
 	if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: WebSockets module not loaded - attempting to load module..."));
-		// Try to load the module
-		if (!FModuleManager::Get().LoadModule("WebSockets"))
-		{
-			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CRITICAL ERROR - Failed to load WebSockets module!"));
-			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: This means the WebSockets plugin is not available at runtime"));
-			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Possible causes:"));
-			UE_LOG(LogTemp, Error, TEXT("  1. WebSockets plugin is not enabled in .uproject or .uplugin file"));
-			UE_LOG(LogTemp, Error, TEXT("  2. WebSockets plugin binaries are missing or corrupted"));
-			UE_LOG(LogTemp, Error, TEXT("  3. Engine plugins directory does not contain WebSockets"));
-			UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Please ensure the WebSockets plugin is enabled and properly installed"));
-			ConnectionState = EGatewayConnectionState::Disconnected;
-			OnDisconnected.ExecuteIfBound(TEXT("WebSockets module load failed"));
-			return;
-		}
-		UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSockets module loaded successfully"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("DiscordGateway: WebSockets module already loaded"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: WebSockets module is not loaded!"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: The module should have been loaded at DiscordChatBridge startup"));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Possible causes:"));
+		UE_LOG(LogTemp, Error, TEXT("  1. WebSockets plugin binaries are missing or corrupted"));
+		UE_LOG(LogTemp, Error, TEXT("  2. Platform does not support WebSockets"));
+		UE_LOG(LogTemp, Error, TEXT("  3. Shared library dependencies are missing (e.g., libwebsockets on Linux)"));
+		ConnectionState = EGatewayConnectionState::Disconnected;
+		OnDisconnected.ExecuteIfBound(TEXT("WebSockets module not available"));
+		return;
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("DiscordGateway: Connecting to Discord Gateway at %s..."), GATEWAY_URL);
