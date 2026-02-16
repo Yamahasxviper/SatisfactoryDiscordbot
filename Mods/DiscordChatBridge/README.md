@@ -393,11 +393,17 @@ GatewayPresenceFormat=Satisfactory
 
 #### Requirements for Gateway Mode
 
+⚠️ **IMPORTANT: Gateway mode requires additional bot permissions!**
+
 1. **Bot Permissions in Discord Developer Portal**:
    - Navigate to your bot in Discord Developer Portal
    - Go to "Bot" settings
-   - Enable **"Presence Intent"** (required for Gateway)
+   - Scroll to "Privileged Gateway Intents"
+   - Enable **"Presence Intent"** ⚠️ **REQUIRED for Gateway**
    - Enable **"Message Content Intent"** (for reading messages)
+   - Click "Save Changes"
+
+   **Without Presence Intent enabled, Gateway connection will FAIL with error code 4014!**
 
 2. **Configuration**:
    - Set `EnableBotActivity=true`
@@ -417,11 +423,12 @@ When Gateway is enabled, the mod will:
 
 #### Troubleshooting Gateway Mode
 
-**Bot presence doesn't show:**
-- Check server logs for "Gateway connected successfully"
-- Verify "Presence Intent" is enabled in Discord Developer Portal
-- Ensure `EnableBotActivity=true` and `UseGatewayForPresence=true`
-- Wait up to `ActivityUpdateIntervalSeconds` for first update
+**Bot presence doesn't show or connection fails:**
+- ✅ Check server logs for "Gateway connected successfully"
+- ✅ **Verify "Presence Intent" is enabled in Discord Developer Portal** (most common issue!)
+- ✅ Ensure `EnableBotActivity=true` and `UseGatewayForPresence=true` in config
+- ✅ Wait up to `ActivityUpdateIntervalSeconds` for first update
+- ✅ Check for error code 4014 in logs (means Presence Intent is missing)
 
 **Connection keeps dropping:**
 - Check server logs for error messages
@@ -432,7 +439,9 @@ When Gateway is enabled, the mod will:
 **Bot shows offline:**
 - Gateway connection may be disconnected
 - Check logs for WebSocket errors
-- Verify firewall allows WebSocket connections
+- Verify firewall allows WebSocket connections (port 443, wss://)
+
+For more help, see [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md)
 
 #### Example Configuration
 
