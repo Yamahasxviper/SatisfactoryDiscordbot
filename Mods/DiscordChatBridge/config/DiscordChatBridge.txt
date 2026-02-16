@@ -2,6 +2,9 @@
 # This file provides default settings that load automatically and persist across server restarts
 # Compatible with SML (Satisfactory Mod Loader)
 #
+# NOTE: This is the TXT format (recommended for new users). There's also an INI format available.
+# Confused about which to use? See: ../WHICH_CONFIG.md for a clear guide.
+#
 # INSTRUCTIONS:
 # 1. Edit the values below to configure your Discord bot
 # 2. Settings are loaded automatically when the server starts
