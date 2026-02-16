@@ -33,7 +33,49 @@ public class libWebSockets : ModuleRules
 		// Map Unreal Engine architecture names to the directory structure used by libwebsockets
 		// In UE 5.3+, Target.Architecture.LinuxName may return simplified names,
 		// but our prebuilt libraries use full GNU triplet naming convention
-		string archName = Target.Architecture.LinuxName;
+		string archName = null;
+		
+		// Check if Target.Architecture is available before accessing its properties
+		if (Target.Architecture != null)
+		{
+			try
+			{
+				// In some versions of UE, the architecture name is accessed via LinuxName
+				archName = Target.Architecture.LinuxName;
+			}
+			catch (System.Reflection.TargetException)
+			{
+				// LinuxName property invocation failed - will try ToString() below
+			}
+			catch (System.MissingMemberException)
+			{
+				// LinuxName property doesn't exist in this UE version - will try ToString() below
+			}
+			catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
+			{
+				// Dynamic binding failed for LinuxName property - will try ToString() below
+			}
+			
+			// If LinuxName failed, try ToString() as fallback
+			if (string.IsNullOrEmpty(archName))
+			{
+				try
+				{
+					archName = Target.Architecture.ToString();
+				}
+				catch (System.Exception)
+				{
+					// ToString() failed - will use default x86_64 below
+					// Exception suppressed as we have a reasonable default for this case
+				}
+			}
+		}
+		
+		// Handle null or empty architecture name with sensible default
+		if (string.IsNullOrEmpty(archName))
+		{
+			archName = "x86_64"; // Default to x86_64 for Linux (most common case for server builds)
+		}
 		
 		// Map common architecture names to GNU triplets
 		if (archName == "x64" || archName == "x86_64")
