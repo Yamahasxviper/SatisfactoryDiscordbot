@@ -36,8 +36,12 @@ If you're setting up a Satisfactory server with Discord chat integration, follow
 4. Click **"Reset Token"** (if needed) then **"Copy"** to copy your bot token
    - **IMPORTANT:** Keep this token secret! Anyone with this token can control your bot
 5. Scroll down to **"Privileged Gateway Intents"**
-6. Enable **"Message Content Intent"** (required for the bot to read messages)
+6. Enable the following intents:
+   - ☑ **"Message Content Intent"** (required for reading Discord messages)
+   - ☑ **"Presence Intent"** (required ONLY if you want to use Gateway/WebSocket features)
 7. Click **"Save Changes"**
+
+**About Presence Intent:** This is only needed if you plan to enable `UseGatewayForPresence=true` in your configuration to show bot status like "Playing with 5 players" next to the bot's name. If you're using REST API only (the default), Presence Intent is not required.
 
 ### Step 3: Set Bot Permissions
 

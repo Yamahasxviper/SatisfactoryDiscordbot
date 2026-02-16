@@ -178,6 +178,36 @@ void UDiscordGateway::OnWebSocketConnected()
 void UDiscordGateway::OnWebSocketConnectionError(const FString& Error)
 {
 	UE_LOG(LogTemp, Error, TEXT("DiscordGateway: Connection error: %s"), *Error);
+	
+	// Check for common intent-related errors
+	if (Error.Contains(TEXT("4014")) || Error.Contains(TEXT("Disallowed")))
+	{
+		UE_LOG(LogTemp, Error, TEXT("====================================================="));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: ERROR CODE 4014 - DISALLOWED INTENTS"));
+		UE_LOG(LogTemp, Error, TEXT("====================================================="));
+		UE_LOG(LogTemp, Error, TEXT("This error means your bot is missing required privileged intents in Discord Developer Portal."));
+		UE_LOG(LogTemp, Error, TEXT(""));
+		UE_LOG(LogTemp, Error, TEXT("TO FIX THIS ISSUE:"));
+		UE_LOG(LogTemp, Error, TEXT("1. Go to: https://discord.com/developers/applications"));
+		UE_LOG(LogTemp, Error, TEXT("2. Select your application"));
+		UE_LOG(LogTemp, Error, TEXT("3. Click 'Bot' in the left sidebar"));
+		UE_LOG(LogTemp, Error, TEXT("4. Scroll down to 'Privileged Gateway Intents'"));
+		UE_LOG(LogTemp, Error, TEXT("5. Enable BOTH of these intents:"));
+		UE_LOG(LogTemp, Error, TEXT("   - Message Content Intent (required for reading messages)"));
+		UE_LOG(LogTemp, Error, TEXT("   - Presence Intent (required for Gateway/WebSocket presence)"));
+		UE_LOG(LogTemp, Error, TEXT("6. Click 'Save Changes'"));
+		UE_LOG(LogTemp, Error, TEXT("7. Restart your server"));
+		UE_LOG(LogTemp, Error, TEXT(""));
+		UE_LOG(LogTemp, Error, TEXT("NOTE: If you don't want to use Gateway features, set UseGatewayForPresence=false in config"));
+		UE_LOG(LogTemp, Error, TEXT("====================================================="));
+	}
+	else if (Error.Contains(TEXT("4004")) || Error.Contains(TEXT("Authentication failed")))
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: ERROR CODE 4004 - AUTHENTICATION FAILED"));
+		UE_LOG(LogTemp, Error, TEXT("This error means your bot token is invalid or incorrect."));
+		UE_LOG(LogTemp, Error, TEXT("Please verify your BotToken in the configuration file."));
+	}
+	
 	ConnectionState = EGatewayConnectionState::Disconnected;
 	
 	if (OnDisconnected.IsBound())
@@ -190,6 +220,40 @@ void UDiscordGateway::OnWebSocketClosed(int32 StatusCode, const FString& Reason,
 {
 	UE_LOG(LogTemp, Warning, TEXT("DiscordGateway: Connection closed - Code: %d, Reason: %s, Clean: %d"), 
 		StatusCode, *Reason, bWasClean);
+	
+	// Check for Discord-specific close codes related to intents
+	if (StatusCode == 4014)
+	{
+		UE_LOG(LogTemp, Error, TEXT("====================================================="));
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CLOSE CODE 4014 - DISALLOWED INTENTS"));
+		UE_LOG(LogTemp, Error, TEXT("====================================================="));
+		UE_LOG(LogTemp, Error, TEXT("Your bot is requesting privileged intents that are not enabled in Discord Developer Portal."));
+		UE_LOG(LogTemp, Error, TEXT(""));
+		UE_LOG(LogTemp, Error, TEXT("REQUIRED INTENTS FOR GATEWAY:"));
+		UE_LOG(LogTemp, Error, TEXT("  1. Message Content Intent - For reading Discord messages"));
+		UE_LOG(LogTemp, Error, TEXT("  2. Presence Intent - For updating bot presence/status"));
+		UE_LOG(LogTemp, Error, TEXT(""));
+		UE_LOG(LogTemp, Error, TEXT("HOW TO ENABLE THESE INTENTS:"));
+		UE_LOG(LogTemp, Error, TEXT("1. Visit: https://discord.com/developers/applications"));
+		UE_LOG(LogTemp, Error, TEXT("2. Select your bot application"));
+		UE_LOG(LogTemp, Error, TEXT("3. Go to 'Bot' section"));
+		UE_LOG(LogTemp, Error, TEXT("4. Scroll to 'Privileged Gateway Intents'"));
+		UE_LOG(LogTemp, Error, TEXT("5. Enable both 'Message Content Intent' AND 'Presence Intent'"));
+		UE_LOG(LogTemp, Error, TEXT("6. Save changes and restart your server"));
+		UE_LOG(LogTemp, Error, TEXT(""));
+		UE_LOG(LogTemp, Error, TEXT("ALTERNATIVE: Set UseGatewayForPresence=false to use REST API instead"));
+		UE_LOG(LogTemp, Error, TEXT("====================================================="));
+	}
+	else if (StatusCode == 4004)
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CLOSE CODE 4004 - AUTHENTICATION FAILED"));
+		UE_LOG(LogTemp, Error, TEXT("Your bot token is invalid. Please verify BotToken in configuration."));
+	}
+	else if (StatusCode == 4013)
+	{
+		UE_LOG(LogTemp, Error, TEXT("DiscordGateway: CLOSE CODE 4013 - INVALID INTENTS"));
+		UE_LOG(LogTemp, Error, TEXT("The bot is requesting invalid intent flags. This may be a code issue."));
+	}
 	
 	StopHeartbeat();
 	ConnectionState = EGatewayConnectionState::Disconnected;

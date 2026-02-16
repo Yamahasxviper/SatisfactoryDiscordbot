@@ -34,6 +34,11 @@ void UDiscordAPI::Initialize(const FDiscordBotConfig& Config)
 		if (BotConfig.bUseGatewayForPresence)
 		{
 			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: Gateway presence enabled - attempting to create Gateway connection..."));
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: ========================================"));
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: IMPORTANT: Gateway requires 'Presence Intent' enabled in Discord Developer Portal"));
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: If connection fails with error 4014, enable 'Presence Intent' at:"));
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: https://discord.com/developers/applications → Your Bot → Bot → Privileged Gateway Intents"));
+			UE_LOG(LogTemp, Log, TEXT("DiscordAPI: ========================================"));
 #if WITH_WEBSOCKETS_SUPPORT
 			Gateway = NewObject<UDiscordGateway>(this);
 			if (Gateway)

@@ -22,8 +22,12 @@
 2. Click **"New Application"**, name it (e.g., "Satisfactory Bot")
 3. Go to **"Bot"** tab → Click **"Add Bot"**
 4. Copy the **bot token** (you'll need this!)
-5. Enable **"Message Content Intent"** under Privileged Gateway Intents
+5. Scroll down to **"Privileged Gateway Intents"**:
+   - Enable **"Message Content Intent"** (required for reading Discord messages)
+   - Enable **"Presence Intent"** (required ONLY if you plan to use Gateway/WebSocket features - see note below)
 6. Save changes
+
+**Note about Presence Intent:** Only enable this if you plan to set `UseGatewayForPresence=true` in your configuration. If you're using REST API only (default), you can leave Presence Intent disabled.
 
 ### 2. Invite Bot to Your Server (1 minute)
 

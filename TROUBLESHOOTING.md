@@ -108,13 +108,30 @@ The mod requires configuration before it will function. If `BotToken` and `Chann
 **Requirements:**
 - ✅ `EnableBotActivity=true` in config
 - ✅ `UseGatewayForPresence=true` in config
-- ✅ "Presence Intent" enabled in Discord Developer Portal
+- ✅ **"Presence Intent" enabled in Discord Developer Portal** ⚠️ CRITICAL
+- ✅ **"Message Content Intent" enabled in Discord Developer Portal** ⚠️ CRITICAL
 - ✅ WebSockets plugin available (see build error above)
 
+**Common Issue: Missing Presence Intent**
+
+The most common reason Gateway fails is because **Presence Intent is not enabled** in Discord Developer Portal.
+
+**How to fix:**
+1. Go to https://discord.com/developers/applications
+2. Select your application
+3. Click on "Bot" in the left sidebar
+4. Scroll down to "Privileged Gateway Intents"
+5. Enable **"Presence Intent"** (if not already enabled)
+6. Enable **"Message Content Intent"** (if not already enabled)
+7. Click "Save Changes"
+8. Restart your server
+
 **Check logs for:**
-- "Gateway connected successfully" - Connection is working
-- WebSocket errors - Check firewall/network
+- "Gateway connected successfully" - Connection is working ✅
+- "Failed to load WebSockets module" - WebSocket plugin missing (see above)
+- WebSocket errors like "Connection error: 4014" - Missing intents (check Presence Intent)
 - "Unable to connect to gateway" - Verify bot token and intents
+- "Gateway requested but WITH_WEBSOCKETS_SUPPORT=0" - Mod was built without WebSocket support
 
 ### Server notifications not appearing
 
