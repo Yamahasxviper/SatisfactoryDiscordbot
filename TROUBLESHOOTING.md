@@ -21,21 +21,21 @@ Quick solutions to common build and setup issues.
 1. **Create a Discord bot** at https://discord.com/developers/applications
 2. **Get your bot token** (from the Bot section)
 3. **Get your channel ID** (enable Developer Mode in Discord, right-click channel, Copy ID)
-4. **Configure the mod** using ONE of these methods:
+4. **Configure the mod** - Edit the unified config file:
    
-   **Method 1: config TXT format (Recommended)**
-   - Edit: `Mods/DiscordChatBridge/config/DiscordChatBridge.txt`
+   **Unified Config Location (Recommended):**
+   - Edit: `Config/DiscordChatBridge.ini`
    - Set: `BotToken=YOUR_TOKEN_HERE`
    - Set: `ChannelId=YOUR_CHANNEL_ID_HERE`
    
-   **Method 2: INI format (Legacy)**
+   **Alternative Legacy Locations:**
+   - `Mods/DiscordChatBridge/config/DiscordChatBridge.txt` (TXT format)
    - Windows: `%localappdata%\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini`
    - Linux: `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini`
-   - Add configuration section and settings (see QUICKSTART.md)
 
 5. **Restart the server** - Discord integration will now be active!
 
-**See the [Quick Start Guide](Mods/DiscordChatBridge/help/QUICKSTART.md) for step-by-step setup instructions.**
+**See the [Quick Start Guide](Config/help/QUICKSTART.ini) for step-by-step setup instructions.**
 
 ---
 
@@ -176,9 +176,12 @@ rm -rf ~/.local/share/UnrealBuildTool   # Linux
 Still having issues? Here are additional resources:
 
 - **Build Requirements:** [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
-- **Discord Chat Bridge Setup:** [Mods/DiscordChatBridge/SETUP_GUIDE.md](Mods/DiscordChatBridge/SETUP_GUIDE.md)
+- **Quick Start Guide:** [Config/help/QUICKSTART.ini](Config/help/QUICKSTART.ini)
+- **Setup Guide:** [Config/help/SETUP_GUIDE.ini](Config/help/SETUP_GUIDE.ini)
+- **Configuration Examples:** [Config/help/EXAMPLES.ini](Config/help/EXAMPLES.ini)
 - **Discord Chat Bridge README:** [Mods/DiscordChatBridge/README.md](Mods/DiscordChatBridge/README.md)
-- **WebSockets Dependency Details:** [Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md](Mods/DiscordChatBridge/DEPENDENCY_EXPLANATION.md)
+- **WebSockets Dependency Details:** [Config/help/DEPENDENCY_EXPLANATION.ini](Config/help/DEPENDENCY_EXPLANATION.ini)
+- **Technical Architecture:** [Config/help/TECHNICAL_ARCHITECTURE.ini](Config/help/TECHNICAL_ARCHITECTURE.ini)
 - **Satisfactory Modding Docs:** [docs.ficsit.app](https://docs.ficsit.app/)
 - **Discord Community:** [discord.gg/QzcG9nX](https://discord.gg/QzcG9nX)
 
@@ -197,6 +200,7 @@ Still having issues? Here are additional resources:
 
 - Always check the server logs for detailed error messages
 - Verify your configuration file has no extra spaces or quotes
-- Use the example configurations in `Mods/DiscordChatBridge/Config/ExampleConfigs/`
+- Use the unified configuration at `Config/DiscordChatBridge.ini`
+- See configuration examples in `Config/help/EXAMPLES.ini`
 - Test bot permissions in Discord first before troubleshooting the mod
 - For build issues, try a clean build after deleting generated files
