@@ -23,6 +23,17 @@ Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quic
 **Common build errors:**
 - "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
+### WebSocket Linux Server Testing
+
+Testing WebSocket functionality for Linux servers? See [WEBSOCKET_LINUX_TESTING.md](WEBSOCKET_LINUX_TESTING.md) for comprehensive testing instructions.
+
+**Quick test:**
+```bash
+./scripts/test_websocket_linux_compatibility.sh
+```
+
+**Status:** ✅ **FULLY COMPATIBLE** with Linux servers (x86_64, ARM64)
+
 ## Discord Chat Bridge Mod
 
 This repository includes the **Discord Chat Bridge** mod, which provides two-way chat integration between Satisfactory in-game chat and Discord.
