@@ -75,6 +75,45 @@ If you're setting up a Satisfactory server with Discord chat integration, follow
 
 ### Step 6: Configure the Mod
 
+> **🎯 Which configuration method should I use?**
+> 
+> **Option A: config/ folder (Recommended)** ⭐  
+> - Simpler setup - just edit one file in the mod directory
+> - Auto-persists settings via SML
+> - Best for most users
+> 
+> **Option B: Config/ folder (Traditional)**  
+> - Uses Unreal Engine config system
+> - Requires manual file creation in runtime directory
+> - For advanced users
+
+---
+
+#### Option A: config/ Folder (Recommended) ⭐
+
+1. Navigate to `Mods/DiscordChatBridge/config/DiscordChatBridge.ini` in your project
+2. Edit the file with your bot token and channel ID:
+
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+; Discord Chat Bridge Configuration
+BotToken=YOUR_BOT_TOKEN_FROM_STEP_2
+ChannelId=YOUR_CHANNEL_ID_FROM_STEP_4
+PollIntervalSeconds=2.0
+DiscordNameFormat=[Discord] {username}
+GameNameFormat=**[{username}]** {message}
+```
+
+3. Replace `YOUR_BOT_TOKEN_FROM_STEP_2` with the token you copied in Step 2
+4. Replace `YOUR_CHANNEL_ID_FROM_STEP_4` with the channel ID you copied in Step 4
+5. Save the file - settings will automatically persist via SML!
+
+See [config/README.md](../config/README.md) for more details on this option.
+
+---
+
+#### Option B: Config/ Folder (Traditional)
+
 1. Navigate to the mod's configuration directory:
    - **Windows Server:** `%localappdata%\FactoryGame\Saved\Config\WindowsServer\`
    - **Linux Server:** `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/`

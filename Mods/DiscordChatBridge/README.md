@@ -32,11 +32,13 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 
 ## Quick Links
 
+> **🎯 New to Discord configuration?** Jump to [Which Config Should I Use?](#-which-config-should-i-use) for a simple decision guide!
+
 - ✅ [**SML Compatibility Status**](../../SML_COMPATIBILITY.md) - **Will this Discord mod work with SML?** YES! ✅
 - 🚀 [Quick Start Guide](help/QUICKSTART.md) - Get up and running in 5 minutes
 - 📖 [Setup Guide](help/SETUP_GUIDE.md) - Detailed step-by-step instructions
 - 🎨 [**Configuration Examples**](help/EXAMPLES.md) - **See different formatting styles and copy-paste configurations!**
-- ⚙️ [**Config Folder README**](config/README.md) - Standard INI format with SML persistence
+- ⚙️ [**Config Folder README (Recommended)**](config/README.md) - ⭐ Standard INI format with SML persistence
 - ⚙️ [Default INI Configuration](Config/DefaultDiscordChatBridge.ini) - Traditional INI template configuration file
 - 🔧 [Dependency Explanation](help/DEPENDENCY_EXPLANATION.md) - Technical details about WebSockets dependency configuration
 - 📦 [Packaging Notes](help/PACKAGING_NOTES.md) - Build and packaging information (documentation files now included!)
@@ -71,6 +73,24 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
    - Linux: `~/.config/Epic/FactoryGame/Saved/Mods/`
 
 ## Configuration
+
+### 🎯 Which Config Should I Use?
+
+**If you're running a dedicated server and want the easiest setup:** → Use **Option 1** (config/ folder) ⭐  
+**If you need traditional Unreal Engine config system:** → Use **Option 2** (Config/ folder)
+
+**Still not sure?** → Use **Option 1** - it's simpler and recommended for most users!
+
+#### Quick Comparison
+
+| Feature | Option 1: config/ ⭐ | Option 2: Config/ |
+|---------|---------------------|-------------------|
+| **File Location** | `Mods/DiscordChatBridge/config/DiscordChatBridge.ini` | `%localappdata%/.../Config/WindowsServer/` or `~/.config/.../LinuxServer/` |
+| **Setup Complexity** | ✅ Simple - edit one file | ⚠️ Complex - copy to runtime directory |
+| **Persistence** | ✅ Automatic via SML | Manual |
+| **Best For** | Dedicated servers | Advanced users who need Unreal config system |
+
+---
 
 The Discord Chat Bridge mod supports **two configuration locations**:
 

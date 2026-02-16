@@ -62,8 +62,9 @@ This repository includes the **Discord Chat Bridge** mod, which provides two-way
 ### Quick Links
 - [SML Compatibility Status](SML_COMPATIBILITY.md) - **Will my Discord project work with SML?**
 - [Mod README](Mods/DiscordChatBridge/README.md)
-- [Setup Guide](Mods/DiscordChatBridge/SETUP_GUIDE.md)
-- [Configuration](Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini)
+- [Quick Start Guide](Mods/DiscordChatBridge/help/QUICKSTART.md) - Get started in 5 minutes
+- [Setup Guide](Mods/DiscordChatBridge/help/SETUP_GUIDE.md) - Detailed instructions
+- [Configuration Guide](Mods/DiscordChatBridge/config/README.md) - Recommended config method
 
 ## Discord Server
 
