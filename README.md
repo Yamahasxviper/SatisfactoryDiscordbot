@@ -55,7 +55,14 @@ export HTTPS_PROXY="http://proxy.example.com:8080"
 This repository includes the **Discord Chat Bridge** mod, which provides two-way chat integration between Satisfactory in-game chat and Discord.
 
 > **⚠️ CONFIGURATION REQUIRED**  
-> After installation, you **must configure the mod** with your Discord bot token and channel ID. The server will start normally without configuration, but Discord integration will be **inactive** until configured. See the [Quick Start Guide](Config/help/QUICKSTART.ini) for setup instructions.
+> After installation, you **must configure the mod** with your Discord bot token and channel ID. The server will start normally without configuration, but Discord integration will be **inactive** until configured.
+> 
+> **Configuration File Locations:**
+> - Windows: `%localappdata%\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini`
+> - Linux: `~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini`
+> - Alternative: `Mods/DiscordChatBridge/config/DiscordChatBridge.txt` (TXT format)
+> 
+> See the [Quick Start Guide](Config/help/QUICKSTART.ini) for complete setup instructions.
 
 > **✅ NO CLIENT INSTALLATION REQUIRED**  
 > Players connecting to your server **do not need to install anything**. This mod runs entirely on the server side. Only the server administrator needs to install and configure the mod.

@@ -498,6 +498,31 @@ Once configured and the server is running:
 
 ## Frequently Asked Questions (FAQ)
 
+### Where is the Windows Discord INI settings file located?
+
+**For Windows Servers:**
+
+The configuration file is located at:
+```
+%localappdata%\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini
+```
+
+**Full path example:**
+```
+C:\Users\YourUsername\AppData\Local\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini
+```
+
+**How to access it:**
+1. Press `Win + R` to open the Run dialog
+2. Type `%localappdata%\FactoryGame\Saved\Config\WindowsServer\` and press Enter
+3. Create or edit `DiscordChatBridge.ini` in this directory
+
+**If the file doesn't exist:** Create it manually or copy from the template at `Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini`
+
+**Alternative configuration method:** Use the config TXT format at `Mods/DiscordChatBridge/config/DiscordChatBridge.txt` (recommended for easier setup)
+
+See the [Configuration](#configuration) section above for complete setup instructions.
+
 ### Do players need to install this mod to join my server?
 
 **No!** This is a **server-side only** mod. Players can join your server with a completely vanilla Satisfactory client (no mods, no SML). The chat bridge works automatically for all players.

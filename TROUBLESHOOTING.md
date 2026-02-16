@@ -39,6 +39,39 @@ Quick solutions to common build and setup issues.
 
 ---
 
+## 📂 Where is the Windows Discord INI Settings File Located?
+
+**Quick Answer for Windows Servers:**
+
+```
+%localappdata%\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini
+```
+
+**Full path example:**
+```
+C:\Users\YourUsername\AppData\Local\FactoryGame\Saved\Config\WindowsServer\DiscordChatBridge.ini
+```
+
+**How to quickly access the folder:**
+1. Press `Win + R` on your keyboard
+2. Type: `%localappdata%\FactoryGame\Saved\Config\WindowsServer\`
+3. Press Enter
+4. Look for `DiscordChatBridge.ini` (create it if it doesn't exist)
+
+**For Linux Servers:**
+```
+~/.config/Epic/FactoryGame/Saved/Config/LinuxServer/DiscordChatBridge.ini
+```
+
+**If the file doesn't exist:**
+- You can create it manually
+- Or copy the template from: `Mods/DiscordChatBridge/Config/DefaultDiscordChatBridge.ini`
+- Or use the simpler config TXT format: `Mods/DiscordChatBridge/config/DiscordChatBridge.txt`
+
+**See the [Configuration section](Mods/DiscordChatBridge/README.md#configuration) in the Discord Chat Bridge README for complete setup instructions.**
+
+---
+
 ## Build Errors
 
 ### "Unable to find plugin 'WebSockets'" or "cannot open input file UnrealEditor-WebSockets.lib"
