@@ -156,18 +156,18 @@ public class libWebSockets : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			string IncludePathARM64 = Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString(), "ARM64");
-			string IncludePathx64 = Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString(), "x64");
+			string IncludePathX64 = Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString(), "x64");
 			string IncludePathBase = Path.Combine(WebSocketsPackagePath, "include", Target.Platform.ToString());
 			string LibraryPathARM64 = Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "ARM64", ConfigName, "libwebsockets.a");
-			string LibraryPathx64 = Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "x64", ConfigName, "libwebsockets.a");
+			string LibraryPathX64 = Path.Combine(WebSocketsPackagePath, "lib", Target.Platform.ToString(), "x64", ConfigName, "libwebsockets.a");
 			
 			if (Directory.Exists(IncludePathARM64))
 			{
 				PublicSystemIncludePaths.Add(IncludePathARM64);
 			}
-			if (Directory.Exists(IncludePathx64))
+			if (Directory.Exists(IncludePathX64))
 			{
-				PublicSystemIncludePaths.Add(IncludePathx64);
+				PublicSystemIncludePaths.Add(IncludePathX64);
 			}
 			if (Directory.Exists(IncludePathBase))
 			{
@@ -178,9 +178,9 @@ public class libWebSockets : ModuleRules
 			{
 				PublicAdditionalLibraries.Add(LibraryPathARM64);
 			}
-			if (File.Exists(LibraryPathx64))
+			if (File.Exists(LibraryPathX64))
 			{
-				PublicAdditionalLibraries.Add(LibraryPathx64);
+				PublicAdditionalLibraries.Add(LibraryPathX64);
 			}
 		}
 		else
