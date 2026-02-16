@@ -143,6 +143,11 @@ public class WebSockets : ModuleRules
 		{
 			return Path.Combine(LibWebSocketsPath, "include", Target.Platform.ToString(), "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			// Android uses multiple architecture paths - will be added separately
+			return null;
+		}
 		else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
 		{
 			return Path.Combine(LibWebSocketsPath, "include", "Unix", GetLinuxArchitecturePath());
@@ -162,6 +167,11 @@ public class WebSockets : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
 			return Path.Combine(LibWebSocketsPath, "lib", Target.Platform.ToString(), "VS" + Target.WindowsPlatform.GetVisualStudioCompilerVersionName(), ConfigName, "websockets_static.lib");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			// Android uses multiple architecture paths - will be added separately
+			return null;
 		}
 		else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
 		{
@@ -199,8 +209,17 @@ public class WebSockets : ModuleRules
 				string LibWebSocketsIncludePath = GetLibWebSocketsIncludePath();
 				string LibWebSocketsLibraryPath = GetLibWebSocketsLibraryPath();
 				
-				PrivateIncludePaths.Add(LibWebSocketsIncludePath);
-				PublicAdditionalLibraries.Add(LibWebSocketsLibraryPath);
+				// Add include path if available (Android handles this separately)
+				if (!string.IsNullOrEmpty(LibWebSocketsIncludePath))
+				{
+					PrivateIncludePaths.Add(LibWebSocketsIncludePath);
+				}
+				
+				// Add library path if available (Android handles this separately)
+				if (!string.IsNullOrEmpty(LibWebSocketsLibraryPath))
+				{
+					PublicAdditionalLibraries.Add(LibWebSocketsLibraryPath);
+				}
 
 				if (UsePlatformSSL)
 				{
