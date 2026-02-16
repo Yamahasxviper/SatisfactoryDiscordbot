@@ -15,7 +15,7 @@ class ONLINEINTEGRATION_API UOnlineUserPresencePrivate : public UOnlineUserPrese
 {
 	GENERATED_BODY()
 public:
-	void Init(UOnlineIntegrationBackend* Backend);
+	void Init(UOnlineIntegrationBackend* InBackend);
 	
 	void Update(TSharedRef<const UE::Online::FUserPresence> OnlinePresence);
 };
