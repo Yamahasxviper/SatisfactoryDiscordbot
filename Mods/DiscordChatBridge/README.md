@@ -28,6 +28,7 @@ A mod for Satisfactory that creates a two-way chat bridge between the in-game ch
 - ✅ **Player count status updates** - Automatically post player count to Discord with customizable format and interval!
 - ✅ **Discord Gateway bot presence** ⭐ - True "Playing with X players" status via WebSocket!
 - ✅ **Bot online/offline status** ⭐ NEW! - Bot shows as online when server is running, offline when stopped!
+- ✅ **Error logging to file** ⭐ NEW! - Detailed error logs saved to accessible files for easy troubleshooting!
 - ✅ **Settings persist across server restarts** - Powered by SML's configuration system!
 
 ## Quick Links
@@ -318,6 +319,69 @@ BotActivityChannelId=YOUR_STATUS_CHANNEL_ID
 BotActivityFormat=🎮 **Players Online:** {playercount} | 🏭 Let's build!
 ```
 
+### Error Logging
+
+The Discord Chat Bridge mod automatically creates detailed error log files to help you diagnose issues, even if you don't have full access to the server console.
+
+#### Log File Location
+
+By default, log files are saved to:
+```
+Mods/DiscordChatBridge/Logs/DiscordChatBridge_YYYYMMDD_HHMMSS.log
+```
+
+Each time the server starts, a new timestamped log file is created.
+
+#### Customizing Log Location
+
+You can specify a custom directory for log files in your configuration:
+
+```ini
+[/Script/DiscordChatBridge.DiscordChatSubsystem]
+BotToken=YOUR_BOT_TOKEN_HERE
+ChannelId=YOUR_CHAT_CHANNEL_ID
+
+; Custom log file directory
+LogFilePath=C:\SatisfactoryServer\Logs\Discord
+```
+
+Or on Linux:
+```ini
+LogFilePath=/home/satisfactory/logs/discord
+```
+
+Leave empty to use the default location.
+
+#### What's Logged
+
+The log files contain:
+- **Errors**: Critical failures, connection issues, API errors
+- **Warnings**: Configuration issues, temporary failures
+- **Info**: Startup messages, configuration loaded, shutdown messages
+- **Timestamps**: All entries include date and time
+
+#### Example Log File
+
+```
+=============================================================================
+Discord Chat Bridge - Log File
+Started: 2024-02-16 14:30:00
+Log File: /path/to/Mods/DiscordChatBridge/Logs/DiscordChatBridge_20240216_143000.log
+=============================================================================
+[2024-02-16 14:30:00] [INFO] ====================================================================
+[2024-02-16 14:30:00] [INFO] Discord Chat Bridge - Initializing
+[2024-02-16 14:30:00] [INFO] ====================================================================
+[2024-02-16 14:30:01] [ERROR] DiscordAPI: Failed to send message - Request failed
+[2024-02-16 14:30:05] [WARNING] DiscordAPI: Failed to send message - Response code: 401
+```
+
+#### Accessing Logs
+
+1. Navigate to your mod directory: `Mods/DiscordChatBridge/Logs/`
+2. Open the most recent `.log` file with any text editor
+3. Check for ERROR and WARNING entries to diagnose issues
+4. Share log files with support if you need help troubleshooting
+
 ### Discord Gateway Bot Presence ⭐ NEW!
 
 For a true Discord bot presence (shows "Playing with X players" next to the bot's name in the member list), you can now enable Discord Gateway WebSocket support!
@@ -475,12 +539,45 @@ Once configured and the server is running:
 
 ## Troubleshooting
 
+### Error Logs
+
+The Discord Chat Bridge mod automatically creates detailed error log files that can help diagnose issues. These logs are saved to a file that you can access even if you don't have full server file access.
+
+**Log File Location:**
+- Default: `Mods/DiscordChatBridge/Logs/DiscordChatBridge_YYYYMMDD_HHMMSS.log`
+- Custom: Set `LogFilePath` in your configuration to specify a different directory
+
+**What's Logged:**
+- All error messages (critical failures, connection issues, API errors)
+- Warning messages (configuration issues, temporary failures)
+- Informational messages (startup, shutdown, configuration loaded)
+- Timestamps for all log entries
+
+**How to Access:**
+1. Navigate to your server's mod directory
+2. Go to `Mods/DiscordChatBridge/Logs/`
+3. Open the most recent `.log` file
+4. Each server restart creates a new timestamped log file
+
+**Configuration:**
+To change where logs are saved, edit your configuration file and set:
+```ini
+LogFilePath=C:\MyServerLogs\Discord
+```
+or
+```ini
+LogFilePath=/home/satisfactory/logs/discord
+```
+
+Leave empty to use the default location.
+
 ### Messages aren't being sent/received
 
-1. Check the server logs for errors related to `DiscordChatSubsystem` or `DiscordAPI`
-2. Verify your bot token and channel ID are correct
-3. Make sure the bot has been invited to your server and has permissions in the channel
-4. Ensure "Message Content Intent" is enabled in your bot settings
+1. Check the error log file in `Mods/DiscordChatBridge/Logs/` for detailed error messages
+2. Check the server console logs for errors related to `DiscordChatSubsystem` or `DiscordAPI`
+3. Verify your bot token and channel ID are correct
+4. Make sure the bot has been invited to your server and has permissions in the channel
+5. Ensure "Message Content Intent" is enabled in your bot settings
 
 ### Bot token or channel ID not recognized
 
