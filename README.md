@@ -23,8 +23,14 @@ Having issues? Check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide for quic
 **Common build errors:**
 - "Unable to find plugin 'WebSockets'" → See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
-### WebSocket Linux Server Testing
+### WebSocket Server Compatibility
 
+#### Windows Servers
+WebSockets work perfectly on Windows dedicated servers! See [WEBSOCKET_WINDOWS_SERVER_COMPATIBILITY.md](WEBSOCKET_WINDOWS_SERVER_COMPATIBILITY.md) for comprehensive Windows server documentation.
+
+**Status:** ✅ **FULLY COMPATIBLE** with Windows servers (Win64, requires Windows 8.1+/Server 2012 R2+)
+
+#### Linux Servers
 Testing WebSocket functionality for Linux servers? See [WEBSOCKET_LINUX_TESTING.md](WEBSOCKET_LINUX_TESTING.md) for comprehensive testing instructions.
 
 **Quick test:**
