@@ -6,7 +6,7 @@
 	#endif
 #endif
 
-#define LWS_INSTALL_DATADIR "C:/Program Files/libwebsockets/share"
+#define LWS_INSTALL_DATADIR "/usr/local/share/libwebsockets"
 
 #define LWS_ROLE_H1
 #define LWS_ROLE_WS
