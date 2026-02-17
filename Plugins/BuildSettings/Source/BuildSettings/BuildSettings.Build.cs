@@ -8,9 +8,6 @@ public class BuildSettings : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		
-		// Tell UBT to compile this module for all targets
-		PrecompileForTargets = PrecompileTargetsType.Any;
-		
 		// Explicitly tell UBT not to expect precompiled binaries, forcing compilation from source
 		// This is needed when using installed engine builds that may not have precompiled manifests
 		// for all platforms and configurations

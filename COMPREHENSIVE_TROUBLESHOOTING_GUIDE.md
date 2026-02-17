@@ -225,19 +225,19 @@ When using an installed engine build (distributed with `-installed` flag in RunU
 ✅ **FIXED** - This issue has been resolved in this repository. The project now includes a custom BuildSettings plugin at `Plugins/BuildSettings/` that tells UBT to compile from source instead of expecting precompiled binaries.
 
 **Technical Details:**
-- The `Plugins/BuildSettings/Source/BuildSettings/BuildSettings.Build.cs` file sets `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false`
-- `PrecompileForTargets = PrecompileTargetsType.Any` tells UBT which targets to compile for
+- The `Plugins/BuildSettings/Source/BuildSettings/BuildSettings.Build.cs` file sets `bPrecompile = false`
 - `bPrecompile = false` explicitly tells UBT not to expect precompiled binaries, forcing compilation from source
 - The plugin is declared in `FactoryGame.uproject` to enable it for the project
 - The plugin is automatically loaded by the engine
 - Implemented as a plugin (not a project module) to avoid module hierarchy violations
-- LoadingPhase is set to "PreDefault" in BuildSettings.uplugin to ensure the module loads at the engine plugin level, preventing hierarchy violations
+- LoadingPhase is set to "PreDefault" in BuildSettings.uplugin to ensure the module loads early in the loading process
+- The plugin does NOT use `PrecompileForTargets = PrecompileTargetsType.Any` as this would violate Unreal Engine's module hierarchy (Engine modules cannot reference Project modules)
 - See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md#installed-engine-build-compatibility) for more information
 
 **If you encounter this error in other projects:**
 1. Create a `Plugins/BuildSettings/` directory in your project
 2. Add a `BuildSettings.uplugin` file to define the plugin with LoadingPhase set to "PreDefault"
-3. Create `Source/BuildSettings/BuildSettings.Build.cs` with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false`
+3. Create `Source/BuildSettings/BuildSettings.Build.cs` with `bPrecompile = false` (do NOT use `PrecompileForTargets = PrecompileTargetsType.Any` as this violates module hierarchy)
 4. Implement minimal module files (see this repository's implementation as reference)
 5. Add the BuildSettings plugin to your .uproject file's Plugins array
 
