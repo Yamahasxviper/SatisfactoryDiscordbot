@@ -16,6 +16,7 @@ public class BuildSettings : ModuleRules
         //
         // bPrecompile = false explicitly tells UBT not to expect precompiled binaries for this module.
         
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PrecompileForTargets = PrecompileTargetsType.Any;
         bPrecompile = false;
         
