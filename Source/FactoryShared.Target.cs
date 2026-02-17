@@ -56,8 +56,10 @@ public class FactorySharedTarget : TargetRules
 		bUseChecksInShipping = UseChecksInShippingOverride;
 		
 		// Disable precompiled headers when using installed engine builds to avoid
-		// "Missing precompiled manifest for 'BuildSettings'" error on Linux builds
-		// This is required when building with -installed flag in RunUAT
+		// "Missing precompiled manifest for 'BuildSettings'" error on Linux builds.
+		// Installed builds (with -installed flag in RunUAT) may not include precompiled
+		// manifests for all engine modules, causing build failures when UBT expects them.
+		// Setting bPrecompile = false tells UBT to compile headers without expecting manifests.
 		if (Target.bUsePrecompiled)
 		{
 			bPrecompile = false;
