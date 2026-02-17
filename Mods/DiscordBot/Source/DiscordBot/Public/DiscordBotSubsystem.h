@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "DiscordGatewayClient.h"
+#include "DiscordGatewayClientCustom.h"
 #include "DiscordBotSubsystem.generated.h"
 
 /**
@@ -25,7 +25,7 @@ public:
 
     /** Get the Discord Gateway Client */
     UFUNCTION(BlueprintPure, Category = "Discord Bot")
-    ADiscordGatewayClient* GetGatewayClient() const { return GatewayClient; }
+    ADiscordGatewayClientCustom* GetGatewayClient() const { return GatewayClient; }
 
     /** Initialize and connect the Discord bot */
     UFUNCTION(BlueprintCallable, Category = "Discord Bot")
@@ -46,7 +46,7 @@ public:
 private:
     /** The Discord Gateway Client instance */
     UPROPERTY()
-    ADiscordGatewayClient* GatewayClient;
+    ADiscordGatewayClientCustom* GatewayClient;
 
     /** Load bot token from config */
     FString LoadBotTokenFromConfig();
