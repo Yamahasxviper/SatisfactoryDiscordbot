@@ -78,7 +78,7 @@ This project includes a custom **BuildSettings** plugin at `Plugins/BuildSetting
 Missing precompiled manifest for 'BuildSettings', 'Engine\Intermediate\Build\Linux\FactoryServer\Shipping\BuildSettings\BuildSettings.precompiled'
 ```
 
-**Solution:** The project includes its own BuildSettings plugin with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false` in its Build.cs file. The `PrecompileForTargets` setting tells UBT which targets to compile for, while `bPrecompile = false` explicitly tells UBT not to expect precompiled binaries, forcing compilation from source. The plugin is declared in the FactoryGame.uproject file and is implemented as a plugin (rather than a project module) to avoid module hierarchy violations. The LoadingPhase is set to "PostConfigInit" to ensure the module loads at engine initialization level, preventing UBT from categorizing it as a standard project module.
+**Solution:** The project includes its own BuildSettings plugin with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false` in its Build.cs file. The `PrecompileForTargets` setting tells UBT which targets to compile for, while `bPrecompile = false` explicitly tells UBT not to expect precompiled binaries, forcing compilation from source. The plugin is declared in the FactoryGame.uproject file and is implemented as a plugin (rather than a project module) to avoid module hierarchy violations. The LoadingPhase is set to "PreDefault" to ensure the module loads at the engine plugin level, preventing UBT from categorizing it as a standard project module.
 
 **Files:**
 - `FactoryGame.uproject` - Explicitly declares BuildSettings plugin
