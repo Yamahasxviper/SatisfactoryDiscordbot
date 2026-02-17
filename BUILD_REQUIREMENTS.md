@@ -78,10 +78,15 @@ This project includes a custom **BuildSettings** module at `Source/BuildSettings
 Missing precompiled manifest for 'BuildSettings', 'Engine\Intermediate\Build\Linux\FactoryServer\Shipping\BuildSettings\BuildSettings.precompiled'
 ```
 
-**Solution:** The project includes its own BuildSettings module with `PrecompileForTargets = PrecompileTargetsType.Any` in its Build.cs file. This tells Unreal Build Tool to compile the module from source instead of expecting precompiled binaries.
+**Solution:** The project includes its own BuildSettings module with special configuration in its Build.cs file. This tells Unreal Build Tool to compile the module from source instead of expecting precompiled binaries.
+
+**Key Settings:**
+- `PrecompileForTargets = PrecompileTargetsType.Any` - Compile for all target types
+- `bUsePrecompiled = false` - Force compilation from source
+- `Type = ModuleType.Runtime` - Ensure inclusion in all build configurations including Shipping
 
 **Files:**
-- `Source/BuildSettings/BuildSettings.Build.cs` - Build configuration with PrecompileForTargets setting
+- `Source/BuildSettings/BuildSettings.Build.cs` - Build configuration with precompile settings
 - `Source/BuildSettings/Public/BuildSettings.h` - Module interface
 - `Source/BuildSettings/Private/BuildSettings.cpp` - Minimal module implementation
 

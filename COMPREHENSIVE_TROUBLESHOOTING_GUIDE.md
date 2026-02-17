@@ -225,14 +225,20 @@ When using an installed engine build (distributed with `-installed` flag in RunU
 ✅ **FIXED** - This issue has been resolved in this repository. The project now includes a custom BuildSettings module at `Source/BuildSettings/` that overrides the engine's module and tells UBT to compile from source instead of expecting precompiled binaries.
 
 **Technical Details:**
-- The `Source/BuildSettings/BuildSettings.Build.cs` file sets `PrecompileForTargets = PrecompileTargetsType.Any`
+- The `Source/BuildSettings/BuildSettings.Build.cs` file includes:
+  - `PrecompileForTargets = PrecompileTargetsType.Any` - Compile for all target types
+  - `bUsePrecompiled = false` - Force compilation from source
+  - `Type = ModuleType.Runtime` - Ensure inclusion in all build configurations including Shipping
 - This tells Unreal Build Tool to compile the module from source rather than expecting precompiled binaries
 - The module is automatically included in all build targets via `Source/FactoryShared.Target.cs`
 - See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md#installed-engine-build-compatibility) for more information
 
 **If you encounter this error in other projects:**
 1. Create a `Source/BuildSettings/` directory in your project
-2. Add a `BuildSettings.Build.cs` file with `PrecompileForTargets = PrecompileTargetsType.Any`
+2. Add a `BuildSettings.Build.cs` file with the following settings:
+   - `PrecompileForTargets = PrecompileTargetsType.Any`
+   - `bUsePrecompiled = false`
+   - `Type = ModuleType.Runtime`
 3. Implement minimal module files (see this repository's implementation as reference)
 4. Add "BuildSettings" to your target's `ExtraModuleNames`
 

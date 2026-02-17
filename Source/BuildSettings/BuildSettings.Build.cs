@@ -14,7 +14,13 @@ public class BuildSettings : ModuleRules
         // PrecompileForTargets = PrecompileTargetsType.Any, we tell UBT to compile this module
         // from source rather than expecting precompiled binaries.
         
+        // Force compilation from source instead of using precompiled binaries
         PrecompileForTargets = PrecompileTargetsType.Any;
+        bUsePrecompiled = false;
+        
+        // Explicitly set module type to Runtime so it's included in all build configurations
+        // including Shipping builds for dedicated servers
+        Type = ModuleType.Runtime;
         
         PublicDependencyModuleNames.AddRange(new string[] {
             "Core",
