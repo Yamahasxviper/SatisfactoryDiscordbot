@@ -60,10 +60,8 @@ public class FactorySharedTarget : TargetRules
 		// Installed builds (with -installed flag in RunUAT) may not include precompiled
 		// manifests for all engine modules, causing build failures when UBT expects them.
 		// Setting bPrecompile = false tells UBT to compile headers without expecting manifests.
-		if (Target.bUsePrecompiled) // When engine is precompiled (installed build)...
-		{
-			bPrecompile = false; // ...don't expect manifests for project modules
-		}
+		// Note: In UE5, bUsePrecompiled property was removed. Precompiled binary usage is now
+		// handled automatically by UBT, so we no longer need to check this condition.
 		
 		// Common module names for the game targets
 		ExtraModuleNames.AddRange(new[] {
