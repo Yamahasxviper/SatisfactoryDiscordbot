@@ -231,11 +231,12 @@ When using an installed engine build (distributed with `-installed` flag in RunU
 - The plugin is declared in `FactoryGame.uproject` to enable it for the project
 - The plugin is automatically loaded by the engine
 - Implemented as a plugin (not a project module) to avoid module hierarchy violations
+- LoadingPhase is set to "PostConfigInit" in BuildSettings.uplugin to ensure the module loads at engine initialization level, preventing hierarchy violations
 - See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md#installed-engine-build-compatibility) for more information
 
 **If you encounter this error in other projects:**
 1. Create a `Plugins/BuildSettings/` directory in your project
-2. Add a `BuildSettings.uplugin` file to define the plugin
+2. Add a `BuildSettings.uplugin` file to define the plugin with LoadingPhase set to "PostConfigInit"
 3. Create `Source/BuildSettings/BuildSettings.Build.cs` with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false`
 4. Implement minimal module files (see this repository's implementation as reference)
 5. Add the BuildSettings plugin to your .uproject file's Plugins array
