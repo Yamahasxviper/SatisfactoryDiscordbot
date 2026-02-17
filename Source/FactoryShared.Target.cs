@@ -55,6 +55,14 @@ public class FactorySharedTarget : TargetRules
 		// Allow checks in shipping depending on the command line configuration
 		bUseChecksInShipping = UseChecksInShippingOverride;
 		
+		// Disable precompiled headers when using installed engine builds to avoid
+		// "Missing precompiled manifest for 'BuildSettings'" error on Linux builds
+		// This is required when building with -installed flag in RunUAT
+		if (Target.bUsePrecompiled)
+		{
+			bPrecompile = false;
+		}
+		
 		// Common module names for the game targets
 		ExtraModuleNames.AddRange(new[] {
 			"FactoryGame"
