@@ -31,7 +31,10 @@ public class DiscordChatBridge : ModuleRules
         // Check both engine and project plugin locations
         string WebSocketsPluginPath1 = Path.Combine(EngineDirectory, "Plugins", "Runtime", "WebSockets");
         string WebSocketsPluginPath2 = Path.Combine(EngineDirectory, "Plugins", "Experimental", "WebSockets");
-        string WebSocketsPluginPath3 = Path.Combine(ModuleDirectory, "..", "..", "..", "..", "Plugins", "WebSockets");
+        
+        // Use Target.ProjectFile to get the project directory reliably
+        string projectDir = Target.ProjectFile != null ? Path.GetDirectoryName(Target.ProjectFile.FullName) : Path.GetFullPath(Path.Combine(ModuleDirectory, "..", "..", "..", ".."));
+        string WebSocketsPluginPath3 = Path.Combine(projectDir, "Plugins", "WebSockets");
         
         Console.WriteLine("[DiscordChatBridge] Build.cs: Checking for WebSockets plugin...");
         Console.WriteLine($"[DiscordChatBridge]   Path 1 (Engine/Runtime): {WebSocketsPluginPath1} - {(Directory.Exists(WebSocketsPluginPath1) ? "FOUND" : "NOT FOUND")}");
