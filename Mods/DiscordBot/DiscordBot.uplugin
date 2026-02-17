@@ -32,6 +32,10 @@
 		{
 			"Name": "SocketIOClient",
 			"Enabled": true
+		},
+		{
+			"Name": "CustomWebSocket",
+			"Enabled": true
 		}
 	]
 }

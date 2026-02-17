@@ -29,7 +29,12 @@ public class DiscordBot : ModuleRules
             "SML"
         });
 
-        // SocketIO Client Plugin dependency
+        // Custom WebSocket Plugin (for platform-agnostic WebSocket support)
+        PublicDependencyModuleNames.AddRange(new[] {
+            "CustomWebSocket"
+        });
+
+        // SocketIO Client Plugin dependency (alternative option)
         PublicDependencyModuleNames.AddRange(new[] {
             "SocketIOClient",
             "SocketIOLib",
