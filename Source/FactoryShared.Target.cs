@@ -60,9 +60,9 @@ public class FactorySharedTarget : TargetRules
 		// Installed builds (with -installed flag in RunUAT) may not include precompiled
 		// manifests for all engine modules, causing build failures when UBT expects them.
 		// Setting bPrecompile = false tells UBT to compile headers without expecting manifests.
-		if (Target.bUsePrecompiled)
+		if (Target.bUsePrecompiled) // When engine is precompiled (installed build)...
 		{
-			bPrecompile = false;
+			bPrecompile = false; // ...don't expect manifests for project modules
 		}
 		
 		// Common module names for the game targets
