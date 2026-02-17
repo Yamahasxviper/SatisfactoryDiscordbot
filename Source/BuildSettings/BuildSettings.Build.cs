@@ -13,8 +13,11 @@ public class BuildSettings : ModuleRules
         // in installed builds. By creating this module in the project and setting
         // PrecompileForTargets = PrecompileTargetsType.Any, we tell UBT to compile this module
         // from source rather than expecting precompiled binaries.
+        //
+        // bPrecompile = false explicitly tells UBT not to expect precompiled binaries for this module.
         
         PrecompileForTargets = PrecompileTargetsType.Any;
+        bPrecompile = false;
         
         PublicDependencyModuleNames.AddRange(new string[] {
             "Core",
