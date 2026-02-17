@@ -31,16 +31,46 @@ Combined Intent Value: **33026**
 
 ## Usage
 
-The Discord Gateway Client can be used in Blueprints or C++:
+The Discord bot can be used in two ways:
 
-### Blueprint Usage
+### Automatic Initialization (Recommended)
 
-1. Add a `DiscordGatewayClient` actor to your level
-2. Call `InitializeBot` with your bot token
-3. Call `Connect` to establish the connection
-4. Use `SendMessage` to send messages to Discord channels
+The bot will automatically initialize and connect when the game starts if configured properly:
 
-### C++ Usage
+1. Set `bEnabled=true` in `Config/DiscordBot.ini`
+2. Set your bot token in the config file
+3. The bot will connect automatically on game start
+
+### Manual Usage via Subsystem (Blueprint or C++)
+
+#### Blueprint Usage
+
+Access the Discord Bot Subsystem from any Blueprint:
+
+1. Get the `DiscordBotSubsystem` from the Game Instance
+2. Call `InitializeAndConnect` with your bot token (or it will auto-load from config)
+3. Use `SendDiscordMessage` to send messages to Discord channels
+4. Check connection status with `IsBotConnected`
+
+#### C++ Usage
+
+```cpp
+// Get the subsystem
+UDiscordBotSubsystem* BotSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDiscordBotSubsystem>();
+
+// Initialize and connect
+BotSubsystem->InitializeAndConnect(TEXT("YOUR_BOT_TOKEN"));
+
+// Send a message
+BotSubsystem->SendDiscordMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
+
+// Check connection
+bool bConnected = BotSubsystem->IsBotConnected();
+```
+
+### Direct Actor Usage (Advanced)
+
+You can also directly spawn and use the `ADiscordGatewayClient` actor:
 
 ```cpp
 ADiscordGatewayClient* Client = GetWorld()->SpawnActor<ADiscordGatewayClient>();
@@ -56,6 +86,9 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
 - Support for required intents (Presence, Server Members, Message Content)
 - HTTP API integration for sending messages
 - Blueprint and C++ support
+- Game Instance Subsystem for easy access
+- Automatic initialization on game start (configurable)
+- Configuration file support for bot token and settings
 
 ## Dependencies
 
