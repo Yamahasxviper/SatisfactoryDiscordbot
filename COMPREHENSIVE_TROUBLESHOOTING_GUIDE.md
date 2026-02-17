@@ -314,18 +314,24 @@ LogPluginManager: Error: Plugin 'DiscordChatBridge' failed to load because modul
 
 **Root Cause:**
 This error occurs when the WebSockets shared library fails to load at runtime on Linux servers. This typically happens when:
-1. The WebSockets module binaries are not properly packaged with the server build
+1. The WebSockets module binaries are not properly packaged with the server build (Modular linking)
 2. The module is being loaded dynamically after the plugin starts instead of at startup
 3. The WebSockets plugin loading phase is not configured correctly for server builds
 
 **Solution:**
-**This has been fixed** in the latest version. The solution includes two key changes:
+**This has been fixed** in the latest version. The solution includes three key changes:
 
-1. **WebSockets Plugin Loading Phase:** Changed from "Default" to "PreDefault" in `Plugins/WebSockets/WebSockets.uplugin`
+1. **Monolithic Linking for Linux Servers:** Modified `Source/FactoryShared.Target.cs` to use Monolithic linking for Linux Server builds
+   - Statically links all modules (including WebSockets) into the server executable
+   - Eliminates the need for separate `.so` files and runtime dynamic loading
+   - Prevents "dlopen failed" errors by embedding WebSockets directly in the server binary
+   - This is the standard approach for dedicated server builds on Linux
+
+2. **WebSockets Plugin Loading Phase:** Changed from "Default" to "PreDefault" in `Plugins/WebSockets/WebSockets.uplugin`
    - This ensures the WebSockets plugin loads before other plugins, making it available when DiscordChatBridge starts
-   - Prevents runtime loading issues on Linux dedicated servers
+   - Prevents runtime loading issues on Linux dedicated servers (when using Modular builds)
 
-2. **DiscordChatBridge Module Startup:** Pre-loads the WebSockets module during its StartupModule() phase
+3. **DiscordChatBridge Module Startup:** Pre-loads the WebSockets module during its StartupModule() phase
    - Ensures the library is loaded before it's needed by the DiscordGateway
    - Provides better error messages if WebSockets fails to load
    - Graceful degradation - the mod will log an error but won't crash if WebSockets is unavailable
@@ -345,10 +351,15 @@ DiscordChatBridge: Discord Gateway features will not be available
 ```
 
 This means:
-1. The WebSockets plugin binaries are missing from your packaged build
+1. The WebSockets plugin binaries are missing from your packaged build (if using Modular builds)
 2. Or there are missing system dependencies (libssl, libcrypto, libz)
 
-**Manual Workaround (if needed):**
+**Build Configuration Notes:**
+- **Monolithic builds** (default for Linux Server): All modules statically linked into executable - no separate .so files needed
+- **Modular builds**: Each plugin compiled as separate .so file that must be packaged and deployed with the server
+- You can override the build type using command line: `-Monolithic` or `-Modular` when building
+
+**Manual Workaround (if using Modular builds):**
 1. Ensure WebSockets plugin is properly packaged with the Linux server build
 2. Verify that the WebSockets .so files are in the correct location relative to the server executable
 3. Check that required system libraries are installed:
