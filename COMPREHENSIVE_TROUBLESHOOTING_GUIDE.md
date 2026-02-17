@@ -227,6 +227,7 @@ When using an installed engine build (distributed with `-installed` flag in RunU
 **Technical Details:**
 - The `Source/BuildSettings/BuildSettings.Build.cs` file sets `PrecompileForTargets = PrecompileTargetsType.Any`
 - This tells Unreal Build Tool to compile the module from source rather than expecting precompiled binaries
+- The module is explicitly declared in `FactoryGame.uproject` to ensure UBT prioritizes the project module over the engine module
 - The module is automatically included in all build targets via `Source/FactoryShared.Target.cs`
 - See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md#installed-engine-build-compatibility) for more information
 
@@ -235,6 +236,7 @@ When using an installed engine build (distributed with `-installed` flag in RunU
 2. Add a `BuildSettings.Build.cs` file with `PrecompileForTargets = PrecompileTargetsType.Any`
 3. Implement minimal module files (see this repository's implementation as reference)
 4. Add "BuildSettings" to your target's `ExtraModuleNames`
+5. Add the BuildSettings module to your .uproject file's Modules array to ensure it overrides the engine's module
 
 ---
 

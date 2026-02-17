@@ -78,9 +78,10 @@ This project includes a custom **BuildSettings** module at `Source/BuildSettings
 Missing precompiled manifest for 'BuildSettings', 'Engine\Intermediate\Build\Linux\FactoryServer\Shipping\BuildSettings\BuildSettings.precompiled'
 ```
 
-**Solution:** The project includes its own BuildSettings module with `PrecompileForTargets = PrecompileTargetsType.Any` in its Build.cs file. This tells Unreal Build Tool to compile the module from source instead of expecting precompiled binaries.
+**Solution:** The project includes its own BuildSettings module with `PrecompileForTargets = PrecompileTargetsType.Any` in its Build.cs file. This tells Unreal Build Tool to compile the module from source instead of expecting precompiled binaries. The module is also explicitly declared in the FactoryGame.uproject file to ensure UBT prioritizes the project module over the engine module.
 
 **Files:**
+- `FactoryGame.uproject` - Explicitly declares BuildSettings module to override engine module
 - `Source/BuildSettings/BuildSettings.Build.cs` - Build configuration with PrecompileForTargets setting
 - `Source/BuildSettings/Public/BuildSettings.h` - Module interface
 - `Source/BuildSettings/Private/BuildSettings.cpp` - Minimal module implementation
