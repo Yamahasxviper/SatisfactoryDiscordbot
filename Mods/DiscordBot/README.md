@@ -93,7 +93,7 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
 ## Dependencies
 
 - SML (Satisfactory Mod Loader) ^3.11.3
-- SocketIOClient plugin (included in Plugins/WebSockets)
+- CustomWebSocket plugin (for platform-agnostic WebSocket support)
 
 ## Technical Details
 
@@ -125,10 +125,9 @@ Intents = (1 << 8) | (1 << 1) | (1 << 15)  // 256 + 2 + 32768 = 33026
    - No external dependencies
 
 2. **DiscordGatewayClient** (ORIGINAL - REFERENCE ONLY) ⚠️
-   - Uses SocketIO Client plugin
-   - Protocol mismatch (Socket.IO ≠ WebSocket)
-   - Will NOT work properly with Discord Gateway
-   - Kept for reference/educational purposes only
+   - Reference implementation showing Discord Gateway protocol structure
+   - Does NOT implement actual WebSocket connection
+   - Kept for educational purposes only
 
 **For production use with Satisfactory CSS engine: Use `DiscordGatewayClientNative`**
 

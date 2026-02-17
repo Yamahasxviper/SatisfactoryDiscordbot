@@ -36,9 +36,6 @@ ADiscordGatewayClient::ADiscordGatewayClient()
     bIsConnected = false;
     HeartbeatInterval = 41250; // Default Discord heartbeat interval
     SequenceNumber = -1;
-
-    // Create SocketIO component
-    SocketIOComponent = CreateDefaultSubobject<USocketIOClientComponent>(TEXT("SocketIOComponent"));
 }
 
 void ADiscordGatewayClient::BeginPlay()
@@ -82,7 +79,7 @@ void ADiscordGatewayClient::Connect()
 
 void ADiscordGatewayClient::Disconnect()
 {
-    if (bIsConnected && SocketIOComponent)
+    if (bIsConnected)
     {
         // Clear heartbeat timer
         if (GetWorld())
@@ -143,17 +140,12 @@ void ADiscordGatewayClient::OnGetGatewayURLComplete(FHttpRequestPtr Request, FHt
 
 void ADiscordGatewayClient::ConnectWebSocket()
 {
-    if (!SocketIOComponent)
-    {
-        UE_LOG(LogDiscordGateway, Error, TEXT("SocketIO component is null"));
-        return;
-    }
-
-    // Note: Discord Gateway uses WebSocket protocol, not Socket.IO
-    // For a production implementation, you would need a native WebSocket client
-    // This is a simplified example showing the structure
+    // Note: This is a reference implementation showing the Discord Gateway structure
+    // For a production implementation, use DiscordGatewayClientNative which implements
+    // the full WebSocket protocol using Unreal's native WebSocket module
     
-    UE_LOG(LogDiscordGateway, Log, TEXT("WebSocket connection would be established here"));
+    UE_LOG(LogDiscordGateway, Warning, TEXT("This is a reference implementation only"));
+    UE_LOG(LogDiscordGateway, Warning, TEXT("Use DiscordGatewayClientNative for production"));
     UE_LOG(LogDiscordGateway, Log, TEXT("Gateway URL: %s"), *GatewayURL);
     UE_LOG(LogDiscordGateway, Log, TEXT("Intents: %d (Presence: 256, Server Members: 2, Message Content: 32768)"), Intents);
     

@@ -33,12 +33,5 @@ public class DiscordBot : ModuleRules
         PublicDependencyModuleNames.AddRange(new[] {
             "CustomWebSocket"
         });
-
-        // SocketIO Client Plugin dependency (alternative option)
-        PublicDependencyModuleNames.AddRange(new[] {
-            "SocketIOClient",
-            "SocketIOLib",
-            "SIOJson"
-        });
     }
 }

@@ -110,8 +110,8 @@ bool bConnected = BotSubsystem->IsBotConnected();
   - MESSAGE CONTENT INTENT
 
 ### Build Errors
-- **Error**: `Cannot find module 'SocketIOClient'`
-- **Solution**: Make sure the WebSockets plugin is in `Plugins/WebSockets/SocketIOClient`
+- **Error**: Build errors or module dependencies missing
+- **Solution**: Ensure the project dependencies are properly configured
 
 ### Bot Not Responding
 - **Error**: Bot appears online but doesn't respond
@@ -120,13 +120,20 @@ bool bConnected = BotSubsystem->IsBotConnected();
   - Verify the bot has permissions in your Discord server
   - Make sure the channel ID is correct
 
-## Current Limitations
+## Current Implementation
 
-1. **WebSocket Implementation**: The current implementation uses a simplified WebSocket approach. For full production use, you may need to implement a native WebSocket client or use a third-party library.
+1. **Native WebSocket Implementation** (DiscordGatewayClientNative): 
+   - Production-ready implementation using Unreal's native WebSocket module
+   - Full Discord Gateway protocol support
+   - Compatible with Satisfactory's custom CSS Unreal Engine 5.3.2
 
-2. **Event Handling**: Basic event handling is implemented. You can extend the `HandleGatewayEvent` method in `DiscordGatewayClient.cpp` to handle more Discord events.
+2. **Reference Implementation** (DiscordGatewayClient):
+   - Educational reference showing Discord Gateway structure
+   - Not for production use
 
-3. **Reconnection**: Automatic reconnection on disconnect is not yet implemented.
+3. **Event Handling**: Basic event handling is implemented. You can extend the `HandleGatewayEvent` method in `DiscordGatewayClientNative.cpp` to handle more Discord events.
+
+4. **Reconnection**: Automatic reconnection on disconnect is not yet implemented.
 
 ## Advanced Configuration
 
@@ -149,7 +156,7 @@ LogLevel=2
 
 ## Next Steps
 
-1. **Customize Events**: Modify `DiscordGatewayClient.cpp` to handle Discord events like messages, presence updates, etc.
+1. **Customize Events**: Modify `DiscordGatewayClientNative.cpp` to handle Discord events like messages, presence updates, etc.
 
 2. **Add Commands**: Implement slash commands or message commands
 
