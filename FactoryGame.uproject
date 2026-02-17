@@ -70,6 +70,10 @@
 	],
 	"Plugins": [
 		{
+			"Name": "BuildSettings",
+			"Enabled": true
+		},
+		{
 			"Name": "ChaosVehiclesPlugin",
 			"Enabled": true
 		},
