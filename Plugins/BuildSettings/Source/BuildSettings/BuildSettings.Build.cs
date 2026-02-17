@@ -18,6 +18,9 @@ public class BuildSettings : ModuleRules
         //
         // Note: This is implemented as a plugin (not a project module) to avoid module hierarchy
         // violations where Engine modules would appear to reference Project modules.
+        // The LoadingPhase is set to "PostConfigInit" in BuildSettings.uplugin to ensure this
+        // module loads at engine initialization level, preventing UBT from categorizing it as a
+        // standard project module which would trigger hierarchy violations.
         
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PrecompileForTargets = PrecompileTargetsType.Any;
