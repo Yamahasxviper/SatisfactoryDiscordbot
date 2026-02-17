@@ -382,10 +382,6 @@
 			"SupportedTargetPlatforms": [
 				"Win64"
 			]
-		},
-		{
-			"Name": "BuildSettings",
-			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [
