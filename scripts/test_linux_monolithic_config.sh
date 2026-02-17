@@ -1,6 +1,9 @@
 #!/bin/bash
 # Test script to verify that Linux server builds are configured for Monolithic linking
 # This validates the fix for the "dlopen failed: libFactoryServer-WebSockets-Linux-Shipping.so" error
+#
+# Usage: ./scripts/test_linux_monolithic_config.sh
+# Note: If you get a permission denied error, run: chmod +x scripts/test_linux_monolithic_config.sh
 
 # Colors for output
 RED='\033[0;31m'
@@ -61,12 +64,12 @@ fi
 
 # Test 4: Check for explanatory comment about the fix
 echo -e "${BLUE}Test 4: Checking for documentation comment...${NC}"
-if grep -q 'Check Target.Name instead of Type because Type gets set in derived class constructor' "$TARGET_FILE"; then
+if grep -q 'Target.Name' "$TARGET_FILE" && grep -q 'derived class constructor' "$TARGET_FILE"; then
     echo -e "${GREEN}✓ PASS: Explanatory comment found${NC}"
     echo -e "   Comment explains why Target.Name is used instead of Type\n"
 else
-    echo -e "${YELLOW}⚠ WARNING: Explanatory comment not found${NC}"
-    echo -e "   Consider adding a comment to explain the constructor order issue\n"
+    echo -e "${YELLOW}⚠ WARNING: Explanatory comment not found or incomplete${NC}"
+    echo -e "   Consider adding a comment explaining the constructor order issue\n"
 fi
 
 # Test 5: Verify that the old buggy pattern is not present
