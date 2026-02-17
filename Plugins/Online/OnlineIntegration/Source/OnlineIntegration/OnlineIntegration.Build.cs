@@ -21,7 +21,6 @@ public class OnlineIntegration : ModuleRules
 				"Engine", 
 				"UMG", 
 				"ModelViewViewModel",
-				"OnlineServicesInterface",
 				"FieldNotification",
 				"GameplayEvents",
 				"SlateCore",

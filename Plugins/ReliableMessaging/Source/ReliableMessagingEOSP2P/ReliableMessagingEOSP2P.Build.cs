@@ -10,7 +10,7 @@ public class ReliableMessagingEOSP2P : ModuleRules
             new string[]
             {
                 "Core", 
-                "CoreUObject", "ReliableMessaging",
+                "ReliableMessaging",
             }
         );
 
@@ -24,8 +24,7 @@ public class ReliableMessagingEOSP2P : ModuleRules
                 "EOSSDK",
                 "EOSShared",
                 "Sockets",
-                "SocketSubsystemEOS",
-                "ReliableMessaging"
+                "SocketSubsystemEOS"
             }
         );
     }
