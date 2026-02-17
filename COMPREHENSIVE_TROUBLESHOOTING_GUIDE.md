@@ -326,6 +326,7 @@ This error occurs when the WebSockets shared library fails to load at runtime on
    - Eliminates the need for separate `.so` files and runtime dynamic loading
    - Prevents "dlopen failed" errors by embedding WebSockets directly in the server binary
    - This is the standard approach for dedicated server builds on Linux
+   - **Technical Note:** Uses `Target.Name.Contains("Server")` instead of `Type == TargetType.Server` to correctly detect server builds (avoids constructor order issues where Type is set in derived class)
 
 2. **WebSockets Plugin Loading Phase:** Changed from "Default" to "PreDefault" in `Plugins/WebSockets/WebSockets.uplugin`
    - This ensures the WebSockets plugin loads before other plugins, making it available when DiscordChatBridge starts
@@ -358,6 +359,13 @@ This means:
 - **Monolithic builds** (default for Linux Server): All modules statically linked into executable - no separate .so files needed
 - **Modular builds**: Each plugin compiled as separate .so file that must be packaged and deployed with the server
 - You can override the build type using command line: `-Monolithic` or `-Modular` when building
+
+**Verify the Fix:**
+Run the Linux monolithic configuration test:
+```bash
+./scripts/test_linux_monolithic_config.sh
+```
+This validates that the FactoryShared.Target.cs configuration correctly enables Monolithic linking for Linux server builds.
 
 **Manual Workaround (if using Modular builds):**
 1. Ensure WebSockets plugin is properly packaged with the Linux server build
