@@ -145,9 +145,6 @@ public class FactoryGame : ModuleRules
 			"OnlineServicesInterface",
 			"FactoryPreEarlyLoadingScreen", 
 			"PreLoadScreen",
-			"OnlineServicesInterface",
-			"Niagara",
-			"OpenSSL", 
 			"SSL", 
 			"Gauntlet"
 		});
