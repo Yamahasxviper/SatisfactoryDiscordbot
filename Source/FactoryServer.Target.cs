@@ -9,6 +9,13 @@ public class FactoryServerTarget : FactorySharedTarget
     {
 	    Type = TargetType.Server;
 
+	    // Override to Monolithic for Linux Server builds to statically link all modules (including WebSockets)
+	    // This prevents "dlopen failed: libFactoryServer-WebSockets-Linux-Shipping.so" errors
+	    if (Target.Platform == UnrealTargetPlatform.Linux && LinkTypeOverride == TargetLinkType.Default)
+	    {
+		    LinkType = TargetLinkType.Monolithic;
+	    }
+
 	    // Build additional console application so that the server can be launched from command line on windows
 	    bBuildAdditionalConsoleApp = true;
 	    // Use custom config override to provide some platform overrides for the dedicated server

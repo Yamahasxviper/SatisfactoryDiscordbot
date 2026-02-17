@@ -22,16 +22,7 @@ public class FactorySharedTarget : TargetRules
 		Type = UnrealBuildTool.TargetType.Game;
 		
 		// Default to shared build environment and modular build on desktop platforms
-		// Exception: Use Monolithic for Linux Server builds to avoid runtime .so loading issues
 		var defaultLinkTypeForPlatform = Target.Platform.IsInGroup(UnrealPlatformGroup.Desktop) ? TargetLinkType.Modular : TargetLinkType.Monolithic;
-		
-		// Override to Monolithic for Linux Server builds to statically link all modules (including WebSockets)
-		// This prevents "dlopen failed: libFactoryServer-WebSockets-Linux-Shipping.so" errors
-		// Note: Check Target.Type from TargetInfo parameter since child constructors override Type property after parent constructor completes
-		if (Target.Platform == UnrealTargetPlatform.Linux && Target.Type == TargetType.Server)
-		{
-			defaultLinkTypeForPlatform = TargetLinkType.Monolithic;
-		}
 
 		BuildEnvironment = TargetBuildEnvironment.Shared;
 		LinkType = LinkTypeOverride != TargetLinkType.Default ? LinkTypeOverride : defaultLinkTypeForPlatform;
