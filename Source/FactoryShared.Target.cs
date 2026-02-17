@@ -27,7 +27,8 @@ public class FactorySharedTarget : TargetRules
 		
 		// Override to Monolithic for Linux Server builds to statically link all modules (including WebSockets)
 		// This prevents "dlopen failed: libFactoryServer-WebSockets-Linux-Shipping.so" errors
-		if (Target.Platform == UnrealTargetPlatform.Linux && Type == TargetType.Server)
+		// Note: Check Target.Type from TargetInfo parameter since child constructors override Type property after parent constructor completes
+		if (Target.Platform == UnrealTargetPlatform.Linux && Target.Type == TargetType.Server)
 		{
 			defaultLinkTypeForPlatform = TargetLinkType.Monolithic;
 		}
