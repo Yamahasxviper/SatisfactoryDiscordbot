@@ -58,14 +58,14 @@ public class FactorySharedTarget : TargetRules
 		// Fix for "Missing precompiled manifest for 'BuildSettings'" error on Linux builds.
 		// Installed builds (with -installed flag in RunUAT) may not include precompiled
 		// manifests for all engine modules, causing build failures when UBT expects them.
-		// Solution: Include BuildSettings module in the project (Source/BuildSettings/) with
+		// Solution: Include BuildSettings as a plugin (Plugins/BuildSettings/) with
 		// PrecompileForTargets = PrecompileTargetsType.Any in its Build.cs file.
 		// This tells UBT to compile the module from source instead of expecting precompiled binaries.
+		// The plugin is automatically loaded by the engine based on FactoryGame.uproject configuration.
 		
 		// Common module names for the game targets
 		ExtraModuleNames.AddRange(new[] {
-			"FactoryGame",
-			"BuildSettings"
+			"FactoryGame"
 		});
 		if (UseChecksInShippingOverride || LinkTypeOverride != TargetLinkType.Default)
 		{
