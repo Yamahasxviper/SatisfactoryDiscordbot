@@ -217,12 +217,6 @@ void ADiscordGatewayClientCustom::OnWebSocketConnected(bool bSuccess)
     }
 }
 
-void ADiscordGatewayClientCustom::OnWebSocketConnectionError(const FString& Error)
-{
-    UE_LOG(LogDiscordGatewayCustom, Error, TEXT("WebSocket connection error: %s"), *Error);
-    bIsConnected = false;
-}
-
 void ADiscordGatewayClientCustom::OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean)
 {
     UE_LOG(LogDiscordGatewayCustom, Warning, TEXT("WebSocket closed - Code: %d, Reason: %s, Clean: %s"), 
