@@ -132,6 +132,7 @@ public class SML : ModuleRules
     private void RetrieveHeadBranchAndCommitFromGit(DirectoryReference RootDir, out string BranchName, out string CommitRef) {
         BranchName = null;
         CommitRef = null;
+        bool gitCommandFailed = false;
             
         // First try running git
         try
@@ -148,14 +149,14 @@ public class SML : ModuleRules
                 if (BranchNameProcess.ExitCode == 0)
                     BranchName = BranchNameProcess.StandardOutput.ReadToEnd().Trim();
                 else
-                    Target.Logger.LogWarning("Failed to run git to retrieve branch name: exit code {0}. Falling back to checking .git folder", BranchNameProcess.ExitCode);
+                    gitCommandFailed = true;
             }
             else
             {
-                Target.Logger.LogWarning("Failed to run git to retrieve branch name: Failed to create git process. Falling back to checking .git folder");
+                gitCommandFailed = true;
             }
-        } catch (Exception Ex) { 
-            Target.Logger.LogWarning("Failed to run git to retrieve branch name: {0}. Falling back to checking .git folder", Ex.Message);
+        } catch (Exception) { 
+            gitCommandFailed = true;
         }
 
         try
@@ -172,14 +173,14 @@ public class SML : ModuleRules
                 if (CommitProcess.ExitCode == 0)
                     CommitRef = CommitProcess.StandardOutput.ReadToEnd().Trim();
                 else
-                    Target.Logger.LogWarning("Failed to run git to retrieve commit: exit code {0}. Falling back to checking .git folder", CommitProcess.ExitCode);
+                    gitCommandFailed = true;
             }
             else
             {
-                Target.Logger.LogWarning("Failed to run git to retrieve commit: Failed to create git process. Falling back to checking .git folder");
+                gitCommandFailed = true;
             }
-        } catch (Exception Ex) {
-            Target.Logger.LogWarning("Failed to run git to retrieve commit: {0}. Falling back to checking .git folder", Ex.Message);
+        } catch (Exception) {
+            gitCommandFailed = true;
         }
 
         if (CommitRef != null && BranchName != null) return;
@@ -187,10 +188,18 @@ public class SML : ModuleRules
         // If either was not found, try parsing the HEAD file manually
         var GitRepository = Path.Combine(RootDir.FullName, ".git");
         if (!Directory.Exists(GitRepository)) {
+            if (gitCommandFailed)
+            {
+                Target.Logger.LogInformation("Git repository information not available (git command not found and .git directory does not exist). Build metadata will be limited.");
+            }
             return;
         }
         var GitHeadFile = Path.Combine(GitRepository, "HEAD");
         if (!File.Exists(GitHeadFile)) {
+            if (gitCommandFailed)
+            {
+                Target.Logger.LogInformation("Git repository information not available (.git/HEAD file not found). Build metadata will be limited.");
+            }
             return;
         }
 
@@ -208,12 +217,12 @@ public class SML : ModuleRules
                 CommitRef = HeadRefFileContents;
                 return;
             }
-            Target.Logger.LogWarning("Git HEAD does not refer to a branch, are we in a detached head state? HEAD: {0}", HeadFileContents);
+            Target.Logger.LogInformation("Git HEAD does not refer to a branch (detached HEAD state). Using commit hash as build metadata.");
             BranchName = "detached-head";
             CommitRef = HeadFileContents;
         }
         catch (Exception Ex) {
-            Target.Logger.LogWarning("Failed to handle git HEAD file at {0}: {1}", GitHeadFile, Ex.Message);
+            Target.Logger.LogWarning("Failed to read git repository information: {0}. Build metadata will be limited.", Ex.Message);
         }
     }
 }
