@@ -69,24 +69,25 @@ In addition to WebSockets, this project requires several other plugins that are 
 
 ## Installed Engine Build Compatibility
 
-### BuildSettings Module
+### BuildSettings Plugin
 
-This project includes a custom **BuildSettings** module at `Source/BuildSettings/` to fix a precompiled manifest error that occurs when building with installed engine builds (engines distributed with `-installed` flag).
+This project includes a custom **BuildSettings** plugin at `Plugins/BuildSettings/` to fix a precompiled manifest error that occurs when building with installed engine builds (engines distributed with `-installed` flag).
 
 **Issue:** When using an installed engine build, the engine's BuildSettings module may not include precompiled manifests for all platforms and configurations. This causes build failures with:
 ```
 Missing precompiled manifest for 'BuildSettings', 'Engine\Intermediate\Build\Linux\FactoryServer\Shipping\BuildSettings\BuildSettings.precompiled'
 ```
 
-**Solution:** The project includes its own BuildSettings module with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false` in its Build.cs file. The `PrecompileForTargets` setting tells UBT which targets to compile for, while `bPrecompile = false` explicitly tells UBT not to expect precompiled binaries, forcing compilation from source. The module is also explicitly declared in the FactoryGame.uproject file to ensure UBT prioritizes the project module over the engine module.
+**Solution:** The project includes its own BuildSettings plugin with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false` in its Build.cs file. The `PrecompileForTargets` setting tells UBT which targets to compile for, while `bPrecompile = false` explicitly tells UBT not to expect precompiled binaries, forcing compilation from source. The plugin is declared in the FactoryGame.uproject file and is implemented as a plugin (rather than a project module) to avoid module hierarchy violations.
 
 **Files:**
-- `FactoryGame.uproject` - Explicitly declares BuildSettings module to override engine module
-- `Source/BuildSettings/BuildSettings.Build.cs` - Build configuration with PrecompileForTargets setting
-- `Source/BuildSettings/Public/BuildSettings.h` - Module interface
-- `Source/BuildSettings/Private/BuildSettings.cpp` - Minimal module implementation
+- `FactoryGame.uproject` - Explicitly declares BuildSettings plugin
+- `Plugins/BuildSettings/BuildSettings.uplugin` - Plugin descriptor
+- `Plugins/BuildSettings/Source/BuildSettings/BuildSettings.Build.cs` - Build configuration with PrecompileForTargets setting
+- `Plugins/BuildSettings/Source/BuildSettings/Public/BuildSettings.h` - Module interface
+- `Plugins/BuildSettings/Source/BuildSettings/Private/BuildSettings.cpp` - Minimal module implementation
 
-This module is automatically included in all build targets via `Source/FactoryShared.Target.cs`.
+The plugin is automatically loaded by the engine based on FactoryGame.uproject configuration.
 
 ## Build Process Overview
 

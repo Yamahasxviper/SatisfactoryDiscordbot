@@ -222,22 +222,23 @@ Missing precompiled manifest for 'BuildSettings', 'C:\Program Files\Unreal Engin
 When using an installed engine build (distributed with `-installed` flag in RunUAT), the engine's BuildSettings module may not include precompiled manifests for all platforms and configurations. UBT expects these manifests but cannot find them.
 
 **Solution:**
-✅ **FIXED** - This issue has been resolved in this repository. The project now includes a custom BuildSettings module at `Source/BuildSettings/` that overrides the engine's module and tells UBT to compile from source instead of expecting precompiled binaries.
+✅ **FIXED** - This issue has been resolved in this repository. The project now includes a custom BuildSettings plugin at `Plugins/BuildSettings/` that tells UBT to compile from source instead of expecting precompiled binaries.
 
 **Technical Details:**
-- The `Source/BuildSettings/BuildSettings.Build.cs` file sets `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false`
+- The `Plugins/BuildSettings/Source/BuildSettings/BuildSettings.Build.cs` file sets `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false`
 - `PrecompileForTargets = PrecompileTargetsType.Any` tells UBT which targets to compile for
 - `bPrecompile = false` explicitly tells UBT not to expect precompiled binaries, forcing compilation from source
-- The module is explicitly declared in `FactoryGame.uproject` to ensure UBT prioritizes the project module over the engine module
-- The module is automatically included in all build targets via `Source/FactoryShared.Target.cs`
+- The plugin is declared in `FactoryGame.uproject` to enable it for the project
+- The plugin is automatically loaded by the engine
+- Implemented as a plugin (not a project module) to avoid module hierarchy violations
 - See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md#installed-engine-build-compatibility) for more information
 
 **If you encounter this error in other projects:**
-1. Create a `Source/BuildSettings/` directory in your project
-2. Add a `BuildSettings.Build.cs` file with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false`
-3. Implement minimal module files (see this repository's implementation as reference)
-4. Add "BuildSettings" to your target's `ExtraModuleNames`
-5. Add the BuildSettings module to your .uproject file's Modules array to ensure it overrides the engine's module
+1. Create a `Plugins/BuildSettings/` directory in your project
+2. Add a `BuildSettings.uplugin` file to define the plugin
+3. Create `Source/BuildSettings/BuildSettings.Build.cs` with `PrecompileForTargets = PrecompileTargetsType.Any` and `bPrecompile = false`
+4. Implement minimal module files (see this repository's implementation as reference)
+5. Add the BuildSettings plugin to your .uproject file's Plugins array
 
 ---
 
