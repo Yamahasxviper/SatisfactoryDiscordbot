@@ -166,7 +166,7 @@ public class FactoryGame : ModuleRules
 		// <FL> [PfaffN] Disable telemetry for consoles
 		// MODDING EDIT: Always disable telemetry (not building for consoles)
 		// Original condition: Target.Platform == UnrealTargetPlatform.PS5 || Target.Platform == UnrealTargetPlatform.XSX
-		PrivateDefinitions.Add($"WITH_TELEMETRY=0");
+		PrivateDefinitions.Add("WITH_TELEMETRY=0");
 
 		bool isPublicBuild = true; // MODDING EDIT: we always target public builds
 		string isPublicBuildVersion = System.Environment.GetEnvironmentVariable("IS_PUBLIC_BUILD");
