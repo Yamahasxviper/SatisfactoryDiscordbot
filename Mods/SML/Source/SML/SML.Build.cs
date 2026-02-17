@@ -141,6 +141,8 @@ public class SML : ModuleRules
                 WorkingDirectory = RootDir.FullName,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
             });
             if (BranchNameProcess != null)
             {
@@ -165,6 +167,8 @@ public class SML : ModuleRules
                 WorkingDirectory = RootDir.FullName,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
             });
             if (CommitProcess != null)
             {
