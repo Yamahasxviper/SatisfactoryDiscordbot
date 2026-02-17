@@ -67,6 +67,26 @@ In addition to WebSockets, this project requires several other plugins that are 
 ### Third-Party Plugins
 - **Wwise**: Audio middleware (downloaded separately during build via B2 bucket)
 
+## Installed Engine Build Compatibility
+
+### BuildSettings Module
+
+This project includes a custom **BuildSettings** module at `Source/BuildSettings/` to fix a precompiled manifest error that occurs when building with installed engine builds (engines distributed with `-installed` flag).
+
+**Issue:** When using an installed engine build, the engine's BuildSettings module may not include precompiled manifests for all platforms and configurations. This causes build failures with:
+```
+Missing precompiled manifest for 'BuildSettings', 'Engine\Intermediate\Build\Linux\FactoryServer\Shipping\BuildSettings\BuildSettings.precompiled'
+```
+
+**Solution:** The project includes its own BuildSettings module with `PrecompileForTargets = PrecompileTargetsType.Any` in its Build.cs file. This tells Unreal Build Tool to compile the module from source instead of expecting precompiled binaries.
+
+**Files:**
+- `Source/BuildSettings/BuildSettings.Build.cs` - Build configuration with PrecompileForTargets setting
+- `Source/BuildSettings/Public/BuildSettings.h` - Module interface
+- `Source/BuildSettings/Private/BuildSettings.cpp` - Minimal module implementation
+
+This module is automatically included in all build targets via `Source/FactoryShared.Target.cs`.
+
 ## Build Process Overview
 
 The build happens in several phases:
@@ -83,6 +103,7 @@ The build happens in several phases:
 ### 3. **Module Build Phase**
    - Build FactoryGame modules
    - Build FactoryEditor modules
+   - Build BuildSettings module (for installed engine compatibility)
    - Build project plugins (including WebSockets)
    - Build mod modules (including DiscordChatBridge which links against WebSockets)
 

@@ -55,17 +55,17 @@ public class FactorySharedTarget : TargetRules
 		// Allow checks in shipping depending on the command line configuration
 		bUseChecksInShipping = UseChecksInShippingOverride;
 		
-		// Disable precompiled headers when using installed engine builds to avoid
-		// "Missing precompiled manifest for 'BuildSettings'" error on Linux builds.
+		// Fix for "Missing precompiled manifest for 'BuildSettings'" error on Linux builds.
 		// Installed builds (with -installed flag in RunUAT) may not include precompiled
 		// manifests for all engine modules, causing build failures when UBT expects them.
-		// Setting bPrecompile = false tells UBT to compile headers without expecting manifests.
-		// Note: In UE5, bUsePrecompiled property was removed. Precompiled binary usage is now
-		// handled automatically by UBT, so we no longer need to check this condition.
+		// Solution: Include BuildSettings module in the project (Source/BuildSettings/) with
+		// PrecompileForTargets = PrecompileTargetsType.Any in its Build.cs file.
+		// This tells UBT to compile the module from source instead of expecting precompiled binaries.
 		
 		// Common module names for the game targets
 		ExtraModuleNames.AddRange(new[] {
-			"FactoryGame"
+			"FactoryGame",
+			"BuildSettings"
 		});
 		if (UseChecksInShippingOverride || LinkTypeOverride != TargetLinkType.Default)
 		{
