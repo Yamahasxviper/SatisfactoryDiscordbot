@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "SocketIOClient.h"
-#include "SocketIOClientComponent.h"
 #include "Http.h"
 #include "DiscordGatewayClient.generated.h"
 
@@ -78,10 +76,6 @@ protected:
     FString SessionId;
 
 private:
-    /** WebSocket component for Gateway connection */
-    UPROPERTY()
-    USocketIOClientComponent* SocketIOComponent;
-
     /** Timer handle for heartbeat */
     FTimerHandle HeartbeatTimerHandle;
 

@@ -325,17 +325,14 @@ When asking for help, provide:
 
 ## Alternative Approach
 
-If WebSockets truly isn't available and can't be added, you could:
+If you need to integrate with a Socket.IO server (not Discord), you would need to:
 
-1. **Use the SocketIOClient Plugin**:
-   - Already in `Plugins/WebSockets/SocketIOClient/`
-   - But remember: Won't work with Discord Gateway (protocol mismatch)
-   - Only useful for Socket.IO servers, not Discord
-
-2. **External Bot Process**:
+1. **External Bot Process** (Recommended for non-WebSocket scenarios):
    - Run a separate Discord bot (Python, Node.js, etc.)
    - Communicate with Satisfactory via files, HTTP API, or IPC
    - More complex but doesn't need WebSocket in engine
+
+Note: For Discord Gateway integration, use the native WebSocket implementation in `DiscordGatewayClientNative`.
 
 ## Conclusion
 

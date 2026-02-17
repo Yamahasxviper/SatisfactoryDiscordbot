@@ -36,15 +36,12 @@ public class DiscordBot : ModuleRules
         // - No third-party dependencies
         // This is the default and recommended approach.
 
-        // OPTION 2: Use SocketIO Client Plugin (NOT RECOMMENDED for Discord)
-        // - Only enable if you specifically need Socket.IO protocol (not Discord Gateway)
-        // - Discord Gateway requires native WebSocket, not Socket.IO
-        // Uncomment these lines only if you need Socket.IO:
+        // OPTION 2: Use Custom WebSocket Plugin (ALTERNATIVE)
+        // - Platform-agnostic WebSocket implementation
+        // Uncomment these lines only if you need CustomWebSocket:
         /*
         PublicDependencyModuleNames.AddRange(new[] {
-            "SocketIOClient",
-            "SocketIOLib",
-            "SIOJson"
+            "CustomWebSocket"
         });
         */
     }
