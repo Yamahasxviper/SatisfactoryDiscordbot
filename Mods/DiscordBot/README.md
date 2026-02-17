@@ -116,6 +116,23 @@ Intents = (1 << 8) | (1 << 1) | (1 << 15)  // 256 + 2 + 32768 = 33026
 - The bot token should be kept secure and not committed to version control
 - Make sure your Discord bot has the necessary permissions in your server
 - The WebSocket implementation in this version is simplified; for production use, consider using a dedicated WebSocket library
+- **Important**: Discord Gateway uses native WebSocket protocol, not Socket.IO. The current implementation includes SocketIOClient as a dependency but for full production implementation, you may need to use Unreal's native WebSocket module or implement a custom WebSocket client
+- To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClient.cpp`
+
+## Production Considerations
+
+For a production-ready implementation, consider the following enhancements:
+
+1. **Native WebSocket**: Replace Socket.IO dependency with Unreal's native `IWebSocket` interface from the `WebSockets` module
+2. **Reconnection Logic**: Implement automatic reconnection with exponential backoff
+3. **Event Handlers**: Add comprehensive event handlers for all Discord Gateway events
+4. **Rate Limiting**: Implement rate limit handling for API requests
+5. **Error Recovery**: Add robust error handling and recovery mechanisms
+6. **Session Resume**: Implement session resumption for connection interruptions
+
+## Quick Start
+
+For detailed setup instructions, see [SETUP.md](SETUP.md)
 
 ## License
 
