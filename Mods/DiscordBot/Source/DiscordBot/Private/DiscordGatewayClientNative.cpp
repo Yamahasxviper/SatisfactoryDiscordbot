@@ -1,7 +1,6 @@
 // Copyright (c) 2024 Yamahasxviper
 
 #include "DiscordGatewayClientNative.h"
-#include "WebSocketsModule.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
@@ -9,6 +8,17 @@
 #include "JsonUtilities.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "Modules/ModuleManager.h"
+
+// Check if WebSocket headers are available at compile time
+#if __has_include("IWebSocket.h")
+    #include "IWebSocket.h"
+    #include "WebSocketsModule.h"
+    #define WEBSOCKETS_AVAILABLE 1
+#else
+    #define WEBSOCKETS_AVAILABLE 0
+    #pragma message("WARNING: WebSocket headers not found! Discord bot will not work.")
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordGatewayNative, Log, All);
 
@@ -44,6 +54,50 @@ void ADiscordGatewayClientNative::BeginPlay()
     Super::BeginPlay();
     
     UE_LOG(LogDiscordGatewayNative, Log, TEXT("Discord Gateway Client (Native WebSocket) initialized"));
+    
+#if !WEBSOCKETS_AVAILABLE
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ CRITICAL: WebSocket headers NOT found!"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("   The WebSockets module is not available in your engine build."));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Discord bot will NOT work!"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for help"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+#else
+    // Check if module is available at runtime
+    if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
+    {
+        TArray<FModuleStatus> Modules;
+        FModuleManager::Get().QueryModules(Modules);
+        
+        bool bFound = false;
+        for (const FModuleStatus& Module : Modules)
+        {
+            if (Module.Name == TEXT("WebSockets"))
+            {
+                bFound = true;
+                break;
+            }
+        }
+        
+        if (!bFound)
+        {
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ WARNING: WebSockets module not registered!"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   The module may not be available in your engine."));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Use WebSocketModuleVerifier to diagnose."));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for help"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+        }
+        else
+        {
+            UE_LOG(LogDiscordGatewayNative, Log, TEXT("WebSockets module found (not loaded yet)"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogDiscordGatewayNative, Log, TEXT("WebSockets module already loaded"));
+    }
+#endif
     
     // Get HTTP module
     HttpModule = &FHttpModule::Get();
@@ -147,17 +201,82 @@ void ADiscordGatewayClientNative::OnGetGatewayURLComplete(FHttpRequestPtr Reques
 
 void ADiscordGatewayClientNative::ConnectWebSocket()
 {
+#if !WEBSOCKETS_AVAILABLE
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("Cannot connect: WebSocket headers not available at compile time"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("Your engine build does not include the WebSockets module"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("See WEBSOCKET_TROUBLESHOOTING.md for help"));
+    return;
+#else
+    // Try to load module if not already loaded
     if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
     {
+        UE_LOG(LogDiscordGatewayNative, Log, TEXT("Loading WebSockets module..."));
+        
+        // Check if module exists before trying to load
+        TArray<FModuleStatus> Modules;
+        FModuleManager::Get().QueryModules(Modules);
+        
+        bool bModuleExists = false;
+        for (const FModuleStatus& Module : Modules)
+        {
+            if (Module.Name == TEXT("WebSockets"))
+            {
+                bModuleExists = true;
+                break;
+            }
+        }
+        
+        if (!bModuleExists)
+        {
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ CRITICAL: WebSockets module NOT found!"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Module is not registered in this engine build"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   "));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Run WebSocketModuleVerifier to diagnose:"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   1. Spawn WebSocketModuleVerifier actor"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   2. Call RunFullVerification()"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   3. Check log for detailed report"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   "));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for solutions"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+            return;
+        }
+        
+        // Try to load the module
         FModuleManager::Get().LoadModule("WebSockets");
+        
+        if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
+        {
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ CRITICAL: Failed to load WebSockets module!"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Module exists but failed to load"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   This may indicate:"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Missing dependencies"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Corrupted module files"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Platform incompatibility"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   "));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for solutions"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+            return;
+        }
+        
+        UE_LOG(LogDiscordGatewayNative, Log, TEXT("✅ WebSockets module loaded successfully"));
     }
 
     // Create native WebSocket using Unreal's built-in module
+    UE_LOG(LogDiscordGatewayNative, Log, TEXT("Creating WebSocket for URL: %s"), *GatewayURL);
     WebSocket = FWebSocketsModule::Get().CreateWebSocket(GatewayURL);
     
     if (!WebSocket.IsValid())
     {
-        UE_LOG(LogDiscordGatewayNative, Error, TEXT("Failed to create WebSocket"));
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ Failed to create WebSocket"));
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("   URL: %s"), *GatewayURL);
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("   This may indicate:"));
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Invalid URL format"));
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - WebSocket factory failure"));
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Platform-specific issue"));
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
         return;
     }
 
@@ -170,6 +289,7 @@ void ADiscordGatewayClientNative::ConnectWebSocket()
     // Connect
     UE_LOG(LogDiscordGatewayNative, Log, TEXT("Connecting to WebSocket: %s"), *GatewayURL);
     WebSocket->Connect();
+#endif
 }
 
 void ADiscordGatewayClientNative::OnWebSocketConnected()
