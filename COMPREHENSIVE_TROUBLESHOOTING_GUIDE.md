@@ -206,6 +206,38 @@ rm -rf ~/.local/share/UnrealBuildTool
 
 ---
 
+### Missing Precompiled Manifest for BuildSettings
+
+#### "Missing precompiled manifest for 'BuildSettings'" error
+
+**Symptoms:**
+```
+Missing precompiled manifest for 'BuildSettings', 'C:\Program Files\Unreal Engine - CSS\Engine\Intermediate\Build\Linux\FactoryServer\Shipping\BuildSettings\BuildSettings.precompiled'. This module was most likely not flagged for being included in a precompiled build - set 'PrecompileForTargets = PrecompileTargetsType.Any;' in BuildSettings.build.cs to override.
+```
+- Build fails with ExitCode=6
+- Error occurs when packaging for Linux server
+- Using an installed engine build (UE 5.3.2-CSS)
+
+**Cause:**
+When using an installed engine build (distributed with `-installed` flag in RunUAT), the engine's BuildSettings module may not include precompiled manifests for all platforms and configurations. UBT expects these manifests but cannot find them.
+
+**Solution:**
+✅ **FIXED** - This issue has been resolved in this repository. The project now includes a custom BuildSettings module at `Source/BuildSettings/` that overrides the engine's module and tells UBT to compile from source instead of expecting precompiled binaries.
+
+**Technical Details:**
+- The `Source/BuildSettings/BuildSettings.Build.cs` file sets `PrecompileForTargets = PrecompileTargetsType.Any`
+- This tells Unreal Build Tool to compile the module from source rather than expecting precompiled binaries
+- The module is automatically included in all build targets via `Source/FactoryShared.Target.cs`
+- See [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md#installed-engine-build-compatibility) for more information
+
+**If you encounter this error in other projects:**
+1. Create a `Source/BuildSettings/` directory in your project
+2. Add a `BuildSettings.Build.cs` file with `PrecompileForTargets = PrecompileTargetsType.Any`
+3. Implement minimal module files (see this repository's implementation as reference)
+4. Add "BuildSettings" to your target's `ExtraModuleNames`
+
+---
+
 ## WebSocket Integration
 
 ### Overview
