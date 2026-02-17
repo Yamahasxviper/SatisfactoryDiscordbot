@@ -55,13 +55,20 @@ public class FactorySharedTarget : TargetRules
 		// Allow checks in shipping depending on the command line configuration
 		bUseChecksInShipping = UseChecksInShippingOverride;
 		
-		// Disable precompiled headers when using installed engine builds to avoid
-		// "Missing precompiled manifest for 'BuildSettings'" error on Linux builds.
-		// Installed builds (with -installed flag in RunUAT) may not include precompiled
-		// manifests for all engine modules, causing build failures when UBT expects them.
-		// Setting bPrecompile = false tells UBT to compile headers without expecting manifests.
-		// Note: In UE5, bUsePrecompiled property was removed. Precompiled binary usage is now
-		// handled automatically by UBT, so we no longer need to check this condition.
+		// FIX: "Missing precompiled manifest for 'BuildSettings'" error on Linux builds
+		// 
+		// ISSUE: When using -installed flag with RunUAT PackagePlugin, UBT expects precompiled 
+		// manifests for all engine modules (including BuildSettings). The downloaded UE 5.3.2-CSS
+		// engine may not include all manifests, causing build failures with ExitCode=6.
+		// 
+		// SOLUTION: Remove the -installed flag from RunUAT PackagePlugin command in CI workflow.
+		// Since we download a full engine build (not just binaries), UBT can compile any missing
+		// modules on-the-fly without requiring precompiled manifests.
+		// 
+		// HISTORICAL NOTE: In UE4, bPrecompile/bUsePrecompiled properties could disable this check.
+		// In UE5, these properties were removed and precompiled binary usage is now handled
+		// automatically by UBT. The only way to avoid the manifest requirement is to not use
+		// the -installed flag, allowing UBT to build from source as needed.
 		
 		// Common module names for the game targets
 		ExtraModuleNames.AddRange(new[] {
