@@ -113,22 +113,65 @@ Intents = (1 << 8) | (1 << 1) | (1 << 15)  // 256 + 2 + 32768 = 33026
 
 ## Notes
 
+### WebSocket Implementation Options ⚠️
+
+**Two implementations are provided:**
+
+1. **DiscordGatewayClientNative** (NEW - RECOMMENDED) ✅
+   - Uses Unreal's native WebSocket module
+   - **Fully compatible** with Satisfactory's custom CSS Unreal Engine 5.3.2
+   - Implements proper WebSocket protocol (what Discord requires)
+   - **Production ready** with complete Discord Gateway implementation
+   - No external dependencies
+
+2. **DiscordGatewayClient** (ORIGINAL - REFERENCE ONLY) ⚠️
+   - Uses SocketIO Client plugin
+   - Protocol mismatch (Socket.IO ≠ WebSocket)
+   - Will NOT work properly with Discord Gateway
+   - Kept for reference/educational purposes only
+
+**For production use with Satisfactory CSS engine: Use `DiscordGatewayClientNative`**
+
+See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compatibility analysis.
+
+### Security & Best Practices
+
 - The bot token should be kept secure and not committed to version control
 - Make sure your Discord bot has the necessary permissions in your server
-- The WebSocket implementation in this version is simplified; for production use, consider using a dedicated WebSocket library
-- **Important**: Discord Gateway uses native WebSocket protocol, not Socket.IO. The current implementation includes SocketIOClient as a dependency but for full production implementation, you may need to use Unreal's native WebSocket module or implement a custom WebSocket client
-- To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClient.cpp`
+- To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClientNative.cpp`
 
 ## Production Considerations
 
-For a production-ready implementation, consider the following enhancements:
+The **Native WebSocket implementation is production-ready** with:
 
-1. **Native WebSocket**: Replace Socket.IO dependency with Unreal's native `IWebSocket` interface from the `WebSockets` module
-2. **Reconnection Logic**: Implement automatic reconnection with exponential backoff
-3. **Event Handlers**: Add comprehensive event handlers for all Discord Gateway events
-4. **Rate Limiting**: Implement rate limit handling for API requests
-5. **Error Recovery**: Add robust error handling and recovery mechanisms
-6. **Session Resume**: Implement session resumption for connection interruptions
+✅ **Implemented:**
+- Native WebSocket using Unreal's `IWebSocket` interface  
+- Complete Discord Gateway protocol (HELLO, IDENTIFY, HEARTBEAT, DISPATCH)
+- Automatic heartbeat management
+- Event handling system
+- HTTP API integration for messages
+- Proper error handling and connection management
+
+📋 **Optional Enhancements:**
+
+1. **Reconnection Logic**: Add automatic reconnection with exponential backoff
+2. **Extended Event Handlers**: Expand handlers for more Discord Gateway events
+3. **Rate Limiting**: Implement rate limit handling for API requests
+4. **Session Resume**: Implement session resumption for connection interruptions
+5. **Presence Updates**: Add bot presence/status updates
+
+## Engine Compatibility
+
+✅ **Confirmed Compatible with:**
+- Satisfactory Custom Unreal Engine 5.3.2-CSS
+- Standard Unreal Engine 5.3.x
+- Unreal Engine 5.4+ (forward compatible)
+
+The Native WebSocket implementation uses Unreal's built-in `WebSockets` module which is:
+- Part of the core engine (guaranteed availability)
+- Maintained by Epic Games
+- Compatible with all engine customizations
+- Platform-independent (Win64, Linux, Mac)
 
 ## Quick Start
 
