@@ -66,11 +66,6 @@
 			"Name": "DummyHeaders",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
-		},
-		{
-			"Name": "BuildSettings",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
@@ -387,6 +382,10 @@
 			"SupportedTargetPlatforms": [
 				"Win64"
 			]
+		},
+		{
+			"Name": "BuildSettings",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

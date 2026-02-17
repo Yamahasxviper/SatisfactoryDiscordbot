@@ -10,11 +10,14 @@ public class BuildSettings : ModuleRules
         // when building with an installed engine build (e.g., UE 5.3.2-CSS).
         // 
         // The BuildSettings module is an engine module that may not have precompiled manifests
-        // in installed builds. By creating this module in the project and setting
+        // in installed builds. By creating this plugin module and setting
         // PrecompileForTargets = PrecompileTargetsType.Any, we tell UBT to compile this module
         // from source rather than expecting precompiled binaries.
         //
         // bPrecompile = false explicitly tells UBT not to expect precompiled binaries for this module.
+        //
+        // Note: This is implemented as a plugin (not a project module) to avoid module hierarchy
+        // violations where Engine modules would appear to reference Project modules.
         
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PrecompileForTargets = PrecompileTargetsType.Any;

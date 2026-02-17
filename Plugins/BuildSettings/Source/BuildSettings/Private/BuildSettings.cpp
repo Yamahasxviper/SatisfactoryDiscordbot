@@ -6,7 +6,7 @@
 
 void FBuildSettingsModule::StartupModule()
 {
-    // This module is intentionally minimal. It exists only to provide a precompile target
+    // This plugin module is intentionally minimal. It exists only to provide a precompile target
     // override via BuildSettings.Build.cs to fix the missing precompiled manifest error.
 }
 
