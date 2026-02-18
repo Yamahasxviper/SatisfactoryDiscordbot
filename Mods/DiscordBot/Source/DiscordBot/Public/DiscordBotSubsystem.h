@@ -154,3 +154,4 @@ private:
 
     /** Update bot presence with current player count */
     void UpdateBotPresenceWithPlayerCount();
+};
