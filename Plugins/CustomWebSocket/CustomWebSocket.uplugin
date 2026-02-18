@@ -2,6 +2,7 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0.0",
+	"SemVersion": "1.0.0",
 	"FriendlyName": "Custom WebSocket",
 	"Description": "Platform-agnostic WebSocket implementation using RFC 6455. Works on all platforms (Win64, Linux, Mac, Servers) without external dependencies. Perfect for Discord Gateway and other WebSocket services.",
 	"Category": "Networking",
