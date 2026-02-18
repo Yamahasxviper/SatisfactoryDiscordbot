@@ -1,4 +1,10 @@
-*.props
+# Allow project configuration props files, but ignore auto-generated NuGet props
+*.nuget.props
+*.nuget.targets
+
+# Exclude the project-specific csproj.props from ignore
+!*.csproj.props
+
 Scripts/
 
 ## Ignore Visual Studio temporary files, build results, and

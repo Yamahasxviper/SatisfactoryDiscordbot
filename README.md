@@ -12,6 +12,21 @@ It also serves as the Unreal project used for developing mods.
 
 Learn how to set up and use this repo on the [modding documentation](https://docs.ficsit.app/).
 
+### Building C# Projects
+
+This repository includes C# UnrealBuildTool plugins that need to be compiled:
+- FactoryGameUbtPlugin
+- AccessTransformers
+- Alpakit.Automation
+
+For detailed build instructions, see [CSHARP_BUILD_GUIDE.md](CSHARP_BUILD_GUIDE.md).
+
+**Quick start:**
+1. Install [.NET SDK 6.0+](https://dotnet.microsoft.com/download)
+2. Install Unreal Engine 5.3.2-CSS from [satisfactorymodding/UnrealEngine](https://github.com/satisfactorymodding/UnrealEngine/releases)
+3. Set `EngineDir` environment variable to your engine's `Engine` folder
+4. Run `dotnet build` or open the project in Unreal Engine
+
 ## Discord Server
 
 Join our [discord server](https://discord.gg/QzcG9nX) to talk about SML and Satisfactory Modding in general.

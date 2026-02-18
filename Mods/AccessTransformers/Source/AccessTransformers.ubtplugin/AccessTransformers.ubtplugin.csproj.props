@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    This file defines project-specific properties for AccessTransformers.
+    
+    The EngineDir property should point to your Unreal Engine installation.
+    This is typically set automatically when opening the project through Unreal Engine.
+    
+    For manual builds, set the EngineDir environment variable or override it here:
+    Example: <EngineDir>C:\Program Files\UnrealEngine-5.3.2-CSS</EngineDir>
+  -->
+  
+  <PropertyGroup Condition="'$(EngineDir)' == ''">
+    <!-- 
+      Default EngineDir for CI/CD builds.
+      This assumes the engine is in ../ue relative to the project root.
+      Override this by setting the EngineDir environment variable.
+    -->
+    <EngineDir Condition="Exists('$(MSBuildProjectDirectory)\..\..\..\..\..\ue\Engine')">$(MSBuildProjectDirectory)\..\..\..\..\..\ue\Engine</EngineDir>
+    <EngineDir Condition="'$(EngineDir)' == '' AND Exists('C:\SML\ue\Engine')">C:\SML\ue\Engine</EngineDir>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <EngineDir Condition="'$(EngineDir)' != '' AND !HasTrailingSlash('$(EngineDir)')">$(EngineDir)\</EngineDir>
+  </PropertyGroup>
+</Project>

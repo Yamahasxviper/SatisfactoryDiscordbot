@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    This file is automatically imported by all C# projects in the repository.
+    It defines common build properties and settings.
+    
+    For more information, see:
+    https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build
+  -->
+  
+  <PropertyGroup>
+    <!-- Set default EngineDir if not already set -->
+    <EngineDir Condition="'$(EngineDir)' == ''">$(MSBuildThisFileDirectory)ue\Engine\</EngineDir>
+    
+    <!-- Fallback to C:\SML\ue\Engine for CI builds -->
+    <EngineDir Condition="'$(EngineDir)' != '' AND !Exists('$(EngineDir)') AND Exists('C:\SML\ue\Engine')">C:\SML\ue\Engine\</EngineDir>
+    
+    <!-- Common properties for all C# projects -->
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- Missing XML comment for publicly visible type or member -->
+    
+    <!-- Build output organization -->
+    <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)' == ''">$(MSBuildProjectDirectory)\obj\</BaseIntermediateOutputPath>
+    <IntermediateOutputPath Condition="'$(IntermediateOutputPath)' == ''">$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)' == 'Development'">
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+</Project>
