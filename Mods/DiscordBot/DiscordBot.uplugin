@@ -16,6 +16,7 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
+	"Remote": true,
 	"Modules": [
 		{
 			"Name": "DiscordBot",

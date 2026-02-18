@@ -1,6 +1,8 @@
 # Discord Bot for Satisfactory
 
-A Discord bot integration mod for Satisfactory that uses WebSocket communication with the following Discord Gateway intents:
+A **server-side-only** Discord bot integration mod for Satisfactory that uses WebSocket communication with the following Discord Gateway intents:
+
+> ⚠️ **Server-Side Mod**: This mod is marked as `"Remote": true` and is designed to run on the server only. **Clients do not need to install this mod** to join the server. The Discord bot functionality runs entirely server-side.
 
 - **Guilds Intent** (1 << 0 = 1) - Basic guild events (required baseline)
 - **Server Members Intent** (1 << 1 = 2) - PRIVILEGED - Allows the bot to receive member join/leave events
@@ -97,6 +99,12 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
 
 - SML (Satisfactory Mod Loader) ^3.11.3
 - CustomWebSocket plugin (for platform-agnostic WebSocket support)
+
+**Important**: This mod is configured as a server-side-only mod (`"Remote": true` in the uplugin file). This means:
+- Only the **server** needs this mod installed
+- **Clients can join without having this mod** installed
+- The Discord bot integration works entirely from the server side
+- Compatible with both modded and non-modded clients joining the server
 
 ## Technical Details
 
