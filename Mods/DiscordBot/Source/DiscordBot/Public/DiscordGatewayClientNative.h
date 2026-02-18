@@ -81,6 +81,10 @@ protected:
     UPROPERTY(BlueprintReadOnly, Category = "Discord")
     FString SessionId;
 
+    /** Bot User ID - set after READY event */
+    UPROPERTY(BlueprintReadOnly, Category = "Discord")
+    FString BotUserId;
+
 private:
     /** Native WebSocket connection */
     TSharedPtr<IWebSocket> WebSocket;
@@ -113,7 +117,10 @@ private:
     void OnWebSocketMessage(const FString& Message);
 
     /** Handle Gateway events */
-    void HandleGatewayEvent(int32 OpCode, const TSharedPtr<FJsonObject>& Data);
+    void HandleGatewayEvent(int32 OpCode, const TSharedPtr<FJsonObject>& Data, const TSharedPtr<FJsonObject>& RootJsonObject);
+
+    /** Handle MESSAGE_CREATE event */
+    void HandleMessageCreate(const TSharedPtr<FJsonObject>& Data);
 
     /** Send message via HTTP API */
     void SendMessageHTTP(const FString& ChannelId, const FString& MessageContent);
