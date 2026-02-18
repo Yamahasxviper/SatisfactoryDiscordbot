@@ -103,11 +103,10 @@ After comprehensive analysis using Unreal Engine build tool standards and RFC 64
   - RESUME
   - MESSAGE_CREATE
 
-**Dual WebSocket Support:**
-- ✓ Native WebSocket (if available)
-- ✓ CustomWebSocket (fallback)
-- ✓ Automatic selection at runtime
-- ✓ WebSocketModuleVerifier diagnostic tool
+**CustomWebSocket Implementation:**
+- ✓ CustomWebSocket plugin (production-ready)
+- ✓ Platform-agnostic RFC 6455 implementation
+- ✓ No dependency on Unreal's native WebSocket module
 
 ### 5. ✅ Platform Compatibility
 
@@ -230,14 +229,12 @@ After comprehensive analysis using Unreal Engine build tool standards and RFC 64
 
 **Discord Requirement:** Discord Gateway requires wss:// for production
 
-**Solution:** Ensure OpenSSL is properly configured in Unreal Engine build, or use Native WebSocket module which has built-in TLS support.
+**Solution:** CustomWebSocket plugin has built-in TLS support via OpenSSL (included in Unreal Engine).
 
 ### 2. Recommended Approach
 For Discord bot production deployment:
-1. **First choice:** Use Native WebSocket (DiscordGatewayClientNative) if available - has full TLS support
-2. **Fallback:** Use CustomWebSocket (DiscordGatewayClientCustom) with OpenSSL configured
-
-The DiscordBot module supports both and automatically selects the best available option.
+- **CustomWebSocket Plugin** - Production-ready with full TLS support via OpenSSL
+- Platform-agnostic and guaranteed to work across all platforms
 
 ---
 
@@ -314,11 +311,10 @@ The implementation is:
 4. Consider adding compression support (permessage-deflate extension)
 
 ### Best Practice:
-Use the dual-WebSocket approach already implemented:
-- Try Native WebSocket first (has TLS)
-- Fall back to CustomWebSocket if Native unavailable
-- Log which implementation is being used
-- WebSocketModuleVerifier helps diagnose at runtime
+Use CustomWebSocket plugin for guaranteed cross-platform compatibility:
+- Production-ready implementation with full TLS support
+- Platform-agnostic (works on all supported platforms)
+- No dependency on Unreal's native WebSocket module
 
 ---
 

@@ -37,7 +37,7 @@ Discord requires bots to explicitly request certain "privileged" intents that gi
 This Discord bot is configured with the correct intents:
 
 ```cpp
-// From DiscordGatewayClientNative.cpp and DiscordGatewayClient.cpp
+// From DiscordGatewayClientCustom.cpp
 #define DISCORD_INTENTS_COMBINED 33027
 
 // Breakdown:
@@ -113,20 +113,22 @@ Before your bot can use these privileged intents, you MUST enable them in the Di
 
 **Status:** Production Ready - Primary Implementation
 
-### Alternative: Native WebSocket Implementation (If Needed)
+## Implementation Details
 
-**File:** `DiscordGatewayClientNative.cpp`
+### CustomWebSocket Implementation
 
-- ✅ Uses Unreal's built-in WebSocket module (if available)
+**File:** `DiscordGatewayClientCustom.cpp`
+
+- ✅ Uses CustomWebSocket plugin (RFC 6455 compliant)
 - ✅ Fully compatible with CSS Unreal Engine 5.3.2
 - ✅ Production-ready with complete Discord Gateway support
 - ✅ All privileged intents configured (33027)
 - ✅ Automatic heartbeat management
 - ✅ Event handling system
 
-**Status:** Alternative Implementation - Available If Needed
+**Status:** Primary and Only Implementation
 
-### Both Implementations Support
+### Supported Discord Gateway Features
 
 ✅ **All Discord Gateway Features:**
 - HELLO (opcode 10) - Receive heartbeat interval
@@ -154,11 +156,11 @@ Before your bot can use these privileged intents, you MUST enable them in the Di
 ### Basic Setup
 
 ```cpp
-#include "DiscordGatewayClientNative.h"
+#include "DiscordGatewayClientCustom.h"
 
 // Spawn the Discord Gateway Client
-ADiscordGatewayClientNative* Client = 
-    GetWorld()->SpawnActor<ADiscordGatewayClientNative>();
+ADiscordGatewayClientCustom* Client = 
+    GetWorld()->SpawnActor<ADiscordGatewayClientCustom>();
 
 // Initialize with your bot token
 Client->InitializeBot(TEXT("YOUR_BOT_TOKEN_HERE"));
