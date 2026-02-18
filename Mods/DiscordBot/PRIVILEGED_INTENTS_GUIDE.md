@@ -98,31 +98,33 @@ Before your bot can use these privileged intents, you MUST enable them in the Di
 
 ## WebSocket Implementation Compatibility
 
-### Native WebSocket Implementation ✅ RECOMMENDED
+### CustomWebSocket Plugin Implementation ✅ RECOMMENDED
+
+**File:** `DiscordGatewayClientCustom.h` + `CustomWebSocket` plugin
+
+- ✅ Platform-agnostic (Windows, Linux, Mac, Dedicated Servers)
+- ✅ No dependency on Unreal's WebSocket module
+- ✅ RFC 6455 compliant WebSocket implementation
+- ✅ Full Discord Gateway protocol support
+- ✅ All privileged intents supported (33027)
+- ✅ TLS/SSL support for secure connections
+- ✅ Automatic heartbeat management
+- ✅ Event handling system
+
+**Status:** Production Ready - Primary Implementation
+
+### Alternative: Native WebSocket Implementation (If Needed)
 
 **File:** `DiscordGatewayClientNative.cpp`
 
-- ✅ Uses Unreal's built-in WebSocket module
+- ✅ Uses Unreal's built-in WebSocket module (if available)
 - ✅ Fully compatible with CSS Unreal Engine 5.3.2
 - ✅ Production-ready with complete Discord Gateway support
 - ✅ All privileged intents configured (33027)
 - ✅ Automatic heartbeat management
 - ✅ Event handling system
 
-**Status:** Production Ready - Use This Implementation
-
-### Custom WebSocket Implementation ✅ FALLBACK
-
-**File:** `DiscordGatewayClientCustom.h` + `CustomWebSocket` plugin
-
-- ✅ Platform-agnostic (Windows, Linux, Mac, Servers)
-- ✅ No dependency on Unreal's WebSocket module
-- ✅ RFC 6455 compliant WebSocket implementation
-- ✅ Full Discord Gateway protocol support
-- ✅ All privileged intents supported
-- ✅ TLS/SSL support for secure connections
-
-**Status:** Production Ready - Use When Native Not Available
+**Status:** Alternative Implementation - Available If Needed
 
 ### Both Implementations Support
 

@@ -131,15 +131,17 @@ bool bConnected = BotSubsystem->IsBotConnected();
 
 ## Current Implementation
 
-This mod uses **DiscordGatewayClientNative** which provides: 
-   - Production-ready implementation using Unreal's native WebSocket module
+This mod uses the **CustomWebSocket plugin** which provides: 
+   - Custom WebSocket implementation (RFC 6455 compliant)
+   - Platform-agnostic support for all platforms (Win64, Linux, Mac, Dedicated Servers)
    - Full Discord Gateway protocol support
    - Compatible with Satisfactory's custom CSS Unreal Engine 5.3.2
+   - No dependency on Unreal's native WebSocket module
 
 > **Note:** The `DiscordGatewayClient` class exists in the codebase as an educational reference showing Discord Gateway protocol structure, but it does NOT implement actual WebSocket functionality and is not used in production.
 
 **Features:**
-- **Event Handling**: Basic event handling is implemented. You can extend the `HandleGatewayEvent` method in `DiscordGatewayClientNative.cpp` to handle more Discord events.
+- **Event Handling**: Basic event handling is implemented. You can extend the `HandleGatewayEvent` method to handle more Discord events.
 - **Reconnection**: Automatic reconnection on disconnect is not yet implemented.
 
 ## Advanced Configuration
