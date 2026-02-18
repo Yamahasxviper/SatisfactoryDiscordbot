@@ -198,10 +198,6 @@ All virtual function overrides use the `override` keyword:
 
 ---
 
-## WebSocket Implementations
-
-The mod provides **two WebSocket implementations** for maximum compatibility:
-
 ## WebSocket Implementation
 
 The mod provides a **CustomWebSocket implementation** for maximum compatibility:
