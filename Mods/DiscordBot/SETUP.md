@@ -2,6 +2,8 @@
 
 This guide will help you set up and use the Discord Bot mod for Satisfactory.
 
+> ⚠️ **Server-Side Mod Notice**: This mod is configured as a **server-side-only mod**. Only the server administrator needs to install and configure this mod. Players joining the server **do not need to install this mod** to play on a modded server. The Discord bot functionality runs entirely server-side.
+
 ## Prerequisites
 
 1. **Discord Bot Account**
@@ -23,9 +25,12 @@ This guide will help you set up and use the Discord Bot mod for Satisfactory.
 
 ## Installation
 
-1. **Enable the Mod**
-   - The mod is already included in your Satisfactory mod directory
+### For Server Administrators
+
+1. **Enable the Mod on the Server**
+   - Install the mod in your Satisfactory dedicated server's mod directory
    - Make sure the mod is enabled in your mod manager
+   - **Note**: The mod is marked as `"Remote": true` in its uplugin file, making it server-side-only
 
 2. **Configure the Bot Token**
    - Navigate to: `Mods/DiscordBot/Config/DiscordBot.ini`
@@ -40,6 +45,10 @@ This guide will help you set up and use the Discord Bot mod for Satisfactory.
    - Build the Satisfactory project using Unreal Engine
    - The Discord Bot module will be compiled automatically
    - If you encounter build errors, ensure all dependencies are properly installed
+
+### For Players
+
+**No installation required!** This is a server-side-only mod. Players can join the server with or without this mod installed. The Discord bot integration works entirely from the server side and does not require any client-side components.
 
 ## Usage Examples
 
