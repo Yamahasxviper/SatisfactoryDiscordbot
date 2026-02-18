@@ -112,4 +112,18 @@ private:
 
     /** Custom bot presence message */
     FString BotPresenceMessage;
-};
+
+    /** Player count update interval in seconds */
+    float PlayerCountUpdateInterval;
+
+    /** Whether to show player count in bot presence */
+    bool bShowPlayerCount;
+
+    /** Timer handle for player count updates */
+    FTimerHandle PlayerCountUpdateTimerHandle;
+
+    /** Get current number of players on the server */
+    int32 GetCurrentPlayerCount() const;
+
+    /** Update bot presence with current player count */
+    void UpdateBotPresenceWithPlayerCount();

@@ -114,6 +114,8 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
   - Separate notification channel for server events
   - Custom notification messages
   - Bot presence updates (online/offline status)
+  - **Live player count display in bot status**
+  - Configurable update interval for player count
   - Configurable notification settings
 
 ## Dependencies
@@ -188,6 +190,12 @@ ServerStopMessage=🔴 Satisfactory Server is now OFFLINE!
 
 ; Custom bot presence/status message (appears as "Playing <message>")
 BotPresenceMessage=Satisfactory Server
+
+; Show player count in bot presence (appears as "Playing <message> (X players)")
+bShowPlayerCount=true
+
+; Player count update interval in seconds (default: 30.0)
+PlayerCountUpdateInterval=30.0
 ```
 
 ### Features
@@ -196,18 +204,28 @@ BotPresenceMessage=Satisfactory Server
 - **Custom Messages**: Personalize your server start/stop messages with emojis and custom text
 - **Bot Presence Updates**: The bot's Discord status automatically changes to "online" when the server starts
 - **Custom Status Message**: Configure what appears in the bot's "Playing" status
+- **🆕 Player Count Display**: The bot status automatically shows the current number of players on the server
+- **🆕 Configurable Update Interval**: Control how often the player count is updated
 
 ### How It Works
 
 1. **On Server Start**:
    - The bot connects to Discord
    - Sends the configured `ServerStartMessage` to the notification channel
-   - Updates its presence to show as "Playing <BotPresenceMessage>"
+   - Updates its presence to show as "Playing <BotPresenceMessage> (X players)"
    - Status indicator shows as 🟢 online
+   - Starts periodic player count updates based on `PlayerCountUpdateInterval`
 
 2. **On Server Stop**:
    - Sends the configured `ServerStopMessage` to the notification channel
+   - Stops player count updates
    - Bot disconnects and status shows as offline
+
+3. **Player Count Updates**:
+   - The bot automatically updates its presence every `PlayerCountUpdateInterval` seconds
+   - Shows current player count in format: "Playing <BotPresenceMessage> (X players)"
+   - Singular "player" when count is 1, plural "players" otherwise
+   - Set `bShowPlayerCount=false` to disable player count display
 
 ### Getting Channel IDs
 
@@ -234,6 +252,8 @@ ChatChannelId=987654321098765432
 ServerStartMessage=🎮 The factory is now open for business!
 ServerStopMessage=🛑 The factory has shut down for maintenance
 BotPresenceMessage=Factory Simulator 2024
+bShowPlayerCount=true
+PlayerCountUpdateInterval=30.0
 ```
 
 

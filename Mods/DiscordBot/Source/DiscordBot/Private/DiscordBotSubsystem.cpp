@@ -71,6 +71,12 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UDiscordBotSubsystem::Deinitialize()
 {
+    // Clear player count update timer
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(PlayerCountUpdateTimerHandle);
+    }
+    
     // Send server stop notification before disconnecting
     SendServerStopNotification();
     
@@ -290,6 +296,8 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
     ServerStartMessage = TEXT("🟢 Satisfactory Server is now ONLINE!");
     ServerStopMessage = TEXT("🔴 Satisfactory Server is now OFFLINE!");
     BotPresenceMessage = TEXT("Satisfactory Server");
+    bShowPlayerCount = true;
+    PlayerCountUpdateInterval = 30.0f; // Default to 30 seconds
     
     if (GConfig)
     {
@@ -328,6 +336,10 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
             }
         }
         
+        // Load player count settings
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bShowPlayerCount"), bShowPlayerCount, GGameIni);
+        GConfig->GetFloat(TEXT("DiscordBot"), TEXT("PlayerCountUpdateInterval"), PlayerCountUpdateInterval, GGameIni);
+        
         if (bServerNotificationsEnabled)
         {
             UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server notifications enabled"));
@@ -338,6 +350,11 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
             else
             {
                 UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("  - No valid notification channel ID configured"));
+            }
+            
+            if (bShowPlayerCount)
+            {
+                UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Player count display enabled (update interval: %.1fs)"), PlayerCountUpdateInterval);
             }
         }
     }
@@ -365,10 +382,20 @@ void UDiscordBotSubsystem::SendServerStartNotification()
     SendDiscordMessage(NotificationChannelId, ServerStartMessage);
     UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server start notification sent: %s"), *ServerStartMessage);
     
-    // Update bot presence/status
-    if (GatewayClient)
+    // Update bot presence/status with initial player count
+    UpdateBotPresenceWithPlayerCount();
+    
+    // Start periodic player count updates if enabled
+    if (bShowPlayerCount && GetWorld())
     {
-        GatewayClient->UpdatePresence(BotPresenceMessage);
+        GetWorld()->GetTimerManager().SetTimer(
+            PlayerCountUpdateTimerHandle,
+            this,
+            &UDiscordBotSubsystem::UpdateBotPresenceWithPlayerCount,
+            PlayerCountUpdateInterval,
+            true // Loop
+        );
+        UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Player count update timer started (interval: %.1fs)"), PlayerCountUpdateInterval);
     }
 }
 
@@ -391,6 +418,47 @@ void UDiscordBotSubsystem::SendServerStopNotification()
     
     SendDiscordMessage(NotificationChannelId, ServerStopMessage);
     UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server stop notification sent: %s"), *ServerStopMessage);
+}
+
+int32 UDiscordBotSubsystem::GetCurrentPlayerCount() const
+{
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return 0;
+    }
+    
+    AGameStateBase* GameState = World->GetGameState();
+    if (!GameState)
+    {
+        return 0;
+    }
+    
+    // Count players in the PlayerArray
+    return GameState->PlayerArray.Num();
+}
+
+void UDiscordBotSubsystem::UpdateBotPresenceWithPlayerCount()
+{
+    if (!IsBotConnected() || !GatewayClient)
+    {
+        return;
+    }
+    
+    FString PresenceMessage = BotPresenceMessage;
+    
+    // If player count is enabled, append the count to the presence message
+    if (bShowPlayerCount)
+    {
+        int32 PlayerCount = GetCurrentPlayerCount();
+        PresenceMessage = FString::Printf(TEXT("%s (%d player%s)"), 
+            *BotPresenceMessage, 
+            PlayerCount,
+            PlayerCount == 1 ? TEXT("") : TEXT("s"));
+    }
+    
+    GatewayClient->UpdatePresence(PresenceMessage);
+    UE_LOG(LogDiscordBotSubsystem, Verbose, TEXT("Bot presence updated: %s"), *PresenceMessage);
 }
 
 
