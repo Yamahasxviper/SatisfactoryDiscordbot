@@ -71,6 +71,15 @@ private:
     /** Load two-way chat configuration from config */
     void LoadTwoWayChatConfig();
 
+    /** Load server notification configuration from config */
+    void LoadServerNotificationConfig();
+
+    /** Send server start notification */
+    void SendServerStartNotification();
+
+    /** Send server stop notification */
+    void SendServerStopNotification();
+
     /** Format Discord username for in-game display */
     FString FormatDiscordSender(const FString& Username) const;
 
@@ -88,4 +97,19 @@ private:
 
     /** Format string for game sender names in Discord */
     FString GameSenderFormat;
+
+    /** Server notification enabled flag */
+    bool bServerNotificationsEnabled;
+
+    /** Notification channel ID for server start/stop events */
+    FString NotificationChannelId;
+
+    /** Custom message for server start */
+    FString ServerStartMessage;
+
+    /** Custom message for server stop */
+    FString ServerStopMessage;
+
+    /** Custom bot presence message */
+    FString BotPresenceMessage;
 };
