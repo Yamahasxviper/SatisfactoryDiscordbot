@@ -25,6 +25,9 @@ All configuration is done in `Config/DiscordBot.ini`:
 ; Discord Bot Token - Replace with your actual bot token
 BotToken=YOUR_BOT_TOKEN_HERE
 
+; Discord Channel ID for chat relay - Replace with your actual channel ID
+ChatChannelId=YOUR_CHANNEL_ID_HERE
+
 ; Discord Gateway URL (default is fine for most cases)
 GatewayURL=wss://gateway.discord.gg
 
@@ -37,19 +40,6 @@ LogLevel=2
 ; Two-Way Chat Integration Settings
 ; Enable two-way chat between Discord and in-game chat
 bEnableTwoWayChat=true
-
-; Discord Channel IDs for chat relay (can specify multiple channels)
-; 
-; Format 1: Comma-separated list (simpler for multiple channels)
-; ChatChannelId=123456789012345678,987654321098765432,555555555555555555
-;
-; Format 2: Array format (add multiple entries with +ChatChannelId=)
-; +ChatChannelId=123456789012345678
-; +ChatChannelId=987654321098765432
-;
-; Both formats are supported and can be used together
-; Example (comma-separated):
-ChatChannelId=YOUR_CHANNEL_ID_HERE
 
 ; Custom sender name format for Discord messages in-game
 ; Available placeholders: {username}, {discriminator}
