@@ -119,11 +119,26 @@ private:
     /** Whether to show player count in bot presence */
     bool bShowPlayerCount;
 
+    /** Whether to show player names instead of just count */
+    bool bShowPlayerNames;
+
+    /** Maximum number of player names to show (0 = show all) */
+    int32 MaxPlayerNamesToShow;
+
+    /** Format string for player names display */
+    FString PlayerNamesFormat;
+
     /** Timer handle for player count updates */
     FTimerHandle PlayerCountUpdateTimerHandle;
 
     /** Get current number of players on the server */
     int32 GetCurrentPlayerCount() const;
+
+    /** Get list of current player names on the server */
+    TArray<FString> GetCurrentPlayerNames() const;
+
+    /** Format player names into a string for display */
+    FString FormatPlayerNames(const TArray<FString>& PlayerNames) const;
 
     /** Update bot presence with current player count */
     void UpdateBotPresenceWithPlayerCount();

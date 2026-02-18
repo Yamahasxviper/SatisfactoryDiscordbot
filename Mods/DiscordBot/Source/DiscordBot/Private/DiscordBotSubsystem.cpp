@@ -297,6 +297,9 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
     ServerStopMessage = TEXT("🔴 Satisfactory Server is now OFFLINE!");
     BotPresenceMessage = TEXT("Satisfactory Server");
     bShowPlayerCount = true;
+    bShowPlayerNames = false;
+    MaxPlayerNamesToShow = 10;
+    PlayerNamesFormat = TEXT("with {names}");
     PlayerCountUpdateInterval = 30.0f; // Default to 30 seconds
     
     if (GConfig)
@@ -340,6 +343,19 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         GConfig->GetBool(TEXT("DiscordBot"), TEXT("bShowPlayerCount"), bShowPlayerCount, GGameIni);
         GConfig->GetFloat(TEXT("DiscordBot"), TEXT("PlayerCountUpdateInterval"), PlayerCountUpdateInterval, GGameIni);
         
+        // Load player names settings
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bShowPlayerNames"), bShowPlayerNames, GGameIni);
+        GConfig->GetInt(TEXT("DiscordBot"), TEXT("MaxPlayerNamesToShow"), MaxPlayerNamesToShow, GGameIni);
+        
+        FString CustomNamesFormat;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("PlayerNamesFormat"), CustomNamesFormat, GGameIni))
+        {
+            if (!CustomNamesFormat.IsEmpty())
+            {
+                PlayerNamesFormat = CustomNamesFormat;
+            }
+        }
+        
         if (bServerNotificationsEnabled)
         {
             UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server notifications enabled"));
@@ -355,6 +371,11 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
             if (bShowPlayerCount)
             {
                 UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Player count display enabled (update interval: %.1fs)"), PlayerCountUpdateInterval);
+            }
+            
+            if (bShowPlayerNames)
+            {
+                UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Player names display enabled (max names: %d)"), MaxPlayerNamesToShow);
             }
         }
     }
@@ -438,6 +459,82 @@ int32 UDiscordBotSubsystem::GetCurrentPlayerCount() const
     return GameState->PlayerArray.Num();
 }
 
+TArray<FString> UDiscordBotSubsystem::GetCurrentPlayerNames() const
+{
+    TArray<FString> PlayerNames;
+    
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return PlayerNames;
+    }
+    
+    AGameStateBase* GameState = World->GetGameState();
+    if (!GameState)
+    {
+        return PlayerNames;
+    }
+    
+    // Get player names from PlayerArray
+    for (APlayerState* PlayerState : GameState->PlayerArray)
+    {
+        if (PlayerState && !PlayerState->GetPlayerName().IsEmpty())
+        {
+            PlayerNames.Add(PlayerState->GetPlayerName());
+        }
+    }
+    
+    return PlayerNames;
+}
+
+FString UDiscordBotSubsystem::FormatPlayerNames(const TArray<FString>& PlayerNames) const
+{
+    if (PlayerNames.Num() == 0)
+    {
+        return TEXT("");
+    }
+    
+    // Determine how many names to show
+    int32 NamesToShow = PlayerNames.Num();
+    if (MaxPlayerNamesToShow > 0 && NamesToShow > MaxPlayerNamesToShow)
+    {
+        NamesToShow = MaxPlayerNamesToShow;
+    }
+    
+    // Build the names string
+    FString NamesString;
+    for (int32 i = 0; i < NamesToShow; i++)
+    {
+        if (i > 0)
+        {
+            if (i == NamesToShow - 1 && NamesToShow == PlayerNames.Num())
+            {
+                // Last name and we're showing all names
+                NamesString += TEXT(" and ");
+            }
+            else
+            {
+                NamesString += TEXT(", ");
+            }
+        }
+        NamesString += PlayerNames[i];
+    }
+    
+    // Add "and X more" if we're not showing all names
+    if (MaxPlayerNamesToShow > 0 && PlayerNames.Num() > MaxPlayerNamesToShow)
+    {
+        int32 RemainingCount = PlayerNames.Num() - MaxPlayerNamesToShow;
+        NamesString += FString::Printf(TEXT(" and %d more"), RemainingCount);
+    }
+    
+    // Apply the format string
+    FString Result = PlayerNamesFormat;
+    Result = Result.Replace(TEXT("{names}"), *NamesString);
+    Result = Result.Replace(TEXT("{count}"), *FString::FromInt(PlayerNames.Num()));
+    
+    return Result;
+}
+
 void UDiscordBotSubsystem::UpdateBotPresenceWithPlayerCount()
 {
     if (!IsBotConnected() || !GatewayClient)
@@ -447,8 +544,23 @@ void UDiscordBotSubsystem::UpdateBotPresenceWithPlayerCount()
     
     FString PresenceMessage = BotPresenceMessage;
     
-    // If player count is enabled, append the count to the presence message
-    if (bShowPlayerCount)
+    // If player names are enabled, show names instead of count
+    if (bShowPlayerNames)
+    {
+        TArray<FString> PlayerNames = GetCurrentPlayerNames();
+        if (PlayerNames.Num() > 0)
+        {
+            FString FormattedNames = FormatPlayerNames(PlayerNames);
+            PresenceMessage = FString::Printf(TEXT("%s %s"), *BotPresenceMessage, *FormattedNames);
+        }
+        else
+        {
+            // No players online
+            PresenceMessage = BotPresenceMessage;
+        }
+    }
+    // Otherwise, if player count is enabled, append the count to the presence message
+    else if (bShowPlayerCount)
     {
         int32 PlayerCount = GetCurrentPlayerCount();
         PresenceMessage = FString::Printf(TEXT("%s (%d player%s)"), 

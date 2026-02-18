@@ -115,7 +115,8 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
   - Custom notification messages
   - Bot presence updates (online/offline status)
   - **Live player count display in bot status**
-  - Configurable update interval for player count
+  - **Live player names display with custom formatting**
+  - Configurable update interval for player count/names
   - Configurable notification settings
 
 ## Dependencies
@@ -196,6 +197,15 @@ bShowPlayerCount=true
 
 ; Player count update interval in seconds (default: 30.0)
 PlayerCountUpdateInterval=30.0
+
+; Show player names instead of just count (appears as "Playing <message> with Alice, Bob, Charlie")
+bShowPlayerNames=false
+
+; Maximum number of player names to show (0 = show all)
+MaxPlayerNamesToShow=10
+
+; Format string for player names display
+PlayerNamesFormat=with {names}
 ```
 
 ### Features
@@ -205,16 +215,18 @@ PlayerCountUpdateInterval=30.0
 - **Bot Presence Updates**: The bot's Discord status automatically changes to "online" when the server starts
 - **Custom Status Message**: Configure what appears in the bot's "Playing" status
 - **🆕 Player Count Display**: The bot status automatically shows the current number of players on the server
-- **🆕 Configurable Update Interval**: Control how often the player count is updated
+- **🆕 Player Names Display**: Optionally show actual player names instead of just count
+- **🆕 Customizable Name Format**: Control how player names are displayed
+- **🆕 Configurable Update Interval**: Control how often the player count/names are updated
 
 ### How It Works
 
 1. **On Server Start**:
    - The bot connects to Discord
    - Sends the configured `ServerStartMessage` to the notification channel
-   - Updates its presence to show as "Playing <BotPresenceMessage> (X players)"
+   - Updates its presence to show as "Playing <BotPresenceMessage> (X players)" or "Playing <BotPresenceMessage> with PlayerName1, PlayerName2"
    - Status indicator shows as 🟢 online
-   - Starts periodic player count updates based on `PlayerCountUpdateInterval`
+   - Starts periodic player count/names updates based on `PlayerCountUpdateInterval`
 
 2. **On Server Stop**:
    - Sends the configured `ServerStopMessage` to the notification channel
@@ -226,6 +238,13 @@ PlayerCountUpdateInterval=30.0
    - Shows current player count in format: "Playing <BotPresenceMessage> (X players)"
    - Singular "player" when count is 1, plural "players" otherwise
    - Set `bShowPlayerCount=false` to disable player count display
+
+4. **Player Names Display**:
+   - Enable `bShowPlayerNames=true` to show actual player names instead of just count
+   - Use `PlayerNamesFormat` to customize how names appear (e.g., "with {names}", "- {names} online")
+   - Set `MaxPlayerNamesToShow` to limit how many names are shown (remaining shown as "and X more")
+   - Player names take priority over player count if both are enabled
+   - Available format placeholders: `{names}` for the formatted list, `{count}` for the total count
 
 ### Getting Channel IDs
 
@@ -252,9 +271,22 @@ ChatChannelId=987654321098765432
 ServerStartMessage=🎮 The factory is now open for business!
 ServerStopMessage=🛑 The factory has shut down for maintenance
 BotPresenceMessage=Factory Simulator 2024
+
+; Show player count (default)
 bShowPlayerCount=true
 PlayerCountUpdateInterval=30.0
+
+; OR show player names instead
+bShowPlayerNames=false
+MaxPlayerNamesToShow=10
+PlayerNamesFormat=with {names}
 ```
+
+**Example Presence Messages:**
+- With `bShowPlayerCount=true`: `"Playing Factory Simulator 2024 (3 players)"`
+- With `bShowPlayerNames=true`: `"Playing Factory Simulator 2024 with Alice, Bob and Charlie"`
+- With `bShowPlayerNames=true` and many players: `"Playing Factory Simulator 2024 with Alice, Bob, Charlie and 7 more"`
+- With custom format `PlayerNamesFormat=- {names} online`: `"Playing Factory Simulator 2024 - Alice, Bob online"`
 
 
 ## Production Considerations
