@@ -9,6 +9,8 @@ A Discord bot integration mod for Satisfactory that uses WebSocket communication
 
 Combined Intent Value: **33027** (includes baseline GUILDS + three privileged intents)
 
+> 📖 **For detailed information about Privileged Gateway Intents, see [PRIVILEGED_INTENTS_GUIDE.md](PRIVILEGED_INTENTS_GUIDE.md)**
+
 ## Setup
 
 1. **Create a Discord Bot**
@@ -176,6 +178,8 @@ The Native WebSocket implementation uses Unreal's built-in `WebSockets` module w
 ## Quick Start
 
 For detailed setup instructions, see [SETUP.md](SETUP.md)
+
+For information about Privileged Gateway Intents configuration, see [PRIVILEGED_INTENTS_GUIDE.md](PRIVILEGED_INTENTS_GUIDE.md)
 
 ## License
 
