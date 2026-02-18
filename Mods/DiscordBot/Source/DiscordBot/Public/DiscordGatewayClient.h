@@ -48,7 +48,7 @@ public:
 
     /** Update bot presence/status */
     UFUNCTION(BlueprintCallable, Category = "Discord")
-    virtual void UpdatePresence(const FString& StatusMessage);
+    virtual void UpdatePresence(const FString& StatusMessage, int32 ActivityType = 0);
 
 protected:
     /** Discord bot token */

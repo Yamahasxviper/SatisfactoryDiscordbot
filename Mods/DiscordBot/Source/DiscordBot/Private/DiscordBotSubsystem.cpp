@@ -296,6 +296,7 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
     ServerStartMessage = TEXT("🟢 Satisfactory Server is now ONLINE!");
     ServerStopMessage = TEXT("🔴 Satisfactory Server is now OFFLINE!");
     BotPresenceMessage = TEXT("Satisfactory Server");
+    BotActivityType = 0; // Default to "Playing"
     bShowPlayerCount = true;
     bShowPlayerNames = false;
     MaxPlayerNamesToShow = 10;
@@ -338,6 +339,44 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
             if (!CustomPresenceMessage.IsEmpty())
             {
                 BotPresenceMessage = CustomPresenceMessage;
+            }
+        }
+        
+        // Load bot activity type
+        FString ActivityTypeStr;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("BotActivityType"), ActivityTypeStr, GGameIni))
+        {
+            // Support both string names and numeric values
+            ActivityTypeStr = ActivityTypeStr.TrimStartAndEnd().ToLower();
+            if (ActivityTypeStr == TEXT("playing") || ActivityTypeStr == TEXT("0"))
+            {
+                BotActivityType = 0;
+            }
+            else if (ActivityTypeStr == TEXT("streaming") || ActivityTypeStr == TEXT("1"))
+            {
+                BotActivityType = 1;
+            }
+            else if (ActivityTypeStr == TEXT("listening") || ActivityTypeStr == TEXT("listening to") || ActivityTypeStr == TEXT("2"))
+            {
+                BotActivityType = 2;
+            }
+            else if (ActivityTypeStr == TEXT("watching") || ActivityTypeStr == TEXT("3"))
+            {
+                BotActivityType = 3;
+            }
+            else if (ActivityTypeStr == TEXT("competing") || ActivityTypeStr == TEXT("competing in") || ActivityTypeStr == TEXT("5"))
+            {
+                BotActivityType = 5;
+            }
+            else
+            {
+                // Try parsing as integer
+                BotActivityType = FCString::Atoi(*ActivityTypeStr);
+                if (BotActivityType < 0 || (BotActivityType > 3 && BotActivityType != 5))
+                {
+                    UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Invalid BotActivityType '%s', defaulting to 0 (Playing)"), *ActivityTypeStr);
+                    BotActivityType = 0;
+                }
             }
         }
         
@@ -660,8 +699,8 @@ void UDiscordBotSubsystem::UpdateBotPresenceWithPlayerCount()
         PresenceMessage = BotPresenceMessage;
     }
     
-    GatewayClient->UpdatePresence(PresenceMessage);
-    UE_LOG(LogDiscordBotSubsystem, Verbose, TEXT("Bot presence updated: %s"), *PresenceMessage);
+    GatewayClient->UpdatePresence(PresenceMessage, BotActivityType);
+    UE_LOG(LogDiscordBotSubsystem, Verbose, TEXT("Bot presence updated: %s (Type: %d)"), *PresenceMessage, BotActivityType);
 }
 
 

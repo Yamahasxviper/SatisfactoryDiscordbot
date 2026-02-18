@@ -191,10 +191,13 @@ ServerStartMessage=🟢 Satisfactory Server is now ONLINE!
 ; Custom message when server stops (optional)
 ServerStopMessage=🔴 Satisfactory Server is now OFFLINE!
 
-; Custom bot presence/status message (appears as "Playing <message>")
+; Custom bot presence/status message
 BotPresenceMessage=Satisfactory Server
 
-; Show player count in bot presence (appears as "Playing <message> (X players)")
+; Discord activity type (0=Playing, 2=Listening to, 3=Watching, etc.)
+BotActivityType=Playing
+
+; Show player count in bot presence
 bShowPlayerCount=true
 
 ; Player count update interval in seconds (default: 30.0)
@@ -219,7 +222,8 @@ CustomPresenceFormat={message} - {playercount} {player_s} online
 - **Separate Notification Channel**: Server status notifications can go to a different channel than chat messages
 - **Custom Messages**: Personalize your server start/stop messages with emojis and custom text
 - **Bot Presence Updates**: The bot's Discord status automatically changes to "online" when the server starts
-- **Custom Status Message**: Configure what appears in the bot's "Playing" status
+- **Custom Status Message**: Configure what appears in the bot's status
+- **🆕 Customizable Activity Type**: Change from "Playing" to "Watching", "Listening to", etc.
 - **🆕 Player Count Display**: The bot status automatically shows the current number of players on the server
 - **🆕 Player Names Display**: Optionally show actual player names instead of just count
 - **🆕 Customizable Name Format**: Control how player names are displayed
@@ -231,7 +235,7 @@ CustomPresenceFormat={message} - {playercount} {player_s} online
 1. **On Server Start**:
    - The bot connects to Discord
    - Sends the configured `ServerStartMessage` to the notification channel
-   - Updates its presence to show as "Playing <BotPresenceMessage> (X players)" or "Playing <BotPresenceMessage> with PlayerName1, PlayerName2"
+   - Updates its presence to show as "<ActivityType> <BotPresenceMessage> (X players)" (e.g., "Watching Satisfactory Server (3 players)")
    - Status indicator shows as 🟢 online
    - Starts periodic player count/names updates based on `PlayerCountUpdateInterval`
 
@@ -240,9 +244,19 @@ CustomPresenceFormat={message} - {playercount} {player_s} online
    - Stops player count updates
    - Bot disconnects and status shows as offline
 
-3. **Player Count Updates**:
+3. **Activity Type Customization**:
+   - Set `BotActivityType` to change the Discord activity prefix
+   - Supported types:
+     - `0` or `"Playing"` → "Playing Satisfactory Server"
+     - `1` or `"Streaming"` → "Streaming Satisfactory Server"
+     - `2` or `"Listening"` → "Listening to Satisfactory Server"
+     - `3` or `"Watching"` → "Watching Satisfactory Server"
+     - `5` or `"Competing"` → "Competing in Satisfactory Server"
+   - Works with all player count/names features
+
+4. **Player Count Updates**:
    - The bot automatically updates its presence every `PlayerCountUpdateInterval` seconds
-   - Shows current player count in format: "Playing <BotPresenceMessage> (X players)"
+   - Shows current player count in format: "<ActivityType> <BotPresenceMessage> (X players)"
    - Singular "player" when count is 1, plural "players" otherwise
    - Set `bShowPlayerCount=false` to disable player count display
 
@@ -308,6 +322,12 @@ CustomPresenceFormat={message} - {playercount} {player_s}: {names}
 ```
 
 **Example Presence Messages:**
+
+**With different activity types:**
+- `BotActivityType=Playing`: `"Playing Factory Simulator 2024 (3 players)"`
+- `BotActivityType=Watching`: `"Watching Factory Simulator 2024 (3 players)"`
+- `BotActivityType=Listening`: `"Listening to Factory Simulator 2024 (3 players)"`
+- `BotActivityType=Competing`: `"Competing in Factory Simulator 2024 (3 players)"`
 
 **Default modes:**
 - With `bShowPlayerCount=true`: `"Playing Factory Simulator 2024 (3 players)"`

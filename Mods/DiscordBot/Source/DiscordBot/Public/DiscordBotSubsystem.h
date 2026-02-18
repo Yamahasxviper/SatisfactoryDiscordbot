@@ -113,6 +113,9 @@ private:
     /** Custom bot presence message */
     FString BotPresenceMessage;
 
+    /** Discord activity type (0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing) */
+    int32 BotActivityType;
+
     /** Player count update interval in seconds */
     float PlayerCountUpdateInterval;
 
