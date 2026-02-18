@@ -195,7 +195,10 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
             {
                 // Trim whitespace from each channel ID
                 ChannelId.TrimStartAndEndInline();
-                if (!ChannelId.IsEmpty())
+                // Skip empty IDs and placeholder values
+                if (!ChannelId.IsEmpty() && 
+                    ChannelId != TEXT("YOUR_CHANNEL_ID_HERE") &&
+                    !ChannelId.StartsWith(TEXT("YOUR_")))
                 {
                     ChatChannelIds.Add(ChannelId);
                 }
@@ -209,7 +212,11 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
         // Add array channels if not already present (avoid duplicates)
         for (const FString& ChannelId : ArrayChannels)
         {
-            if (!ChatChannelIds.Contains(ChannelId) && !ChannelId.IsEmpty())
+            // Skip placeholder values
+            if (!ChatChannelIds.Contains(ChannelId) && 
+                !ChannelId.IsEmpty() && 
+                ChannelId != TEXT("YOUR_CHANNEL_ID_HERE") &&
+                !ChannelId.StartsWith(TEXT("YOUR_")))
             {
                 ChatChannelIds.Add(ChannelId);
             }
@@ -313,6 +320,13 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         // Load notification channel ID
         GConfig->GetString(TEXT("DiscordBot"), TEXT("NotificationChannelId"), NotificationChannelId, GGameIni);
         
+        // Clear notification channel ID if it's a placeholder value
+        if (NotificationChannelId == TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE") || 
+            NotificationChannelId.StartsWith(TEXT("YOUR_")))
+        {
+            NotificationChannelId.Empty();
+        }
+        
         // Load custom messages
         FString CustomStartMessage;
         if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ServerStartMessage"), CustomStartMessage, GGameIni))
@@ -411,7 +425,7 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         if (bServerNotificationsEnabled)
         {
             UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server notifications enabled"));
-            if (!NotificationChannelId.IsEmpty() && NotificationChannelId != TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE"))
+            if (!NotificationChannelId.IsEmpty())
             {
                 UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Notification Channel ID: %s"), *NotificationChannelId);
             }
@@ -444,7 +458,7 @@ void UDiscordBotSubsystem::SendServerStartNotification()
         return;
     }
     
-    if (NotificationChannelId.IsEmpty() || NotificationChannelId == TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE"))
+    if (NotificationChannelId.IsEmpty())
     {
         UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send server start notification: No valid channel ID configured"));
         return;
@@ -483,7 +497,7 @@ void UDiscordBotSubsystem::SendServerStopNotification()
         return;
     }
     
-    if (NotificationChannelId.IsEmpty() || NotificationChannelId == TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE"))
+    if (NotificationChannelId.IsEmpty())
     {
         return;
     }
