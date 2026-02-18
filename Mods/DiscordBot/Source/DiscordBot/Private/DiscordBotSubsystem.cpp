@@ -62,7 +62,7 @@ void UDiscordBotSubsystem::InitializeAndConnect(const FString& BotToken)
         SpawnParams.Name = FName(TEXT("DiscordGatewayClient"));
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         
-        GatewayClient = GetWorld()->SpawnActor<ADiscordGatewayClient>(ADiscordGatewayClient::StaticClass(), SpawnParams);
+        GatewayClient = GetWorld()->SpawnActor<ADiscordGatewayClientCustom>(ADiscordGatewayClientCustom::StaticClass(), SpawnParams);
         
         if (GatewayClient)
         {
