@@ -86,6 +86,14 @@
 			]
 		},
 		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
+		},
+		{
 			"Name": "ModelViewViewModel",
 			"Enabled": true
 		},
