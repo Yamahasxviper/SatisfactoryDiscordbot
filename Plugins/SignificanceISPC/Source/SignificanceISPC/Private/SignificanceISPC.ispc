@@ -53,16 +53,16 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
         const float NewSignificance = min(1.f - max((DistSquared / SignificanceDistanceSquare), 0.0f),1.0);
 
         // Compute all new values
-        const int8 NewbIsSignificant = NewSignificance >= 0.01f;
-        const int8 NewbWasSignificant = OldSignificance == -1.f ? -1 : OldSignificance >= 0.01f;
+        const int8 NewIsSignificant = NewSignificance >= 0.01f;
+        const int8 NewWasSignificant = OldSignificance == -1.f ? -1 : OldSignificance >= 0.01f;
         const int8 NewCurrentTickStage = (int8)(NumTickStages * NewSignificance);
-        const int8 NewbDidChangeTickState = OldCurrentTickStage != NewCurrentTickStage;
+        const int8 NewDidChangeTickState = OldCurrentTickStage != NewCurrentTickStage;
 
         // Write all values back in one batch to minimize scatter operations
         Data[i].CurrentSignificance = NewSignificance; 
-        Data[i].bIsSignificant = NewbIsSignificant;
-        Data[i].bWasSignificant = NewbWasSignificant;
+        Data[i].bIsSignificant = NewIsSignificant;
+        Data[i].bWasSignificant = NewWasSignificant;
         Data[i].CurrentTickStage = NewCurrentTickStage;
-        Data[i].bDidChangeTickState = NewbDidChangeTickState;
+        Data[i].bDidChangeTickState = NewDidChangeTickState;
     }
 };
