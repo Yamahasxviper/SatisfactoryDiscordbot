@@ -30,11 +30,12 @@ DEFINE_LOG_CATEGORY_STATIC(LogDiscordGatewayNative, Log, All);
 #define OPCODE_HEARTBEAT_ACK 11
 
 // Discord Intents
-// Presence Intent (1 << 8) = 256
-// Server Members Intent (1 << 1) = 2
-// Message Content Intent (1 << 15) = 32768
-// Combined: 256 + 2 + 32768 = 33026
-#define DISCORD_INTENTS_COMBINED 33026
+// Guilds Intent (1 << 0) = 1 - Basic guild events (required baseline)
+// Server Members Intent (1 << 1) = 2 - PRIVILEGED
+// Presence Intent (1 << 8) = 256 - PRIVILEGED
+// Message Content Intent (1 << 15) = 32768 - PRIVILEGED
+// Combined: 1 + 2 + 256 + 32768 = 33027
+#define DISCORD_INTENTS_COMBINED 33027
 
 ADiscordGatewayClientNative::ADiscordGatewayClientNative()
 {
