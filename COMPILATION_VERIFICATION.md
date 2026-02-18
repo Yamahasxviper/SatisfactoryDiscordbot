@@ -45,6 +45,33 @@ All critical compilation issues have been identified and **fixed**. The code is 
 - Updated implementation to use ActivityType parameter
 - Now properly supports all Discord activity types (Playing, Streaming, Listening, Watching, Competing)
 
+### 3. ✅ FIXED: Platform and Target Configuration Issues
+
+**Issue:** Plugin configurations were missing explicit platform and target restrictions  
+**Severity:** MEDIUM - Could cause compilation issues on unsupported targets  
+**Details:**
+- CustomWebSocket used deprecated `WhitelistPlatforms` instead of modern `PlatformAllowList`
+- CustomWebSocket included unsupported platforms (Android, IOS)
+- DiscordBot module lacked explicit platform and target restrictions
+
+**Status:** ✅ **FIXED**
+
+#### CustomWebSocket Plugin Changes (`Plugins/CustomWebSocket/CustomWebSocket.uplugin`):
+- ✅ Replaced deprecated `WhitelistPlatforms` with `PlatformAllowList`
+- ✅ Removed unsupported platforms (Android, IOS)
+- ✅ Kept essential server platforms: Win64, Linux, Mac
+
+#### DiscordBot Module Changes (`Mods/DiscordBot/DiscordBot.uplugin`):
+- ✅ Added `PlatformAllowList`: Win64, Linux, Mac
+- ✅ Added `TargetAllowList`: Server, Editor
+- ✅ Now explicitly server-side-only, matching the `"Remote": true` design
+
+**Benefits:**
+- ✅ Ensures compilation on all Satisfactory server types
+- ✅ Prevents compilation attempts on unsupported targets (Game, Client)
+- ✅ Follows modern Unreal Engine standards
+- ✅ Aligns with other server modules (e.g., FactoryDedicatedServer)
+
 ---
 
 ## Comprehensive Code Analysis
@@ -157,6 +184,15 @@ All virtual function overrides use the `override` keyword:
 - ✅ PCHUsage: UseExplicitOrSharedPCHs
 - ✅ DefaultBuildSettings: Latest
 - ✅ bLegacyPublicIncludePaths: false (modern include structure)
+
+#### Target Type Configuration
+The DiscordBot module is now properly configured to compile only on appropriate targets:
+- ✅ **Server Target** (`TargetType.Server`) - Dedicated server builds ✅
+- ✅ **Editor Target** (`TargetType.Editor`) - Development and testing ✅
+- ❌ **Game Target** (`TargetType.Game`) - Intentionally excluded (server-only) ❌
+- ❌ **Client Target** (`TargetType.Client`) - Intentionally excluded (server-only) ❌
+
+This matches the `"Remote": true` configuration and follows the same pattern as `FactoryDedicatedServer` module.
 
 ---
 
@@ -313,10 +349,13 @@ The Discord Bot mod code is **ready to compile** with Unreal Engine 5.3.2-CSS.
 ### Summary of Changes Made
 1. ✅ Created missing `DiscordGatewayClientCustom.cpp` (586 lines)
 2. ✅ Fixed `UpdatePresence()` signature mismatch
-3. ✅ Verified all dependencies
-4. ✅ Verified all UCLASS macros
-5. ✅ Verified all module exports
-6. ✅ Verified C++ standards compliance
+3. ✅ Updated `CustomWebSocket.uplugin` with modern `PlatformAllowList`
+4. ✅ Added platform and target restrictions to `DiscordBot.uplugin`
+5. ✅ Ensured compilation on all server types (Win64, Linux, Mac)
+6. ✅ Verified all dependencies
+7. ✅ Verified all UCLASS macros
+8. ✅ Verified all module exports
+9. ✅ Verified C++ standards compliance
 
 ### What Was Already Correct
 - ✅ All other source files
