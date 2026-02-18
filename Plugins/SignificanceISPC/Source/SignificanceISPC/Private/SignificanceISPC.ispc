@@ -55,7 +55,7 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
         // Compute all new values
         const int8 NewbIsSignificant = NewSignificance >= 0.01f;
         const int8 NewbWasSignificant = OldSignificance == -1.f ? -1 : OldSignificance >= 0.01f;
-        const int8 NewCurrentTickStage = NumTickStages * NewSignificance;
+        const int8 NewCurrentTickStage = (int8)(NumTickStages * NewSignificance);
         const int8 NewbDidChangeTickState = OldCurrentTickStage != NewCurrentTickStage;
 
         // Write all values back in one batch to minimize scatter operations
