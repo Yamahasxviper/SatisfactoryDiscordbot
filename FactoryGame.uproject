@@ -381,6 +381,14 @@
 		{
 			"Name": "CustomWebSocket",
 			"Enabled": true
+		},
+		{
+			"Name": "SML",
+			"Enabled": true
+		},
+		{
+			"Name": "DiscordBot",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

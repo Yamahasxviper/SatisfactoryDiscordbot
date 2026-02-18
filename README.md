@@ -1,12 +1,33 @@
-# SatisfactoryModLoader [![CI](https://github.com/satisfactorymodding/SatisfactoryModLoader/actions/workflows/build.yml/badge.svg)](https://github.com/satisfactorymodding/SatisfactoryModLoader/actions/workflows/build.yml)
+# SatisfactoryModLoader + DiscordBot [![CI](https://github.com/satisfactorymodding/SatisfactoryModLoader/actions/workflows/build.yml/badge.svg)](https://github.com/satisfactorymodding/SatisfactoryModLoader/actions/workflows/build.yml)
 
 A tool used to load mods for the game Satisfactory. After Coffee Stain releases a proper Unreal modding API the project will continue as a utilities library.
 
-This repository contains the SatisfactoryModLoader source code,
-an ExampleMod with demos of some of the SML utilities,
-a collection of editor utilities,
-and more.
+This repository contains:
+- **SatisfactoryModLoader (SML)** - Mod loading and compatibility API
+- **DiscordBot Mod** - Discord integration with two-way chat, presence updates, and server status
+- **CustomWebSocket Plugin** - Platform-agnostic WebSocket implementation
+- **ExampleMod** - Demos of SML utilities
+- **Editor utilities** - Collection of tools for mod development
+
 It also serves as the Unreal project used for developing mods.
+
+## Quick Start
+
+### Building the Project
+
+See [BUILD_GUIDE.md](BUILD_GUIDE.md) for detailed build instructions.
+
+**Note:** As of Feb 2026, SML and DiscordBot plugins are now properly registered in `FactoryGame.uproject` and will compile automatically. See [PLUGIN_COMPILATION_FIX.md](PLUGIN_COMPILATION_FIX.md) for details.
+
+### Discord Bot Setup
+
+The DiscordBot mod provides Discord integration for Satisfactory servers:
+- Two-way chat between Discord and in-game
+- Server status updates
+- Player join/leave notifications
+- Presence updates
+
+See [Mods/DiscordBot/README.md](Mods/DiscordBot/README.md) for setup instructions.
 
 ## Documentation
 
