@@ -39,7 +39,7 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
         const FVector3f v2 = Data[i].Location;
         const float SignificanceDistanceSquare = Data[i].SignificanceDistanceSquare;
         const int8 NumTickStages = Data[i].NumTickStages;
-        const float OldSignifiance = Data[i].CurrentSignificance;
+        const float OldSignificance = Data[i].CurrentSignificance;
         const int8 OldCurrentTickStage = Data[i].CurrentTickStage;
                 
         // Perform all computations on local variables
@@ -50,17 +50,16 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
         const float DistSquared = A+B+C;
 
         // > 0 is relevant
-        const float NewSignifiance = min(1.f - max((DistSquared / SignificanceDistanceSquare), 0.0f),1.0);
+        const float NewSignificance = min(1.f - max((DistSquared / SignificanceDistanceSquare), 0.0f),1.0);
 
         // Compute all new values
-        const float NewCurrentSignificance = NewSignifiance;
-        const int8 NewbIsSignificant = NewSignifiance >= 0.01f;
-        const int8 NewbWasSignificant = OldSignifiance == -1.f ? -1 : OldSignifiance >= 0.01f;
-        const int8 NewCurrentTickStage = NumTickStages * NewSignifiance;
+        const int8 NewbIsSignificant = NewSignificance >= 0.01f;
+        const int8 NewbWasSignificant = OldSignificance == -1.f ? -1 : OldSignificance >= 0.01f;
+        const int8 NewCurrentTickStage = NumTickStages * NewSignificance;
         const int8 NewbDidChangeTickState = OldCurrentTickStage != NewCurrentTickStage;
 
         // Write all values back in one batch to minimize scatter operations
-        Data[i].CurrentSignificance = NewCurrentSignificance; 
+        Data[i].CurrentSignificance = NewSignificance; 
         Data[i].bIsSignificant = NewbIsSignificant;
         Data[i].bWasSignificant = NewbWasSignificant;
         Data[i].CurrentTickStage = NewCurrentTickStage;
