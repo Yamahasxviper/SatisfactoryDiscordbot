@@ -377,6 +377,10 @@
 			"SupportedTargetPlatforms": [
 				"Win64"
 			]
+		},
+		{
+			"Name": "CustomWebSocket",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [
