@@ -142,11 +142,11 @@ void ADiscordGatewayClient::OnGetGatewayURLComplete(FHttpRequestPtr Request, FHt
 void ADiscordGatewayClient::ConnectWebSocket()
 {
     // Note: This is a reference implementation showing the Discord Gateway structure
-    // For a production implementation, use DiscordGatewayClientNative which implements
-    // the full WebSocket protocol using Unreal's native WebSocket module
+    // For a production implementation, use DiscordGatewayClientCustom which implements
+    // the full WebSocket protocol using the CustomWebSocket plugin
     
     UE_LOG(LogDiscordGateway, Warning, TEXT("This is a reference implementation only"));
-    UE_LOG(LogDiscordGateway, Warning, TEXT("Use DiscordGatewayClientNative for production"));
+    UE_LOG(LogDiscordGateway, Warning, TEXT("Use DiscordGatewayClientCustom for production"));
     UE_LOG(LogDiscordGateway, Log, TEXT("Gateway URL: %s"), *GatewayURL);
     UE_LOG(LogDiscordGateway, Log, TEXT("Intents: %d (Presence: 256, Server Members: 2, Message Content: 32768)"), Intents);
     
@@ -321,7 +321,7 @@ void ADiscordGatewayClient::UpdatePresence(const FString& StatusMessage, int32 A
     UE_LOG(LogDiscordGateway, Log, TEXT("Updating bot presence: %s (Type: %d)"), *StatusMessage, ActivityType);
     
     // Note: This is a stub implementation for the base class
-    // The actual WebSocket sending should be implemented in derived classes
-    // (DiscordGatewayClientNative or DiscordGatewayClientCustom)
+    // The actual WebSocket sending should be implemented in the derived class
+    // DiscordGatewayClientCustom which uses the CustomWebSocket plugin
     // The presence update uses Gateway opcode 3 (PRESENCE_UPDATE)
 }
