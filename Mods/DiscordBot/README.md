@@ -168,7 +168,7 @@ See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compat
 
 - The bot token should be kept secure and not committed to version control
 - Make sure your Discord bot has the necessary permissions in your server
-- To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClientNative.cpp`
+- To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClientCustom.cpp`
 
 ## Server Status Notifications
 

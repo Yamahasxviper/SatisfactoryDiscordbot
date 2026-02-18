@@ -29,7 +29,7 @@ This document provides a visual overview of the two-way chat system architecture
 │  │              │                          │                  │ │
 │  │  ┌───────────▼──────────┐   ┌──────────▼───────────────┐  │ │
 │  │  │ UDiscordChatRelay   │   │ ADiscordGateway          │  │ │
-│  │  │ (Game→Discord)       │   │ ClientNative             │  │ │
+│  │  │ (Game→Discord)       │   │ ClientCustom             │  │ │
 │  │  │                      │   │ (Discord→Game)           │  │ │
 │  │  │ • Hooks FGChatMgr   │   │                          │  │ │
 │  │  │ • Filters player    │   │ • WebSocket to Discord   │  │ │
@@ -108,7 +108,7 @@ This document provides a visual overview of the two-way chat system architecture
                                }
                                │
                                ▼
-3. ADiscordGatewayClientNative → Receives & processes event
+3. ADiscordGatewayClientCustom → Receives & processes event
    HandleMessageCreate()         • Check if bot message → NO
                                • Check if empty → NO
                                • Extract: channel_id, username, content
@@ -161,7 +161,7 @@ This document provides a visual overview of the two-way chat system architecture
                                  └─> SendDiscordMessage()
                                │
                                ▼
-6. ADiscordGatewayClientNative → Sends via HTTP API
+6. ADiscordGatewayClientCustom → Sends via HTTP API
    SendMessageHTTP()            POST https://discord.com/api/v10/channels/{id}/messages
                                Authorization: Bot {token}
                                Body: {"content": "**PlayerOne**: Hello from Satisfactory!"}
@@ -195,7 +195,7 @@ UDiscordBotSubsystem::Initialize()
      │
      ├─> InitializeAndConnect(BotToken)
      │   │
-     │   └─> Spawn ADiscordGatewayClientNative
+     │   └─> Spawn ADiscordGatewayClientCustom
      │       └─> Connect to Discord Gateway
      │
      └─> if (bEnableTwoWayChat)

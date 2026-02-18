@@ -161,9 +161,9 @@ The bot will automatically:
   - `OnGameChatMessage()`: Handles game messages and forwards to Discord
   - `LoadTwoWayChatConfig()`: Loads configuration from INI file
 
-#### `ADiscordGatewayClientNative`
-- **Location**: `Source/DiscordBot/Private/DiscordGatewayClientNative.cpp`
-- **Purpose**: WebSocket connection to Discord Gateway
+#### `ADiscordGatewayClientCustom`
+- **Location**: `Source/DiscordBot/Private/DiscordGatewayClientCustom.cpp`
+- **Purpose**: WebSocket connection to Discord Gateway using CustomWebSocket
 - **Key Methods**:
   - `HandleGatewayEvent()`: Routes Discord Gateway events
   - `HandleMessageCreate()`: Processes MESSAGE_CREATE events
