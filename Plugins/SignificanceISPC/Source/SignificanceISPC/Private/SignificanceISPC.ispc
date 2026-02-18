@@ -35,8 +35,12 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
 
     foreach(i = Begin ... End)
     {    
-        FStaticAcceleratedManagedSignificanceInfo* Entry = &Data[i];
-        const FVector3f v2 = Entry->Location;
+        // Load all data upfront to avoid gathers
+        const FVector3f v2 = Data[i].Location;
+        const float SignificanceDistanceSquare = Data[i].SignificanceDistanceSquare;
+        const float OldSignifiance = Data[i].CurrentSignificance;
+        const int8 NumTickStages = Data[i].NumTickStages;
+        const int8 OldCurrentTickStage = Data[i].CurrentTickStage;
                 
         float A = square(v2.V[0] - v1.V[0]);
         float B = square(v2.V[1] - v1.V[1]);
@@ -45,19 +49,16 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
         const float DistSquared = A+B+C;
 
         // > 0 is relevant
-        const float NewSignifiance = min(1.f - max((DistSquared / Entry->SignificanceDistanceSquare), 0.0f),1.0);
-        const float OldSignifiance = Entry->CurrentSignificance;
-
-        // Update values
-        Entry->CurrentSignificance = NewSignifiance; 
-            
-        Entry->bIsSignificant = NewSignifiance >= 0.01f;
-        Entry->bWasSignificant = OldSignifiance == -1.f ? -1 : OldSignifiance >= 0.01f;
+        const float NewSignifiance = min(1.f - max((DistSquared / SignificanceDistanceSquare), 0.0f),1.0);
 
         // Set tick interval.
-        const int8 NewCurrentTickStage = Entry->NumTickStages * NewSignifiance;
+        const int8 NewCurrentTickStage = NumTickStages * NewSignifiance;
 
-        Entry->bDidChangeTickState = Entry->CurrentTickStage != NewCurrentTickStage;
-        Entry->CurrentTickStage = NewCurrentTickStage;
+        // Store all results at once to avoid scatters
+        Data[i].CurrentSignificance = NewSignifiance; 
+        Data[i].bIsSignificant = NewSignifiance >= 0.01f;
+        Data[i].bWasSignificant = OldSignifiance == -1.f ? -1 : OldSignifiance >= 0.01f;
+        Data[i].bDidChangeTickState = OldCurrentTickStage != NewCurrentTickStage;
+        Data[i].CurrentTickStage = NewCurrentTickStage;
     }
 };
