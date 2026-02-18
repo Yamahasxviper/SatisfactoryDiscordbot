@@ -1,6 +1,7 @@
 [Discord]
-# Discord Bot Configuration
-# Replace the placeholder values with your actual Discord bot credentials
+# Discord Bot Configuration Template
+# Copy this file to "DiscordBot.ini" and replace the placeholder values with your actual Discord bot credentials
+# Note: DiscordBot.ini is in .gitignore to prevent committing sensitive credentials
 
 # Your Discord bot token - get this from https://discord.com/developers/applications
 BotToken=YOUR_BOT_TOKEN_HERE
