@@ -80,10 +80,10 @@ public:
 	 * Initializes the privilege tracker from a session definition. Specifically, it takes the privilege requirements from the session definition
 	 * and tracks them for the given user.
 	 */
-	void Initialize(ULocalUserInfo* UserInfo, const USessionDefinition* SessionDefinition);
+	void Initialize(ULocalUserInfo* InUserInfo, const USessionDefinition* SessionDefinition);
 
 protected:
-	void OnBackendLoginStateChanged(ULocalUserInfo* UserInfo, TSharedRef<UE::Online::FAccountInfo> AccountInfo, UOnlineIntegrationBackend* Backend);
+	void OnBackendLoginStateChanged(ULocalUserInfo* InUserInfo, TSharedRef<UE::Online::FAccountInfo> AccountInfo, UOnlineIntegrationBackend* Backend);
 	void OnBackendConnectionStateChanged(UObject*, UE::FieldNotification::FFieldId);
 	UFUNCTION()
 	void OnApplicationReactivated();
