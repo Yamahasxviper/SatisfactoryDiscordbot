@@ -135,23 +135,16 @@ Intents = (1 << 0) | (1 << 1) | (1 << 8) | (1 << 15)  // 1 + 2 + 256 + 32768 = 3
 
 ## Notes
 
-### WebSocket Implementation Options ⚠️
+### WebSocket Implementation ⚠️
 
-**Two implementations are provided:**
-
-1. **DiscordGatewayClientNative** (NEW - RECOMMENDED) ✅
-   - Uses Unreal's native WebSocket module
+This mod uses **DiscordGatewayClientNative** which provides:
+   - Unreal's native WebSocket module
    - **Fully compatible** with Satisfactory's custom CSS Unreal Engine 5.3.2
-   - Implements proper WebSocket protocol (what Discord requires)
+   - Proper WebSocket protocol implementation (what Discord requires)
    - **Production ready** with complete Discord Gateway implementation
    - No external dependencies
 
-2. **DiscordGatewayClient** (ORIGINAL - REFERENCE ONLY) ⚠️
-   - Reference implementation showing Discord Gateway protocol structure
-   - Does NOT implement actual WebSocket connection
-   - Kept for educational purposes only
-
-**For production use with Satisfactory CSS engine: Use `DiscordGatewayClientNative`**
+> **Note:** The `DiscordGatewayClient` class in the codebase is a reference implementation showing Discord Gateway protocol structure. It does NOT implement actual WebSocket connection and is kept for educational purposes only.
 
 See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compatibility analysis.
 
