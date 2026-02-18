@@ -49,26 +49,11 @@ public class OnlineIntegration : ModuleRules
 			});
 		
 		// <FL> [ZimmermannA] Needed to display xbox system messages during joining
-			if (/*Target.Platform == UnrealTargetPlatform.XSX*/ false)
-			{
-				PrivateDependencyModuleNames.AddRange(new string[] {
-					"OnlineSubsystemGDK",
-				});
-			}
+		// Removed unreachable code for XSX platform (OnlineSubsystemGDK)
 		// </FL> 
 		//<FL>[KonradA]
-		if (/*Target.Platform == UnrealTargetPlatform.PS5*/ false)
-		{
-			PrivateDependencyModuleNames.AddRange(new string[] {
-					"OnlineSubsystemSony"
-				});
-		}
+		// Removed unreachable code for PS5 platform (OnlineSubsystemSony)
 		//</FL>
-		if (/*Target.Platform == UnrealTargetPlatform.PS5 || Target.Platform == UnrealTargetPlatform.XSX*/ false)
-		{
-			PrivateDependencyModuleNames.AddRange(new string[] {
-				"OnlineServicesOSSAdapter"
-			});
-		}
+		// Removed unreachable code for PS5/XSX platforms (OnlineServicesOSSAdapter)
 	}
 }
