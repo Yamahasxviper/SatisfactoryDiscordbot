@@ -1,8 +1,10 @@
 # WebSocket Module Troubleshooting Guide
 
+> ⚠️ **NOTE**: This mod uses the **CustomWebSocket plugin** for Discord Gateway connection, NOT Unreal's native WebSocket module. This guide is for reference only and applies to the alternative `DiscordGatewayClientNative` implementation. **The CustomWebSocket plugin does not require any of these troubleshooting steps** as it has no dependency on Unreal's WebSocket module.
+
 ## Issue: "I am not seeing the WebSocket in the custom Unreal Engine build (5.3.2-CSS)"
 
-This guide helps you diagnose and resolve WebSocket module availability issues in Satisfactory's custom CSS Unreal Engine build.
+This guide helps you diagnose and resolve WebSocket module availability issues in Satisfactory's custom CSS Unreal Engine build. **This is only relevant if you're trying to use the alternative native WebSocket implementation.**
 
 ## Quick Verification
 
