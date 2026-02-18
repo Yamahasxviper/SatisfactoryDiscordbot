@@ -16,7 +16,10 @@ public class FactoryEditor : ModuleRules
 			"InputCore",
 			"SlateCore",
 			"EditorSubsystem",
-			"FactoryGame"
+			"FactoryGame",
+			"UnrealEd",
+			"Blutility",
+			"BlueprintGraph"
 		});
 	}
 }
