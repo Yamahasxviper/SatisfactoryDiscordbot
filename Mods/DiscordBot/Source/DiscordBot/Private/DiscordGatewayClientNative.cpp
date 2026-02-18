@@ -19,7 +19,7 @@
     #define WEBSOCKETS_AVAILABLE 1
 #else
     #define WEBSOCKETS_AVAILABLE 0
-    #pragma message("WARNING: WebSocket headers not found! Discord bot will not work.")
+    #pragma message("INFO: Native WebSocket headers not found. DiscordGatewayClientNative will not work. Use DiscordGatewayClientCustom (with CustomWebSocket plugin) instead.")
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordGatewayNative, Log, All);
@@ -59,12 +59,16 @@ void ADiscordGatewayClientNative::BeginPlay()
     UE_LOG(LogDiscordGatewayNative, Log, TEXT("Discord Gateway Client (Native WebSocket) initialized"));
     
 #if !WEBSOCKETS_AVAILABLE
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ CRITICAL: WebSocket headers NOT found!"));
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("   The WebSockets module is not available in your engine build."));
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Discord bot will NOT work!"));
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for help"));
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("========================================"));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("⚠️ Native WebSocket headers NOT available!"));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   Unreal's WebSockets module is not available in this engine build."));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   DiscordGatewayClientNative will NOT work!"));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT(""));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   ✅ SOLUTION: Use DiscordGatewayClientCustom instead"));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   The CustomWebSocket plugin provides a complete alternative."));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT(""));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   See CUSTOM_WEBSOCKET.md for details"));
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("========================================"));
 #else
     // Check if module is available at runtime
     if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
@@ -84,12 +88,17 @@ void ADiscordGatewayClientNative::BeginPlay()
         
         if (!bFound)
         {
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ WARNING: WebSockets module not registered!"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   The module may not be available in your engine."));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Use WebSocketModuleVerifier to diagnose."));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for help"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("========================================"));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("⚠️ Native WebSockets module not registered!"));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   Unreal's WebSockets module is not available in this engine."));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   DiscordGatewayClientNative will NOT work!"));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT(""));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   ✅ SOLUTION: Use DiscordGatewayClientCustom instead"));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   The CustomWebSocket plugin provides a complete alternative."));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT(""));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   For diagnostics: Use WebSocketModuleVerifier"));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("   See CUSTOM_WEBSOCKET.md and WEBSOCKET_TROUBLESHOOTING.md"));
+            UE_LOG(LogDiscordGatewayNative, Warning, TEXT("========================================"));
         }
         else
         {
@@ -205,9 +214,10 @@ void ADiscordGatewayClientNative::OnGetGatewayURLComplete(FHttpRequestPtr Reques
 void ADiscordGatewayClientNative::ConnectWebSocket()
 {
 #if !WEBSOCKETS_AVAILABLE
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("Cannot connect: WebSocket headers not available at compile time"));
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("Your engine build does not include the WebSockets module"));
-    UE_LOG(LogDiscordGatewayNative, Error, TEXT("See WEBSOCKET_TROUBLESHOOTING.md for help"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("Cannot connect: Native WebSocket headers not available at compile time"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("Unreal's WebSockets module is not included in this engine build"));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT(""));
+    UE_LOG(LogDiscordGatewayNative, Error, TEXT("✅ SOLUTION: Use DiscordGatewayClientCustom instead (see CUSTOM_WEBSOCKET.md)"));
     return;
 #else
     // Try to load module if not already loaded
@@ -232,15 +242,17 @@ void ADiscordGatewayClientNative::ConnectWebSocket()
         if (!bModuleExists)
         {
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ CRITICAL: WebSockets module NOT found!"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ Native WebSockets module NOT found!"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Module is not registered in this engine build"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   "));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Run WebSocketModuleVerifier to diagnose:"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT(""));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   ✅ SOLUTION: Use DiscordGatewayClientCustom"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   The CustomWebSocket plugin provides a complete alternative."));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See CUSTOM_WEBSOCKET.md for usage details"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT(""));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   For diagnostics, run WebSocketModuleVerifier:"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   1. Spawn WebSocketModuleVerifier actor"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   2. Call RunFullVerification()"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   3. Check log for detailed report"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   "));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for solutions"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
             return;
         }
@@ -251,14 +263,15 @@ void ADiscordGatewayClientNative::ConnectWebSocket()
         if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
         {
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ CRITICAL: Failed to load WebSockets module!"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("❌ Failed to load Native WebSockets module!"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   Module exists but failed to load"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   This may indicate:"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Missing dependencies"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Corrupted module files"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("   - Platform incompatibility"));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   "));
-            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for solutions"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT(""));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   ✅ SOLUTION: Use DiscordGatewayClientCustom (see CUSTOM_WEBSOCKET.md)"));
+            UE_LOG(LogDiscordGatewayNative, Error, TEXT("   See WEBSOCKET_TROUBLESHOOTING.md for native module diagnostics"));
             UE_LOG(LogDiscordGatewayNative, Error, TEXT("========================================"));
             return;
         }
