@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "IWebSocket.h"
 #include "Http.h"
 #include "DiscordGatewayClientNative.generated.h"
+
+// Forward declaration to avoid requiring IWebSocket.h at compile time
+class IWebSocket;
 
 /**
  * Discord Gateway Client using Native Unreal WebSocket
