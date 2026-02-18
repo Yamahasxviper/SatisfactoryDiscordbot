@@ -104,6 +104,12 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
 - Game Instance Subsystem for easy access
 - Automatic initialization on game start (configurable)
 - Configuration file support for bot token and settings
+- **🆕 Error Logging for Dedicated Servers**: Automatic error logging to files
+  - No console access needed - view logs via FTP/file sharing
+  - Automatic log rotation to prevent large files
+  - Captures all Discord bot errors and warnings
+  - Configurable log directory location
+  - See [ERROR_LOGGING.md](ERROR_LOGGING.md) for detailed documentation
 - **🆕 Two-Way Chat Integration**: Relay messages between Discord and in-game chat
   - Multiple Discord channel support
   - Customizable sender name formats
