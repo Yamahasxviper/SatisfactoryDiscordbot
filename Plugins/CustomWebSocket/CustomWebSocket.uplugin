@@ -18,12 +18,10 @@
 			"Name": "CustomWebSocket",
 			"Type": "Runtime",
 			"LoadingPhase": "PreDefault",
-			"WhitelistPlatforms": [
+			"PlatformAllowList": [
 				"Win64",
 				"Linux",
-				"Mac",
-				"Android",
-				"IOS"
+				"Mac"
 			]
 		}
 	]

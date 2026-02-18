@@ -21,7 +21,16 @@
 		{
 			"Name": "DiscordBot",
 			"Type": "Runtime",
-			"LoadingPhase": "PostDefault"
+			"LoadingPhase": "PostDefault",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux",
+				"Mac"
+			],
+			"TargetAllowList": [
+				"Server",
+				"Editor"
+			]
 		}
 	],
 	"Plugins": [
