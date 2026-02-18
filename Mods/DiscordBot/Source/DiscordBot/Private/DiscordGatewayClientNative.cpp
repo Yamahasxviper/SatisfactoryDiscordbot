@@ -1,6 +1,7 @@
 // Copyright (c) 2024 Yamahasxviper
 
 #include "DiscordGatewayClientNative.h"
+#include "DiscordBotSubsystem.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
@@ -8,6 +9,7 @@
 #include "JsonUtilities.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "Engine/GameInstance.h"
 #include "Modules/ModuleManager.h"
 
 // Check if WebSocket headers are available at compile time
@@ -347,11 +349,11 @@ void ADiscordGatewayClientNative::OnWebSocketMessage(const FString& Message)
             }
         }
         
-        HandleGatewayEvent(OpCode, Data);
+        HandleGatewayEvent(OpCode, Data, JsonObject);
     }
 }
 
-void ADiscordGatewayClientNative::HandleGatewayEvent(int32 OpCode, const TSharedPtr<FJsonObject>& Data)
+void ADiscordGatewayClientNative::HandleGatewayEvent(int32 OpCode, const TSharedPtr<FJsonObject>& Data, const TSharedPtr<FJsonObject>& RootJsonObject)
 {
     switch (OpCode)
     {
@@ -384,22 +386,41 @@ void ADiscordGatewayClientNative::HandleGatewayEvent(int32 OpCode, const TShared
         
     case OPCODE_DISPATCH:
         // Handle various Discord events here
-        if (Data.IsValid())
+        if (Data.IsValid() && RootJsonObject.IsValid())
         {
             UE_LOG(LogDiscordGatewayNative, Log, TEXT("Dispatch event received (sequence: %d)"), SequenceNumber);
             
             // Get event type
             FString EventType;
-            if (JsonObject->HasField(TEXT("t")))
+            if (RootJsonObject->HasField(TEXT("t")))
             {
-                EventType = JsonObject->GetStringField(TEXT("t"));
+                EventType = RootJsonObject->GetStringField(TEXT("t"));
                 UE_LOG(LogDiscordGatewayNative, Log, TEXT("Event type: %s"), *EventType);
                 
-                // Handle READY event to get session ID
-                if (EventType == TEXT("READY") && Data->HasField(TEXT("session_id")))
+                // Handle READY event to get session ID and bot user ID
+                if (EventType == TEXT("READY"))
                 {
-                    SessionId = Data->GetStringField(TEXT("session_id"));
-                    UE_LOG(LogDiscordGatewayNative, Log, TEXT("Bot ready! Session ID: %s"), *SessionId);
+                    if (Data->HasField(TEXT("session_id")))
+                    {
+                        SessionId = Data->GetStringField(TEXT("session_id"));
+                        UE_LOG(LogDiscordGatewayNative, Log, TEXT("Bot ready! Session ID: %s"), *SessionId);
+                    }
+                    
+                    // Get bot user ID
+                    if (Data->HasField(TEXT("user")))
+                    {
+                        TSharedPtr<FJsonObject> UserObject = Data->GetObjectField(TEXT("user"));
+                        if (UserObject.IsValid() && UserObject->HasField(TEXT("id")))
+                        {
+                            BotUserId = UserObject->GetStringField(TEXT("id"));
+                            UE_LOG(LogDiscordGatewayNative, Log, TEXT("Bot User ID: %s"), *BotUserId);
+                        }
+                    }
+                }
+                // Handle MESSAGE_CREATE event
+                else if (EventType == TEXT("MESSAGE_CREATE"))
+                {
+                    HandleMessageCreate(Data);
                 }
             }
         }
@@ -509,5 +530,80 @@ void ADiscordGatewayClientNative::SendMessageHTTP(const FString& ChannelId, cons
     if (!Request->ProcessRequest())
     {
         UE_LOG(LogDiscordGatewayNative, Error, TEXT("Failed to send message request"));
+    }
+}
+
+void ADiscordGatewayClientNative::HandleMessageCreate(const TSharedPtr<FJsonObject>& Data)
+{
+    if (!Data.IsValid())
+    {
+        return;
+    }
+    
+    // Extract message information
+    FString ChannelId;
+    FString MessageContent;
+    FString AuthorId;
+    FString AuthorUsername;
+    bool bIsBot = false;
+    
+    if (Data->HasField(TEXT("channel_id")))
+    {
+        ChannelId = Data->GetStringField(TEXT("channel_id"));
+    }
+    
+    if (Data->HasField(TEXT("content")))
+    {
+        MessageContent = Data->GetStringField(TEXT("content"));
+    }
+    
+    // Get author information
+    if (Data->HasField(TEXT("author")))
+    {
+        TSharedPtr<FJsonObject> AuthorObject = Data->GetObjectField(TEXT("author"));
+        if (AuthorObject.IsValid())
+        {
+            if (AuthorObject->HasField(TEXT("id")))
+            {
+                AuthorId = AuthorObject->GetStringField(TEXT("id"));
+            }
+            
+            if (AuthorObject->HasField(TEXT("username")))
+            {
+                AuthorUsername = AuthorObject->GetStringField(TEXT("username"));
+            }
+            
+            if (AuthorObject->HasField(TEXT("bot")))
+            {
+                bIsBot = AuthorObject->GetBoolField(TEXT("bot"));
+            }
+        }
+    }
+    
+    // Ignore messages from bots (including our own)
+    if (bIsBot || AuthorId == BotUserId)
+    {
+        UE_LOG(LogDiscordGatewayNative, Verbose, TEXT("Ignoring bot message from %s"), *AuthorUsername);
+        return;
+    }
+    
+    // Ignore empty messages
+    if (MessageContent.IsEmpty())
+    {
+        return;
+    }
+    
+    UE_LOG(LogDiscordGatewayNative, Log, TEXT("MESSAGE_CREATE: [%s] %s: %s"), *ChannelId, *AuthorUsername, *MessageContent);
+    
+    // Forward to DiscordBotSubsystem
+    if (UWorld* World = GetWorld())
+    {
+        if (UGameInstance* GameInstance = World->GetGameInstance())
+        {
+            if (UDiscordBotSubsystem* Subsystem = GameInstance->GetSubsystem<UDiscordBotSubsystem>())
+            {
+                Subsystem->OnDiscordMessageReceived(ChannelId, AuthorUsername, MessageContent);
+            }
+        }
     }
 }

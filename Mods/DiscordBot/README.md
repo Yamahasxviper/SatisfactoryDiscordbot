@@ -29,6 +29,11 @@ Combined Intent Value: **33027** (includes baseline GUILDS + three privileged in
    - Navigate to `Mods/DiscordBot/Config/DiscordBot.ini`
    - Replace `YOUR_BOT_TOKEN_HERE` with your actual bot token
    - Set `bEnabled=true` to enable the bot
+   - **For Two-Way Chat**:
+     - Set `bEnableTwoWayChat=true`
+     - Add Discord channel IDs with `+ChatChannelId=YOUR_CHANNEL_ID`
+     - Customize sender name formats (optional)
+     - See [TWO_WAY_CHAT.md](TWO_WAY_CHAT.md) for full documentation
 
 3. **Build the Mod**
    - Build the Satisfactory project with the DiscordBot mod included
@@ -94,6 +99,12 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
 - Game Instance Subsystem for easy access
 - Automatic initialization on game start (configurable)
 - Configuration file support for bot token and settings
+- **🆕 Two-Way Chat Integration**: Relay messages between Discord and in-game chat
+  - Multiple Discord channel support
+  - Customizable sender name formats
+  - Automatic bot message filtering
+  - Color-coded messages in-game
+  - See [TWO_WAY_CHAT.md](TWO_WAY_CHAT.md) for detailed documentation
 
 ## Dependencies
 

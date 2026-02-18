@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "DiscordGatewayClient.h"
+#include "DiscordChatRelay.h"
 #include "DiscordBotSubsystem.generated.h"
 
 /**
@@ -43,11 +44,48 @@ public:
     UFUNCTION(BlueprintPure, Category = "Discord Bot")
     bool IsBotConnected() const;
 
+    /** Handle Discord message received - forwards to in-game chat */
+    void OnDiscordMessageReceived(const FString& ChannelId, const FString& Username, const FString& Message);
+
+    /** Handle in-game chat message - forwards to Discord */
+    void OnGameChatMessage(const FString& PlayerName, const FString& Message);
+
+    /** Get list of configured Discord channel IDs */
+    const TArray<FString>& GetChatChannelIds() const { return ChatChannelIds; }
+
+    /** Check if two-way chat is enabled */
+    bool IsTwoWayChatEnabled() const { return bTwoWayChatEnabled; }
+
 private:
     /** The Discord Gateway Client instance */
     UPROPERTY()
     ADiscordGatewayClient* GatewayClient;
 
+    /** Chat relay for forwarding game messages to Discord */
+    UPROPERTY()
+    UDiscordChatRelay* ChatRelay;
+
     /** Load bot token from config */
     FString LoadBotTokenFromConfig();
+
+    /** Load two-way chat configuration from config */
+    void LoadTwoWayChatConfig();
+
+    /** Format Discord username for in-game display */
+    FString FormatDiscordSender(const FString& Username) const;
+
+    /** Format in-game player name for Discord */
+    FString FormatGameSender(const FString& PlayerName) const;
+
+    /** Two-way chat enabled flag */
+    bool bTwoWayChatEnabled;
+
+    /** List of Discord channel IDs to relay chat to/from */
+    TArray<FString> ChatChannelIds;
+
+    /** Format string for Discord sender names in-game */
+    FString DiscordSenderFormat;
+
+    /** Format string for game sender names in Discord */
+    FString GameSenderFormat;
 };
