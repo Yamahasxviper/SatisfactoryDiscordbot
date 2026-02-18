@@ -88,7 +88,7 @@ C:\SML\ue\Engine\Build\BatchFiles\Build.bat FactoryEditor Win64 Development -pro
 ./ue/Engine/Build/BatchFiles/Build.sh FactoryEditor Linux Development -project="SML/FactoryGame.uproject"
 ```
 
-The default build uses both Native WebSocket (if available) and CustomWebSocket (fallback), ensuring maximum compatibility.
+The build uses CustomWebSocket plugin, ensuring maximum compatibility across all platforms.
 
 ---
 
@@ -156,20 +156,12 @@ The default build uses both Native WebSocket (if available) and CustomWebSocket 
 - Configurable notification channels
 - Custom notification messages
 
-### ✅ Dual WebSocket Implementation
-1. **Native WebSocket** (Recommended if available)
-   - Uses Unreal's built-in WebSocket module
-   - Lighter weight and better maintained
-   
-2. **Custom WebSocket** (Fallback)
-   - Platform-agnostic RFC 6455 implementation
-   - Works on Win64, Linux, Mac
-   - Only requires Sockets and OpenSSL
-
-### ✅ Diagnostic Tools
-- WebSocketModuleVerifier for runtime diagnostics
-- Comprehensive logging at all levels
-- Error messages with troubleshooting hints
+### ✅ CustomWebSocket Implementation
+**CustomWebSocket Plugin** - Production-ready implementation
+- Platform-agnostic RFC 6455 implementation
+- Works on Win64, Linux, Mac, Dedicated Servers
+- Only requires Sockets and OpenSSL (always available)
+- No dependency on Unreal's native WebSocket module
 
 ---
 
@@ -179,25 +171,20 @@ The default build uses both Native WebSocket (if available) and CustomWebSocket 
 Mods/DiscordBot/
 ├── Source/DiscordBot/
 │   ├── DiscordBot.Build.cs ✅
-│   ├── DiscordBot.Build.Native.cs ✅
 │   ├── Public/
 │   │   ├── CustomWebSocket.h ✅
 │   │   ├── DiscordBotModule.h ✅
 │   │   ├── DiscordBotSubsystem.h ✅
 │   │   ├── DiscordChatRelay.h ✅
 │   │   ├── DiscordGatewayClient.h ✅
-│   │   ├── DiscordGatewayClientCustom.h ✅ (FIXED)
-│   │   ├── DiscordGatewayClientNative.h ✅
-│   │   └── WebSocketModuleVerifier.h ✅
+│   │   └── DiscordGatewayClientCustom.h ✅
 │   └── Private/
 │       ├── CustomWebSocket.cpp ✅
 │       ├── DiscordBotModule.cpp ✅
 │       ├── DiscordBotSubsystem.cpp ✅
 │       ├── DiscordChatRelay.cpp ✅
 │       ├── DiscordGatewayClient.cpp ✅
-│       ├── DiscordGatewayClientCustom.cpp ✅ (CREATED)
-│       ├── DiscordGatewayClientNative.cpp ✅
-│       └── WebSocketModuleVerifier.cpp ✅
+│       └── DiscordGatewayClientCustom.cpp ✅
 
 Plugins/CustomWebSocket/
 ├── Source/CustomWebSocket/

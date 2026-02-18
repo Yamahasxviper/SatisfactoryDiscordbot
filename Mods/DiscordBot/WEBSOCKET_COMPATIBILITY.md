@@ -62,17 +62,17 @@ WebSocket->Connect(URL);
 WebSocket->SendText(Message);
 ```
 
-### Option 2: Native Unreal WebSocket Module (Alternative)
+### Option 2: Native Unreal WebSocket Module (Removed)
 
-**Status**: ⚠️ **Available but not used** - Alternative option
+**Status**: ❌ **Removed** - Not needed
 
 **Details:**
 - **Module**: `WebSockets` (built into Unreal Engine)
-- **Availability**: May not be available in all engine builds
-- **API**: `IWebSocket` interface
-- **Implementation**: Available in `DiscordGatewayClientNative` class (not currently used)
+- **Previous Status**: May not be available in all engine builds
+- **Removed**: Native WebSocket code has been removed from this mod
+- **Reason**: CustomWebSocket provides better cross-platform compatibility
 
-**Note**: This option is available but the mod uses CustomWebSocket plugin instead for better cross-platform compatibility.
+**Note**: The mod exclusively uses CustomWebSocket plugin for guaranteed compatibility across all platforms.
 
 ## Compatibility Matrix
 
@@ -102,8 +102,7 @@ WebSocket->SendText(Message);
 ### Implementation Status
 
 **Current Implementation**: 
-- ✅ **CustomWebSocket Plugin**: Production-ready, platform-agnostic WebSocket implementation (CURRENTLY USED)
-- ⚠️ **DiscordGatewayClientNative**: Alternative using Unreal's native WebSocket (available but not used)
+- ✅ **CustomWebSocket Plugin**: Production-ready, platform-agnostic WebSocket implementation (ONLY IMPLEMENTATION)
 - ⚠️ **DiscordGatewayClient**: Reference implementation for educational purposes only
 
 **Implementation Complete**: 

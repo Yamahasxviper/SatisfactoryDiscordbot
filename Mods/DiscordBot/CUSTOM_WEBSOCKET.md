@@ -383,9 +383,8 @@ This custom WebSocket implementation provides:
 - ✅ **Fallback option** when native WebSocket unavailable
 
 **Use this implementation when:**
-- Native WebSocket module isn't available
 - Need guaranteed cross-platform support
 - Want full control over WebSocket behavior
 - Need Discord-specific features built-in
 
-**For most users:** Try native WebSocket first (DiscordGatewayClientNative), use this custom implementation as fallback or when native isn't available.
+**This is the primary and only WebSocket implementation used by the Discord Bot mod**, providing production-ready, platform-agnostic Discord Gateway support.

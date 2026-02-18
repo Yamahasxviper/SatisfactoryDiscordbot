@@ -165,7 +165,7 @@ LogLevel=2
 
 ## Next Steps
 
-1. **Customize Events**: Modify `DiscordGatewayClientNative.cpp` to handle Discord events like messages, presence updates, etc.
+1. **Customize Events**: Modify `DiscordGatewayClientCustom.cpp` to handle Discord events like messages, presence updates, etc.
 
 2. **Add Commands**: Implement slash commands or message commands
 
