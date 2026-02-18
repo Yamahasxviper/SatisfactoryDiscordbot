@@ -23,7 +23,13 @@ void SAlpakitEditModDialog::Construct(const FArguments& InArgs, TSharedRef<IPlug
 	// Create a property view
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	EditModule.RegisterCustomClassLayout(UModMetadataObject::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FModMetadataCustomization::MakeInstance));
-	TSharedRef<IDetailsView> PropertyView = EditModule.CreateDetailView(FDetailsViewArgs(false, false, false, FDetailsViewArgs::ActorsUseNameArea, true));
+	FDetailsViewArgs DetailsViewArgs;
+	DetailsViewArgs.bAllowSearch = false;
+	DetailsViewArgs.bHideSelectionTip = false;
+	DetailsViewArgs.bLockable = false;
+	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::ActorsUseNameArea;
+	DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
+	TSharedRef<IDetailsView> PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
 	PropertyView->SetObject(MetadataObject, true);
 	PropertyView->OnFinishedChangingProperties().AddLambda([this](const FPropertyChangedEvent&){
 		UpdateGameVersionTarget();
