@@ -135,23 +135,17 @@ Intents = (1 << 0) | (1 << 1) | (1 << 8) | (1 << 15)  // 1 + 2 + 256 + 32768 = 3
 
 ## Notes
 
-### WebSocket Implementation Options ⚠️
+### WebSocket Implementation ⚠️
 
-**Two implementations are provided:**
-
-1. **DiscordGatewayClientNative** (NEW - RECOMMENDED) ✅
-   - Uses Unreal's native WebSocket module
+This mod uses the **CustomWebSocket plugin** which provides:
+   - Custom WebSocket implementation (RFC 6455 compliant)
    - **Fully compatible** with Satisfactory's custom CSS Unreal Engine 5.3.2
-   - Implements proper WebSocket protocol (what Discord requires)
+   - Platform-agnostic WebSocket support (Win64, Linux, Mac, Dedicated Servers)
    - **Production ready** with complete Discord Gateway implementation
-   - No external dependencies
+   - No dependency on Unreal's native WebSocket module
+   - Only requires Sockets and OpenSSL (always available)
 
-2. **DiscordGatewayClient** (ORIGINAL - REFERENCE ONLY) ⚠️
-   - Reference implementation showing Discord Gateway protocol structure
-   - Does NOT implement actual WebSocket connection
-   - Kept for educational purposes only
-
-**For production use with Satisfactory CSS engine: Use `DiscordGatewayClientNative`**
+> **Note:** The `DiscordGatewayClient` class in the codebase is a reference implementation showing Discord Gateway protocol structure. It does NOT implement actual WebSocket connection and is kept for educational purposes only.
 
 See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compatibility analysis.
 
@@ -163,15 +157,16 @@ See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compat
 
 ## Production Considerations
 
-The **Native WebSocket implementation is production-ready** with:
+The **CustomWebSocket plugin implementation is production-ready** with:
 
 ✅ **Implemented:**
-- Native WebSocket using Unreal's `IWebSocket` interface  
+- Custom WebSocket implementation using RFC 6455 protocol
 - Complete Discord Gateway protocol (HELLO, IDENTIFY, HEARTBEAT, DISPATCH)
 - Automatic heartbeat management
 - Event handling system
 - HTTP API integration for messages
 - Proper error handling and connection management
+- Platform-agnostic support (Win64, Linux, Mac, Dedicated Servers)
 
 📋 **Optional Enhancements:**
 
@@ -188,11 +183,12 @@ The **Native WebSocket implementation is production-ready** with:
 - Standard Unreal Engine 5.3.x
 - Unreal Engine 5.4+ (forward compatible)
 
-The Native WebSocket implementation uses Unreal's built-in `WebSockets` module which is:
-- Part of the core engine (guaranteed availability)
-- Maintained by Epic Games
+The CustomWebSocket plugin implementation:
+- Works on ALL platforms (Win64, Linux, Mac, Dedicated Servers)
+- No dependency on Unreal's WebSocket module
+- Only requires core Unreal modules (Sockets, OpenSSL)
+- Platform-independent implementation
 - Compatible with all engine customizations
-- Platform-independent (Win64, Linux, Mac)
 
 ## Quick Start
 

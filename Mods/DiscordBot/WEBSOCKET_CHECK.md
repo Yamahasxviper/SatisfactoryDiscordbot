@@ -1,8 +1,12 @@
 # WebSocket Module Not Visible? Here's How to Check
 
+> ⚠️ **NOTE**: This mod uses the **CustomWebSocket plugin** for Discord Gateway connection, NOT Unreal's native WebSocket module. This guide is for reference only if you want to check Unreal's native WebSocket availability. **The CustomWebSocket plugin does not require Unreal's WebSocket module** and works independently.
+
 ## Quick Answer
 
-If you can't see the WebSocket module in your CSS Unreal Engine 5.3.2 build, **don't panic!** The module might still be there - it's just not immediately visible.
+If you can't see the WebSocket module in your CSS Unreal Engine 5.3.2 build, **don't worry!** This mod uses the CustomWebSocket plugin which doesn't depend on Unreal's native WebSocket module.
+
+However, if you're curious about native WebSocket availability, the module might still be there - it's just not immediately visible.
 
 ## Immediate Solution: Use the Verification Tool
 
