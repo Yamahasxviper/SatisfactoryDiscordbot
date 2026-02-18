@@ -41,7 +41,8 @@
 		},
 		{
 			"Name": "CustomWebSocket",
-			"Enabled": true
+			"Enabled": true,
+			"SemVersion": "^1.0.0"
 		}
 	]
 }
