@@ -35,9 +35,16 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
 
     foreach(i = Begin ... End)
     {    
-        FStaticAcceleratedManagedSignificanceInfo* Entry = &Data[i];
+        FStaticAcceleratedManagedSignificanceInfo* uniform Entry = &Data[i];
+        
+        // Load all required data into varying variables to minimize gather operations
         const FVector3f v2 = Entry->Location;
+        const float SignificanceDistanceSquare = Entry->SignificanceDistanceSquare;
+        const float OldSignifiance = Entry->CurrentSignificance;
+        const int8 NumTickStages = Entry->NumTickStages;
+        const int8 OldCurrentTickStage = Entry->CurrentTickStage;
                 
+        // Perform calculations on local variables
         float A = square(v2.V[0] - v1.V[0]);
         float B = square(v2.V[1] - v1.V[1]);
         float C = square(v2.V[2] - v1.V[2]);
@@ -45,19 +52,19 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
         const float DistSquared = A+B+C;
 
         // > 0 is relevant
-        const float NewSignifiance = min(1.f - max((DistSquared / Entry->SignificanceDistanceSquare), 0.0f),1.0);
-        const float OldSignifiance = Entry->CurrentSignificance;
-
-        // Update values
-        Entry->CurrentSignificance = NewSignifiance; 
-            
-        Entry->bIsSignificant = NewSignifiance >= 0.01f;
-        Entry->bWasSignificant = OldSignifiance == -1.f ? -1 : OldSignifiance >= 0.01f;
+        const float NewSignifiance = min(1.f - max((DistSquared / SignificanceDistanceSquare), 0.0f),1.0);
+        const int8 NewIsSignificant = NewSignifiance >= 0.01f;
+        const int8 NewWasSignificant = OldSignifiance == -1.f ? -1 : OldSignifiance >= 0.01f;
 
         // Set tick interval.
-        const int8 NewCurrentTickStage = Entry->NumTickStages * NewSignifiance;
+        const int8 NewCurrentTickStage = NumTickStages * NewSignifiance;
+        const int8 NewDidChangeTickState = OldCurrentTickStage != NewCurrentTickStage;
 
-        Entry->bDidChangeTickState = Entry->CurrentTickStage != NewCurrentTickStage;
+        // Store all results back to struct in one place to minimize scatter operations
+        Entry->CurrentSignificance = NewSignifiance; 
+        Entry->bIsSignificant = NewIsSignificant;
+        Entry->bWasSignificant = NewWasSignificant;
+        Entry->bDidChangeTickState = NewDidChangeTickState;
         Entry->CurrentTickStage = NewCurrentTickStage;
     }
 };
