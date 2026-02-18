@@ -20,7 +20,7 @@ public class DiscordBot : ModuleRules
             "Json",
             "JsonUtilities",
             "HTTP",
-            "Sockets"
+            "WebSockets"
         });
 
         // FactoryGame and SML dependencies

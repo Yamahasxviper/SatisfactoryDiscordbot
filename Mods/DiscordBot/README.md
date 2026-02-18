@@ -97,13 +97,7 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
 
 ## Technical Details
 
-The bot uses the Discord Gateway API v10 and establishes a WebSocket connection using a fully custom WebSocket implementation. This Custom WebSocket:
-
-- ✅ **Works on ALL platforms** (Win64, Linux, Mac, Dedicated Servers)
-- ✅ **RFC 6455 compliant** WebSocket protocol
-- ✅ **TLS/SSL support** for secure wss:// connections
-- ✅ **No dependency** on Unreal's WebSocket module
-- ✅ **Platform-agnostic** using only Sockets and OpenSSL (always available)
+The bot uses the Discord Gateway API v10 and establishes a WebSocket connection with the following intents:
 
 ```
 Intents = (1 << 8) | (1 << 1) | (1 << 15)  // 256 + 2 + 32768 = 33026
@@ -114,49 +108,45 @@ Intents = (1 << 8) | (1 << 1) | (1 << 15)  // 256 + 2 + 32768 = 33026
 - OPCODE 0 (DISPATCH): Receive events
 - OPCODE 1 (HEARTBEAT): Keep connection alive
 - OPCODE 2 (IDENTIFY): Authenticate with Discord
-- OPCODE 6 (RESUME): Resume session after disconnect
-- OPCODE 7 (RECONNECT): Server requests reconnect
-- OPCODE 9 (INVALID_SESSION): Invalid session
 - OPCODE 10 (HELLO): Receive heartbeat interval
 - OPCODE 11 (HEARTBEAT_ACK): Heartbeat acknowledged
 
 ## Notes
 
-### WebSocket Implementation ✅
+### WebSocket Implementation Options ⚠️
 
-**This mod uses the Custom WebSocket implementation:**
+**Two implementations are provided:**
 
-- **DiscordGatewayClientCustom** - Uses fully custom WebSocket implementation
-  - ✅ **Platform-agnostic** - Works on Windows, Linux, Mac, and all server types
-  - ✅ **No external dependencies** - Only uses core Unreal modules (Sockets, OpenSSL)
-  - ✅ **RFC 6455 compliant** - Proper WebSocket protocol implementation
-  - ✅ **Full Discord support** - All Gateway features implemented
-  - ✅ **Production ready** - Complete with error handling and reconnection
-  - ✅ **Always available** - No dependency on Unreal's WebSocket module
+1. **DiscordGatewayClientNative** (NEW - RECOMMENDED) ✅
+   - Uses Unreal's native WebSocket module
+   - **Fully compatible** with Satisfactory's custom CSS Unreal Engine 5.3.2
+   - Implements proper WebSocket protocol (what Discord requires)
+   - **Production ready** with complete Discord Gateway implementation
+   - No external dependencies
 
-**Other implementations (NOT used):**
+2. **DiscordGatewayClient** (ORIGINAL - REFERENCE ONLY) ⚠️
+   - Reference implementation showing Discord Gateway protocol structure
+   - Does NOT implement actual WebSocket connection
+   - Kept for educational purposes only
 
-- **DiscordGatewayClientNative** - Uses Unreal's native WebSocket module (not used in this build)
-- **DiscordGatewayClient** - Reference/skeleton only (educational purposes)
+**For production use with Satisfactory CSS engine: Use `DiscordGatewayClientNative`**
 
-See [CUSTOM_WEBSOCKET.md](CUSTOM_WEBSOCKET.md) for detailed documentation on the custom implementation.
+See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compatibility analysis.
 
 ### Security & Best Practices
 
 - The bot token should be kept secure and not committed to version control
 - Make sure your Discord bot has the necessary permissions in your server
-- To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClientCustom.cpp`
+- To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClientNative.cpp`
 
 ## Production Considerations
 
-The **Custom WebSocket implementation is production-ready** with:
+The **Native WebSocket implementation is production-ready** with:
 
 ✅ **Implemented:**
-- Custom WebSocket using platform-agnostic Sockets module
-- Complete Discord Gateway protocol (HELLO, IDENTIFY, HEARTBEAT, RESUME, DISPATCH)
-- Automatic heartbeat management with ACK tracking
-- Session resumption support
-- Automatic reconnection with exponential backoff
+- Native WebSocket using Unreal's `IWebSocket` interface  
+- Complete Discord Gateway protocol (HELLO, IDENTIFY, HEARTBEAT, DISPATCH)
+- Automatic heartbeat management
 - Event handling system
 - HTTP API integration for messages
 - Proper error handling and connection management
