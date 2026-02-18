@@ -112,4 +112,45 @@ private:
 
     /** Custom bot presence message */
     FString BotPresenceMessage;
-};
+
+    /** Discord activity type (0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing) */
+    int32 BotActivityType;
+
+    /** Player count update interval in seconds */
+    float PlayerCountUpdateInterval;
+
+    /** Whether to show player count in bot presence */
+    bool bShowPlayerCount;
+
+    /** Whether to show player names instead of just count */
+    bool bShowPlayerNames;
+
+    /** Maximum number of player names to show (0 = show all) */
+    int32 MaxPlayerNamesToShow;
+
+    /** Format string for player names display */
+    FString PlayerNamesFormat;
+
+    /** Custom presence format template (overrides default behavior if set) */
+    FString CustomPresenceFormat;
+
+    /** Whether to use custom presence format */
+    bool bUseCustomPresenceFormat;
+
+    /** Timer handle for player count updates */
+    FTimerHandle PlayerCountUpdateTimerHandle;
+
+    /** Get current number of players on the server */
+    int32 GetCurrentPlayerCount() const;
+
+    /** Get list of current player names on the server */
+    TArray<FString> GetCurrentPlayerNames() const;
+
+    /** Format player names into a string for display */
+    FString FormatPlayerNames(const TArray<FString>& PlayerNames) const;
+
+    /** Build presence message from custom format template */
+    FString BuildPresenceFromCustomFormat() const;
+
+    /** Update bot presence with current player count */
+    void UpdateBotPresenceWithPlayerCount();

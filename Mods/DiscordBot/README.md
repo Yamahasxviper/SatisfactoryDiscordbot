@@ -114,6 +114,11 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
   - Separate notification channel for server events
   - Custom notification messages
   - Bot presence updates (online/offline status)
+  - **Live player count display in bot status**
+  - **Live player names display with custom formatting**
+  - **Fully customizable presence format with placeholders**
+  - Add your own custom text and order anywhere in the presence
+  - Configurable update interval for player count/names
   - Configurable notification settings
 
 ## Dependencies
@@ -186,8 +191,30 @@ ServerStartMessage=🟢 Satisfactory Server is now ONLINE!
 ; Custom message when server stops (optional)
 ServerStopMessage=🔴 Satisfactory Server is now OFFLINE!
 
-; Custom bot presence/status message (appears as "Playing <message>")
+; Custom bot presence/status message (set to ANY text you want!)
 BotPresenceMessage=Satisfactory Server
+
+; Discord activity type (0=Playing, 2=Listening to, 3=Watching, etc.)
+BotActivityType=Playing
+
+; Show player count in bot presence
+bShowPlayerCount=true
+
+; Player count update interval in seconds (default: 30.0)
+PlayerCountUpdateInterval=30.0
+
+; Show player names instead of just count (appears as "Playing <message> with Alice, Bob, Charlie")
+bShowPlayerNames=false
+
+; Maximum number of player names to show (0 = show all)
+MaxPlayerNamesToShow=10
+
+; Format string for player names display
+PlayerNamesFormat=with {names}
+
+; Custom presence format (advanced)
+bUseCustomPresenceFormat=false
+CustomPresenceFormat={message} - {playercount} {player_s} online
 ```
 
 ### Features
@@ -195,19 +222,74 @@ BotPresenceMessage=Satisfactory Server
 - **Separate Notification Channel**: Server status notifications can go to a different channel than chat messages
 - **Custom Messages**: Personalize your server start/stop messages with emojis and custom text
 - **Bot Presence Updates**: The bot's Discord status automatically changes to "online" when the server starts
-- **Custom Status Message**: Configure what appears in the bot's "Playing" status
+- **Custom Status Message**: Configure what appears in the bot's status
+- **🆕 Customizable Activity Type**: Change from "Playing" to "Watching", "Listening to", etc.
+- **🆕 Player Count Display**: The bot status automatically shows the current number of players on the server
+- **🆕 Player Names Display**: Optionally show actual player names instead of just count
+- **🆕 Customizable Name Format**: Control how player names are displayed
+- **🆕 Custom Presence Format**: Full control over presence message with placeholders
+- **🆕 Configurable Update Interval**: Control how often the player count/names are updated
 
 ### How It Works
 
 1. **On Server Start**:
    - The bot connects to Discord
    - Sends the configured `ServerStartMessage` to the notification channel
-   - Updates its presence to show as "Playing <BotPresenceMessage>"
+   - Updates its presence to show as "<ActivityType> <BotPresenceMessage> (X players)" (e.g., "Watching Satisfactory Server (3 players)")
    - Status indicator shows as 🟢 online
+   - Starts periodic player count/names updates based on `PlayerCountUpdateInterval`
 
 2. **On Server Stop**:
    - Sends the configured `ServerStopMessage` to the notification channel
+   - Stops player count updates
    - Bot disconnects and status shows as offline
+
+3. **Presence Message Customization**:
+   - Set `BotPresenceMessage` to ANY text you want after the activity type
+   - This is the main message that appears in Discord
+   - Examples:
+     - `BotPresenceMessage=Satisfactory Server` → "Playing Satisfactory Server"
+     - `BotPresenceMessage=Satisfactory Playing Server` → "Playing Satisfactory Playing Server"
+     - `BotPresenceMessage=My Custom Factory` → "Playing My Custom Factory"
+     - `BotPresenceMessage=the factory grow` → "Playing the factory grow"
+   - Works with all activity types and features
+
+4. **Activity Type Customization**:
+   - Set `BotActivityType` to change the Discord activity prefix
+   - Supported types:
+     - `0` or `"Playing"` → "Playing Satisfactory Server"
+     - `1` or `"Streaming"` → "Streaming Satisfactory Server"
+     - `2` or `"Listening"` → "Listening to Satisfactory Server"
+     - `3` or `"Watching"` → "Watching Satisfactory Server"
+     - `5` or `"Competing"` → "Competing in Satisfactory Server"
+   - Works with all player count/names features
+
+5. **Player Count Updates**:
+   - The bot automatically updates its presence every `PlayerCountUpdateInterval` seconds
+   - Shows current player count in format: "<ActivityType> <BotPresenceMessage> (X players)"
+   - Singular "player" when count is 1, plural "players" otherwise
+   - Set `bShowPlayerCount=false` to disable player count display
+
+6. **Player Names Display**:
+   - Enable `bShowPlayerNames=true` to show actual player names instead of just count
+   - Use `PlayerNamesFormat` to customize how names appear (e.g., "with {names}", "- {names} online")
+   - Set `MaxPlayerNamesToShow` to limit how many names are shown (remaining shown as "and X more")
+   - Player names take priority over player count if both are enabled
+   - Available format placeholders: `{names}` for the formatted list, `{count}` for the total count
+
+7. **Custom Presence Format** (Advanced):
+   - Enable `bUseCustomPresenceFormat=true` for full control over the presence message
+   - Takes priority over all other presence settings
+   - Use placeholders to build your custom format:
+     - `{message}` or `{servername}` - Your server name
+     - `{playercount}` or `{count}` - Current number of players
+     - `{names}` or `{playernames}` - Comma-separated list of player names
+     - `{player_s}` - Automatically "player" or "players" based on count
+   - Examples:
+     - `"{message} - {playercount} {player_s} online"` → "Satisfactory Server - 3 players online"
+     - `"Playing with {names}"` → "Playing with Alice, Bob and Charlie"
+     - `"🎮 {message} | {names} ({playercount})"` → "🎮 Satisfactory Server | Alice, Bob (2)"
+   - You can add any custom text, emojis, or formatting you want!
 
 ### Getting Channel IDs
 
@@ -234,7 +316,52 @@ ChatChannelId=987654321098765432
 ServerStartMessage=🎮 The factory is now open for business!
 ServerStopMessage=🛑 The factory has shut down for maintenance
 BotPresenceMessage=Factory Simulator 2024
+
+; Show player count (default)
+bShowPlayerCount=true
+PlayerCountUpdateInterval=30.0
+
+; OR show player names instead
+bShowPlayerNames=false
+MaxPlayerNamesToShow=10
+PlayerNamesFormat=with {names}
+
+; OR use custom format for full control (advanced)
+bUseCustomPresenceFormat=false
+CustomPresenceFormat={message} - {playercount} {player_s}: {names}
 ```
+
+**Example Presence Messages:**
+
+**Customizing the message text (BotPresenceMessage):**
+- `BotPresenceMessage=Satisfactory Server` → `"Playing Satisfactory Server"`
+- `BotPresenceMessage=Satisfactory Playing Server` → `"Playing Satisfactory Playing Server"`
+- `BotPresenceMessage=My Custom Factory` → `"Playing My Custom Factory"`
+- `BotPresenceMessage=the factory grow` → `"Playing the factory grow"`
+
+**With different activity types:**
+- `BotActivityType=Playing`: `"Playing Factory Simulator 2024 (3 players)"`
+- `BotActivityType=Watching`: `"Watching Factory Simulator 2024 (3 players)"`
+- `BotActivityType=Listening`: `"Listening to Factory Simulator 2024 (3 players)"`
+- `BotActivityType=Competing`: `"Competing in Factory Simulator 2024 (3 players)"`
+
+**Default modes:**
+- With `bShowPlayerCount=true`: `"Playing Factory Simulator 2024 (3 players)"`
+- With `bShowPlayerNames=true`: `"Playing Factory Simulator 2024 with Alice, Bob and Charlie"`
+- With `bShowPlayerNames=true` and many players: `"Playing Factory Simulator 2024 with Alice, Bob, Charlie and 7 more"`
+- With custom format `PlayerNamesFormat=- {names} online`: `"Playing Factory Simulator 2024 - Alice, Bob online"`
+
+**Custom format examples** (with `bUseCustomPresenceFormat=true`):
+- `CustomPresenceFormat={message} - {playercount} {player_s} online`
+  → `"Playing Factory Simulator 2024 - 3 players online"`
+- `CustomPresenceFormat={playercount}/{maxplayers} on {message}`
+  → `"Playing 3/10 on Factory Simulator 2024"`
+- `CustomPresenceFormat=🎮 {message} | {names}`
+  → `"Playing 🎮 Factory Simulator 2024 | Alice, Bob, Charlie"`
+- `CustomPresenceFormat={message} - {names} ({playercount})`
+  → `"Playing Factory Simulator 2024 - Alice, Bob (2)"`
+- `CustomPresenceFormat=My Custom Server - {playercount} {player_s}: {names}`
+  → `"Playing My Custom Server - 3 players: Alice, Bob, Charlie"`
 
 
 ## Production Considerations

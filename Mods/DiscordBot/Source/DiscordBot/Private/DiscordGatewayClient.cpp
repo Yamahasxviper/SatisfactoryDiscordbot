@@ -310,7 +310,7 @@ void ADiscordGatewayClient::HandleGatewayEvent(int32 OpCode, const TSharedPtr<FJ
     }
 }
 
-void ADiscordGatewayClient::UpdatePresence(const FString& StatusMessage)
+void ADiscordGatewayClient::UpdatePresence(const FString& StatusMessage, int32 ActivityType)
 {
     if (!bIsConnected)
     {
@@ -318,7 +318,7 @@ void ADiscordGatewayClient::UpdatePresence(const FString& StatusMessage)
         return;
     }
     
-    UE_LOG(LogDiscordGateway, Log, TEXT("Updating bot presence: %s"), *StatusMessage);
+    UE_LOG(LogDiscordGateway, Log, TEXT("Updating bot presence: %s (Type: %d)"), *StatusMessage, ActivityType);
     
     // Note: This is a stub implementation for the base class
     // The actual WebSocket sending should be implemented in derived classes

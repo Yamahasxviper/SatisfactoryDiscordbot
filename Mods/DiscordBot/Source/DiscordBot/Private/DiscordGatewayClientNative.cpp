@@ -622,7 +622,7 @@ void ADiscordGatewayClientNative::HandleMessageCreate(const TSharedPtr<FJsonObje
     }
 }
 
-void ADiscordGatewayClientNative::UpdatePresence(const FString& StatusMessage)
+void ADiscordGatewayClientNative::UpdatePresence(const FString& StatusMessage, int32 ActivityType)
 {
 #if WEBSOCKETS_AVAILABLE
     if (!bIsConnected || !WebSocket.IsValid())
@@ -631,7 +631,14 @@ void ADiscordGatewayClientNative::UpdatePresence(const FString& StatusMessage)
         return;
     }
     
-    UE_LOG(LogDiscordGatewayNative, Log, TEXT("Updating bot presence: %s"), *StatusMessage);
+    // Validate activity type (0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing)
+    if (ActivityType < 0 || (ActivityType > 3 && ActivityType != 5))
+    {
+        UE_LOG(LogDiscordGatewayNative, Warning, TEXT("Invalid activity type %d, defaulting to 0 (Playing)"), ActivityType);
+        ActivityType = 0;
+    }
+    
+    UE_LOG(LogDiscordGatewayNative, Log, TEXT("Updating bot presence: %s (Type: %d)"), *StatusMessage, ActivityType);
     
     // Build presence update payload (opcode 3)
     TSharedPtr<FJsonObject> PresencePayload = MakeShareable(new FJsonObject());
@@ -647,7 +654,7 @@ void ADiscordGatewayClientNative::UpdatePresence(const FString& StatusMessage)
     TArray<TSharedPtr<FJsonValue>> Activities;
     TSharedPtr<FJsonObject> Activity = MakeShareable(new FJsonObject());
     Activity->SetStringField(TEXT("name"), StatusMessage);
-    Activity->SetNumberField(TEXT("type"), 0); // 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching, 5 = Competing
+    Activity->SetNumberField(TEXT("type"), ActivityType); // 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching, 5 = Competing
     Activities.Add(MakeShareable(new FJsonValueObject(Activity)));
     
     Data->SetArrayField(TEXT("activities"), Activities);
