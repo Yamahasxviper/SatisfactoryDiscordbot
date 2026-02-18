@@ -6,6 +6,8 @@
 #include "Logging/LogMacros.h"
 #include "FGChatManager.h"
 #include "EngineUtils.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBotSubsystem, Log, All);
 
