@@ -223,8 +223,23 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
         }
         
         // Load sender format strings
-        GConfig->GetString(TEXT("DiscordBot"), TEXT("DiscordSenderFormat"), DiscordSenderFormat, GGameIni);
-        GConfig->GetString(TEXT("DiscordBot"), TEXT("GameSenderFormat"), GameSenderFormat, GGameIni);
+        FString LoadedDiscordFormat;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("DiscordSenderFormat"), LoadedDiscordFormat, GGameIni))
+        {
+            if (!LoadedDiscordFormat.IsEmpty())
+            {
+                DiscordSenderFormat = LoadedDiscordFormat;
+            }
+        }
+        
+        FString LoadedGameFormat;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("GameSenderFormat"), LoadedGameFormat, GGameIni))
+        {
+            if (!LoadedGameFormat.IsEmpty())
+            {
+                GameSenderFormat = LoadedGameFormat;
+            }
+        }
         
         if (bTwoWayChatEnabled)
         {
