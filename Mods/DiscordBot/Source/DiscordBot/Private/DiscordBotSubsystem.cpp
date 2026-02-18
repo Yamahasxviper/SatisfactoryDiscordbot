@@ -27,7 +27,9 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     bool bEnabled = false;
     if (GConfig)
     {
-        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnabled"), bEnabled, GGameIni);
+        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
+        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnabled"), bEnabled, ConfigFilename);
     }
     
     if (bEnabled)
@@ -166,7 +168,9 @@ FString UDiscordBotSubsystem::LoadBotTokenFromConfig()
     
     if (GConfig)
     {
-        GConfig->GetString(TEXT("DiscordBot"), TEXT("BotToken"), BotToken, GGameIni);
+        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
+        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        GConfig->GetString(TEXT("DiscordBot"), TEXT("BotToken"), BotToken, ConfigFilename);
     }
     
     return BotToken;
@@ -181,13 +185,16 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
     
     if (GConfig)
     {
+        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
+        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        
         // Load two-way chat enabled flag
-        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableTwoWayChat"), bTwoWayChatEnabled, GGameIni);
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableTwoWayChat"), bTwoWayChatEnabled, ConfigFilename);
         
         // Load Discord channel IDs
         // Support both comma-separated format (ChatChannelId=123,456,789) and array format (+ChatChannelId=123)
         FString CommaSeparatedChannels;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ChatChannelId"), CommaSeparatedChannels, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ChatChannelId"), CommaSeparatedChannels, ConfigFilename))
         {
             // Parse comma-separated channel IDs
             TArray<FString> ParsedChannels;
@@ -209,7 +216,7 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
         
         // Also try loading array format for backward compatibility
         TArray<FString> ArrayChannels;
-        GConfig->GetArray(TEXT("DiscordBot"), TEXT("ChatChannelId"), ArrayChannels, GGameIni);
+        GConfig->GetArray(TEXT("DiscordBot"), TEXT("ChatChannelId"), ArrayChannels, ConfigFilename);
         
         // Add array channels if not already present (avoid duplicates)
         for (const FString& ChannelId : ArrayChannels)
@@ -226,7 +233,7 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
         
         // Load sender format strings
         FString LoadedDiscordFormat;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("DiscordSenderFormat"), LoadedDiscordFormat, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("DiscordSenderFormat"), LoadedDiscordFormat, ConfigFilename))
         {
             if (!LoadedDiscordFormat.IsEmpty())
             {
@@ -235,7 +242,7 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
         }
         
         FString LoadedGameFormat;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("GameSenderFormat"), LoadedGameFormat, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("GameSenderFormat"), LoadedGameFormat, ConfigFilename))
         {
             if (!LoadedGameFormat.IsEmpty())
             {
@@ -331,11 +338,14 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
     
     if (GConfig)
     {
+        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
+        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        
         // Load server notification enabled flag
-        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableServerNotifications"), bServerNotificationsEnabled, GGameIni);
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableServerNotifications"), bServerNotificationsEnabled, ConfigFilename);
         
         // Load notification channel ID
-        GConfig->GetString(TEXT("DiscordBot"), TEXT("NotificationChannelId"), NotificationChannelId, GGameIni);
+        GConfig->GetString(TEXT("DiscordBot"), TEXT("NotificationChannelId"), NotificationChannelId, ConfigFilename);
         
         // Clear notification channel ID if it's a placeholder value
         if (NotificationChannelId == TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE") || 
@@ -346,7 +356,7 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         
         // Load custom messages
         FString CustomStartMessage;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ServerStartMessage"), CustomStartMessage, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ServerStartMessage"), CustomStartMessage, ConfigFilename))
         {
             if (!CustomStartMessage.IsEmpty())
             {
@@ -355,7 +365,7 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         }
         
         FString CustomStopMessage;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ServerStopMessage"), CustomStopMessage, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ServerStopMessage"), CustomStopMessage, ConfigFilename))
         {
             if (!CustomStopMessage.IsEmpty())
             {
@@ -365,7 +375,7 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         
         // Load bot presence message
         FString CustomPresenceMessage;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("BotPresenceMessage"), CustomPresenceMessage, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("BotPresenceMessage"), CustomPresenceMessage, ConfigFilename))
         {
             if (!CustomPresenceMessage.IsEmpty())
             {
@@ -375,7 +385,7 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         
         // Load bot activity type
         FString ActivityTypeStr;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("BotActivityType"), ActivityTypeStr, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("BotActivityType"), ActivityTypeStr, ConfigFilename))
         {
             // Support both string names and numeric values
             ActivityTypeStr = ActivityTypeStr.TrimStartAndEnd().ToLower();
@@ -412,15 +422,15 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         }
         
         // Load player count settings
-        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bShowPlayerCount"), bShowPlayerCount, GGameIni);
-        GConfig->GetFloat(TEXT("DiscordBot"), TEXT("PlayerCountUpdateInterval"), PlayerCountUpdateInterval, GGameIni);
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bShowPlayerCount"), bShowPlayerCount, ConfigFilename);
+        GConfig->GetFloat(TEXT("DiscordBot"), TEXT("PlayerCountUpdateInterval"), PlayerCountUpdateInterval, ConfigFilename);
         
         // Load player names settings
-        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bShowPlayerNames"), bShowPlayerNames, GGameIni);
-        GConfig->GetInt(TEXT("DiscordBot"), TEXT("MaxPlayerNamesToShow"), MaxPlayerNamesToShow, GGameIni);
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bShowPlayerNames"), bShowPlayerNames, ConfigFilename);
+        GConfig->GetInt(TEXT("DiscordBot"), TEXT("MaxPlayerNamesToShow"), MaxPlayerNamesToShow, ConfigFilename);
         
         FString CustomNamesFormat;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("PlayerNamesFormat"), CustomNamesFormat, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("PlayerNamesFormat"), CustomNamesFormat, ConfigFilename))
         {
             if (!CustomNamesFormat.IsEmpty())
             {
@@ -429,9 +439,9 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
         }
         
         // Load custom presence format
-        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bUseCustomPresenceFormat"), bUseCustomPresenceFormat, GGameIni);
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bUseCustomPresenceFormat"), bUseCustomPresenceFormat, ConfigFilename);
         FString CustomFormat;
-        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("CustomPresenceFormat"), CustomFormat, GGameIni))
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("CustomPresenceFormat"), CustomFormat, ConfigFilename))
         {
             if (!CustomFormat.IsEmpty())
             {

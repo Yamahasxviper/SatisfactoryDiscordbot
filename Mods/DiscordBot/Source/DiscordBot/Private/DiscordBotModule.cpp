@@ -22,7 +22,9 @@ void FDiscordBotModule::StartupModule()
     // Try to load from config first
     if (GConfig)
     {
-        GConfig->GetString(TEXT("DiscordBot"), TEXT("ErrorLogDirectory"), LogDirectory, GGameIni);
+        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
+        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        GConfig->GetString(TEXT("DiscordBot"), TEXT("ErrorLogDirectory"), LogDirectory, ConfigFilename);
     }
     
     // If not configured, use default location in the mod's directory
