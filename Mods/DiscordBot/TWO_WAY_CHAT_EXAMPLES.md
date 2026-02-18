@@ -15,14 +15,14 @@ LogLevel=2
 bEnableTwoWayChat=true
 
 ; Single Discord channel
-+ChatChannelId=1234567890123456789
+ChatChannelId=1234567890123456789
 
 ; Simple sender formats
 DiscordSenderFormat=[Discord] {username}
 GameSenderFormat={playername}
 ```
 
-## Multi-Channel Configuration
+## Multi-Channel Configuration (Comma-Separated - Recommended)
 
 ```ini
 [DiscordBot]
@@ -34,10 +34,52 @@ LogLevel=2
 ; Enable two-way chat
 bEnableTwoWayChat=true
 
-; Multiple Discord channels
+; Multiple Discord channels (comma-separated)
+ChatChannelId=1234567890123456789,9876543210987654321,5555555555555555555
+
+; Simple sender formats
+DiscordSenderFormat=[Discord] {username}
+GameSenderFormat={playername}
+```
+
+## Multi-Channel Configuration (Array Format - Backward Compatible)
+
+```ini
+[DiscordBot]
+BotToken=YOUR_BOT_TOKEN_HERE
+GatewayURL=wss://gateway.discord.gg
+bEnabled=true
+LogLevel=2
+
+; Enable two-way chat
+bEnableTwoWayChat=true
+
+; Multiple Discord channels (array format)
 +ChatChannelId=1234567890123456789
 +ChatChannelId=9876543210987654321
 +ChatChannelId=5555555555555555555
+
+; Simple sender formats
+DiscordSenderFormat=[Discord] {username}
+GameSenderFormat={playername}
+```
+
+## Multi-Channel Configuration (Mixed Format)
+
+```ini
+[DiscordBot]
+BotToken=YOUR_BOT_TOKEN_HERE
+GatewayURL=wss://gateway.discord.gg
+bEnabled=true
+LogLevel=2
+
+; Enable two-way chat
+bEnableTwoWayChat=true
+
+; Multiple Discord channels (both formats work together)
+ChatChannelId=1234567890123456789,9876543210987654321
++ChatChannelId=5555555555555555555
++ChatChannelId=7777777777777777777
 
 ; Simple sender formats
 DiscordSenderFormat=[Discord] {username}
@@ -57,7 +99,7 @@ LogLevel=2
 bEnableTwoWayChat=true
 
 ; Discord channels
-+ChatChannelId=1234567890123456789
+ChatChannelId=1234567890123456789
 
 ; Custom sender formats
 DiscordSenderFormat=💬 {username}
@@ -77,7 +119,7 @@ LogLevel=2
 bEnableTwoWayChat=true
 
 ; Main chat channel
-+ChatChannelId=1234567890123456789
+ChatChannelId=1234567890123456789
 
 ; Professional formatting
 DiscordSenderFormat=[D] {username}
@@ -105,7 +147,10 @@ To get a Discord channel ID:
 
 3. Paste the ID into your config file:
    ```ini
-   +ChatChannelId=PASTE_HERE
+   ChatChannelId=PASTE_HERE
+   # Or for multiple channels:
+   ChatChannelId=PASTE_HERE,ANOTHER_ID,THIRD_ID
+   ```
    ```
 
 ## Testing Your Configuration
@@ -168,7 +213,9 @@ This will show messages as if they're from the same system.
 
 ## Notes
 
-- Channel IDs must start with `+ChatChannelId=`
+- Channel IDs can be specified using comma-separated format: `ChatChannelId=123,456,789`
+- Or using array format: `+ChatChannelId=123` (for backward compatibility)
+- Both formats can be used together
 - You can add as many channels as you want
 - All configured channels will receive game messages
 - All configured channels will relay to game

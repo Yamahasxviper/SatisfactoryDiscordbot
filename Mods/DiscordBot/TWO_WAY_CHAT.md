@@ -39,9 +39,17 @@ LogLevel=2
 bEnableTwoWayChat=true
 
 ; Discord Channel IDs for chat relay (can specify multiple channels)
-; Add multiple entries with +ChatChannelId= for multiple channels
-; Example: +ChatChannelId=123456789012345678
-+ChatChannelId=YOUR_CHANNEL_ID_HERE
+; 
+; Format 1: Comma-separated list (simpler for multiple channels)
+; ChatChannelId=123456789012345678,987654321098765432,555555555555555555
+;
+; Format 2: Array format (add multiple entries with +ChatChannelId=)
+; +ChatChannelId=123456789012345678
+; +ChatChannelId=987654321098765432
+;
+; Both formats are supported and can be used together
+; Example (comma-separated):
+ChatChannelId=YOUR_CHANNEL_ID_HERE
 
 ; Custom sender name format for Discord messages in-game
 ; Available placeholders: {username}, {discriminator}
@@ -61,13 +69,24 @@ GameSenderFormat={playername}
 - **Description**: Enable or disable the two-way chat integration
 
 #### `ChatChannelId`
-- **Type**: Array of Strings
+- **Type**: String (comma-separated) or Array
 - **Default**: Empty
-- **Description**: Discord channel IDs to relay messages to/from. Use `+ChatChannelId=` to add multiple channels.
-- **Example**:
+- **Description**: Discord channel IDs to relay messages to/from. Supports two formats:
+  - **Comma-separated**: `ChatChannelId=123,456,789` (simpler for multiple channels)
+  - **Array format**: `+ChatChannelId=` for each channel (backward compatible)
+  - Both formats can be used together
+- **Examples**:
   ```ini
+  # Comma-separated (recommended for multiple channels)
+  ChatChannelId=1234567890123456789,9876543210987654321
+  
+  # Array format (backward compatible)
   +ChatChannelId=1234567890123456789
   +ChatChannelId=9876543210987654321
+  
+  # Both formats together (will merge without duplicates)
+  ChatChannelId=1234567890123456789,9876543210987654321
+  +ChatChannelId=5555555555555555555
   ```
 
 #### `DiscordSenderFormat`

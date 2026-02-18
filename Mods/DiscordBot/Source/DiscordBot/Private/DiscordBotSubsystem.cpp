@@ -163,7 +163,37 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
         GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableTwoWayChat"), bTwoWayChatEnabled, GGameIni);
         
         // Load Discord channel IDs
-        GConfig->GetArray(TEXT("DiscordBot"), TEXT("ChatChannelId"), ChatChannelIds, GGameIni);
+        // Support both comma-separated format (ChatChannelId=123,456,789) and array format (+ChatChannelId=123)
+        FString CommaSeparatedChannels;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ChatChannelId"), CommaSeparatedChannels, GGameIni))
+        {
+            // Parse comma-separated channel IDs
+            TArray<FString> ParsedChannels;
+            CommaSeparatedChannels.ParseIntoArray(ParsedChannels, TEXT(","), true);
+            
+            for (FString& ChannelId : ParsedChannels)
+            {
+                // Trim whitespace from each channel ID
+                ChannelId.TrimStartAndEndInline();
+                if (!ChannelId.IsEmpty())
+                {
+                    ChatChannelIds.Add(ChannelId);
+                }
+            }
+        }
+        
+        // Also try loading array format for backward compatibility
+        TArray<FString> ArrayChannels;
+        GConfig->GetArray(TEXT("DiscordBot"), TEXT("ChatChannelId"), ArrayChannels, GGameIni);
+        
+        // Add array channels if not already present (avoid duplicates)
+        for (const FString& ChannelId : ArrayChannels)
+        {
+            if (!ChatChannelIds.Contains(ChannelId) && !ChannelId.IsEmpty())
+            {
+                ChatChannelIds.Add(ChannelId);
+            }
+        }
         
         // Load sender format strings
         GConfig->GetString(TEXT("DiscordBot"), TEXT("DiscordSenderFormat"), DiscordSenderFormat, GGameIni);
