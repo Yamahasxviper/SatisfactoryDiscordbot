@@ -35,9 +35,14 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
 
     foreach(i = Begin ... End)
     {    
-        FStaticAcceleratedManagedSignificanceInfo* Entry = &Data[i];
-        const FVector3f v2 = Entry->Location;
+        // Load all required struct members into local variables to minimize gather operations
+        const FVector3f v2 = Data[i].Location;
+        const float SignificanceDistanceSquare = Data[i].SignificanceDistanceSquare;
+        const int8 NumTickStages = Data[i].NumTickStages;
+        const float OldSignifiance = Data[i].CurrentSignificance;
+        const int8 OldCurrentTickStage = Data[i].CurrentTickStage;
                 
+        // Perform all computations on local variables
         float A = square(v2.V[0] - v1.V[0]);
         float B = square(v2.V[1] - v1.V[1]);
         float C = square(v2.V[2] - v1.V[2]);
@@ -45,19 +50,20 @@ export void ComputeSignififance( const uniform FVector3f ViewPoints[],
         const float DistSquared = A+B+C;
 
         // > 0 is relevant
-        const float NewSignifiance = min(1.f - max((DistSquared / Entry->SignificanceDistanceSquare), 0.0f),1.0);
-        const float OldSignifiance = Entry->CurrentSignificance;
+        const float NewSignifiance = min(1.f - max((DistSquared / SignificanceDistanceSquare), 0.0f),1.0);
 
-        // Update values
-        Entry->CurrentSignificance = NewSignifiance; 
-            
-        Entry->bIsSignificant = NewSignifiance >= 0.01f;
-        Entry->bWasSignificant = OldSignifiance == -1.f ? -1 : OldSignifiance >= 0.01f;
+        // Compute all new values
+        const float NewCurrentSignificance = NewSignifiance;
+        const int8 NewbIsSignificant = NewSignifiance >= 0.01f;
+        const int8 NewbWasSignificant = OldSignifiance == -1.f ? -1 : OldSignifiance >= 0.01f;
+        const int8 NewCurrentTickStage = NumTickStages * NewSignifiance;
+        const int8 NewbDidChangeTickState = OldCurrentTickStage != NewCurrentTickStage;
 
-        // Set tick interval.
-        const int8 NewCurrentTickStage = Entry->NumTickStages * NewSignifiance;
-
-        Entry->bDidChangeTickState = Entry->CurrentTickStage != NewCurrentTickStage;
-        Entry->CurrentTickStage = NewCurrentTickStage;
+        // Write all values back in one batch to minimize scatter operations
+        Data[i].CurrentSignificance = NewCurrentSignificance; 
+        Data[i].bIsSignificant = NewbIsSignificant;
+        Data[i].bWasSignificant = NewbWasSignificant;
+        Data[i].CurrentTickStage = NewCurrentTickStage;
+        Data[i].bDidChangeTickState = NewbDidChangeTickState;
     }
 };
