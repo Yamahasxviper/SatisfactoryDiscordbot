@@ -128,6 +128,12 @@ private:
     /** Format string for player names display */
     FString PlayerNamesFormat;
 
+    /** Custom presence format template (overrides default behavior if set) */
+    FString CustomPresenceFormat;
+
+    /** Whether to use custom presence format */
+    bool bUseCustomPresenceFormat;
+
     /** Timer handle for player count updates */
     FTimerHandle PlayerCountUpdateTimerHandle;
 
@@ -139,6 +145,9 @@ private:
 
     /** Format player names into a string for display */
     FString FormatPlayerNames(const TArray<FString>& PlayerNames) const;
+
+    /** Build presence message from custom format template */
+    FString BuildPresenceFromCustomFormat() const;
 
     /** Update bot presence with current player count */
     void UpdateBotPresenceWithPlayerCount();

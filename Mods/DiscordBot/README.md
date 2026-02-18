@@ -116,6 +116,8 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
   - Bot presence updates (online/offline status)
   - **Live player count display in bot status**
   - **Live player names display with custom formatting**
+  - **Fully customizable presence format with placeholders**
+  - Add your own custom text and order anywhere in the presence
   - Configurable update interval for player count/names
   - Configurable notification settings
 
@@ -206,6 +208,10 @@ MaxPlayerNamesToShow=10
 
 ; Format string for player names display
 PlayerNamesFormat=with {names}
+
+; Custom presence format (advanced)
+bUseCustomPresenceFormat=false
+CustomPresenceFormat={message} - {playercount} {player_s} online
 ```
 
 ### Features
@@ -217,6 +223,7 @@ PlayerNamesFormat=with {names}
 - **🆕 Player Count Display**: The bot status automatically shows the current number of players on the server
 - **🆕 Player Names Display**: Optionally show actual player names instead of just count
 - **🆕 Customizable Name Format**: Control how player names are displayed
+- **🆕 Custom Presence Format**: Full control over presence message with placeholders
 - **🆕 Configurable Update Interval**: Control how often the player count/names are updated
 
 ### How It Works
@@ -245,6 +252,20 @@ PlayerNamesFormat=with {names}
    - Set `MaxPlayerNamesToShow` to limit how many names are shown (remaining shown as "and X more")
    - Player names take priority over player count if both are enabled
    - Available format placeholders: `{names}` for the formatted list, `{count}` for the total count
+
+5. **Custom Presence Format** (Advanced):
+   - Enable `bUseCustomPresenceFormat=true` for full control over the presence message
+   - Takes priority over all other presence settings
+   - Use placeholders to build your custom format:
+     - `{message}` or `{servername}` - Your server name
+     - `{playercount}` or `{count}` - Current number of players
+     - `{names}` or `{playernames}` - Comma-separated list of player names
+     - `{player_s}` - Automatically "player" or "players" based on count
+   - Examples:
+     - `"{message} - {playercount} {player_s} online"` → "Satisfactory Server - 3 players online"
+     - `"Playing with {names}"` → "Playing with Alice, Bob and Charlie"
+     - `"🎮 {message} | {names} ({playercount})"` → "🎮 Satisfactory Server | Alice, Bob (2)"
+   - You can add any custom text, emojis, or formatting you want!
 
 ### Getting Channel IDs
 
@@ -280,13 +301,31 @@ PlayerCountUpdateInterval=30.0
 bShowPlayerNames=false
 MaxPlayerNamesToShow=10
 PlayerNamesFormat=with {names}
+
+; OR use custom format for full control (advanced)
+bUseCustomPresenceFormat=false
+CustomPresenceFormat={message} - {playercount} {player_s}: {names}
 ```
 
 **Example Presence Messages:**
+
+**Default modes:**
 - With `bShowPlayerCount=true`: `"Playing Factory Simulator 2024 (3 players)"`
 - With `bShowPlayerNames=true`: `"Playing Factory Simulator 2024 with Alice, Bob and Charlie"`
 - With `bShowPlayerNames=true` and many players: `"Playing Factory Simulator 2024 with Alice, Bob, Charlie and 7 more"`
 - With custom format `PlayerNamesFormat=- {names} online`: `"Playing Factory Simulator 2024 - Alice, Bob online"`
+
+**Custom format examples** (with `bUseCustomPresenceFormat=true`):
+- `CustomPresenceFormat={message} - {playercount} {player_s} online`
+  → `"Playing Factory Simulator 2024 - 3 players online"`
+- `CustomPresenceFormat={playercount}/{maxplayers} on {message}`
+  → `"Playing 3/10 on Factory Simulator 2024"`
+- `CustomPresenceFormat=🎮 {message} | {names}`
+  → `"Playing 🎮 Factory Simulator 2024 | Alice, Bob, Charlie"`
+- `CustomPresenceFormat={message} - {names} ({playercount})`
+  → `"Playing Factory Simulator 2024 - Alice, Bob (2)"`
+- `CustomPresenceFormat=My Custom Server - {playercount} {player_s}: {names}`
+  → `"Playing My Custom Server - 3 players: Alice, Bob, Charlie"`
 
 
 ## Production Considerations
