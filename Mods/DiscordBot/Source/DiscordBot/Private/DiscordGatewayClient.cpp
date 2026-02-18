@@ -309,3 +309,19 @@ void ADiscordGatewayClient::HandleGatewayEvent(int32 OpCode, const TSharedPtr<FJ
         break;
     }
 }
+
+void ADiscordGatewayClient::UpdatePresence(const FString& StatusMessage)
+{
+    if (!bIsConnected)
+    {
+        UE_LOG(LogDiscordGateway, Warning, TEXT("Cannot update presence: Bot not connected"));
+        return;
+    }
+    
+    UE_LOG(LogDiscordGateway, Log, TEXT("Updating bot presence: %s"), *StatusMessage);
+    
+    // Note: This is a stub implementation for the base class
+    // The actual WebSocket sending should be implemented in derived classes
+    // (DiscordGatewayClientNative or DiscordGatewayClientCustom)
+    // The presence update uses Gateway opcode 3 (PRESENCE_UPDATE)
+}

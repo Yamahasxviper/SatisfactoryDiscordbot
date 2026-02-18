@@ -70,6 +70,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Discord")
     void SetIntents(int32 CustomIntents) { Intents = CustomIntents; }
 
+    /** Update bot presence/status */
+    UFUNCTION(BlueprintCallable, Category = "Discord")
+    void UpdatePresence(const FString& StatusMessage);
+
 protected:
     /** Discord bot token */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Discord")

@@ -18,6 +18,9 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     // Load two-way chat configuration
     LoadTwoWayChatConfig();
     
+    // Load server notification configuration
+    LoadServerNotificationConfig();
+    
     // Try to load config and auto-connect if enabled
     bool bEnabled = false;
     if (GConfig)
@@ -49,6 +52,14 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
                         UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot initialize chat relay: ChatManager not found"));
                     }
                 }
+                
+                // Send server start notification after bot is ready
+                // Add a small delay to ensure bot is fully connected
+                FTimerHandle NotificationTimerHandle;
+                GetWorld()->GetTimerManager().SetTimer(NotificationTimerHandle, [this]()
+                {
+                    SendServerStartNotification();
+                }, 2.0f, false); // 2 second delay
             });
         }
         else
@@ -60,6 +71,9 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UDiscordBotSubsystem::Deinitialize()
 {
+    // Send server stop notification before disconnecting
+    SendServerStopNotification();
+    
     // Deinitialize chat relay
     if (ChatRelay)
     {
@@ -268,6 +282,117 @@ void UDiscordBotSubsystem::OnGameChatMessage(const FString& PlayerName, const FS
     
     UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Game message relayed to Discord: %s"), *DiscordMessage);
 }
+
+void UDiscordBotSubsystem::LoadServerNotificationConfig()
+{
+    bServerNotificationsEnabled = true;
+    NotificationChannelId.Empty();
+    ServerStartMessage = TEXT("🟢 Satisfactory Server is now ONLINE!");
+    ServerStopMessage = TEXT("🔴 Satisfactory Server is now OFFLINE!");
+    BotPresenceMessage = TEXT("Satisfactory Server");
+    
+    if (GConfig)
+    {
+        // Load server notification enabled flag
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableServerNotifications"), bServerNotificationsEnabled, GGameIni);
+        
+        // Load notification channel ID
+        GConfig->GetString(TEXT("DiscordBot"), TEXT("NotificationChannelId"), NotificationChannelId, GGameIni);
+        
+        // Load custom messages
+        FString CustomStartMessage;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ServerStartMessage"), CustomStartMessage, GGameIni))
+        {
+            if (!CustomStartMessage.IsEmpty())
+            {
+                ServerStartMessage = CustomStartMessage;
+            }
+        }
+        
+        FString CustomStopMessage;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ServerStopMessage"), CustomStopMessage, GGameIni))
+        {
+            if (!CustomStopMessage.IsEmpty())
+            {
+                ServerStopMessage = CustomStopMessage;
+            }
+        }
+        
+        // Load bot presence message
+        FString CustomPresenceMessage;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("BotPresenceMessage"), CustomPresenceMessage, GGameIni))
+        {
+            if (!CustomPresenceMessage.IsEmpty())
+            {
+                BotPresenceMessage = CustomPresenceMessage;
+            }
+        }
+        
+        if (bServerNotificationsEnabled)
+        {
+            UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server notifications enabled"));
+            if (!NotificationChannelId.IsEmpty() && NotificationChannelId != TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE"))
+            {
+                UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Notification Channel ID: %s"), *NotificationChannelId);
+            }
+            else
+            {
+                UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("  - No valid notification channel ID configured"));
+            }
+        }
+    }
+}
+
+void UDiscordBotSubsystem::SendServerStartNotification()
+{
+    if (!bServerNotificationsEnabled)
+    {
+        return;
+    }
+    
+    if (NotificationChannelId.IsEmpty() || NotificationChannelId == TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE"))
+    {
+        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send server start notification: No valid channel ID configured"));
+        return;
+    }
+    
+    if (!IsBotConnected())
+    {
+        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send server start notification: Bot not connected"));
+        return;
+    }
+    
+    SendDiscordMessage(NotificationChannelId, ServerStartMessage);
+    UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server start notification sent: %s"), *ServerStartMessage);
+    
+    // Update bot presence/status
+    if (GatewayClient)
+    {
+        GatewayClient->UpdatePresence(BotPresenceMessage);
+    }
+}
+
+void UDiscordBotSubsystem::SendServerStopNotification()
+{
+    if (!bServerNotificationsEnabled)
+    {
+        return;
+    }
+    
+    if (NotificationChannelId.IsEmpty() || NotificationChannelId == TEXT("YOUR_NOTIFICATION_CHANNEL_ID_HERE"))
+    {
+        return;
+    }
+    
+    if (!IsBotConnected())
+    {
+        return;
+    }
+    
+    SendDiscordMessage(NotificationChannelId, ServerStopMessage);
+    UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server stop notification sent: %s"), *ServerStopMessage);
+}
+
 
 FString UDiscordBotSubsystem::FormatDiscordSender(const FString& Username) const
 {

@@ -28,6 +28,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogDiscordGatewayNative, Log, All);
 #define OPCODE_DISPATCH 0
 #define OPCODE_HEARTBEAT 1
 #define OPCODE_IDENTIFY 2
+#define OPCODE_PRESENCE_UPDATE 3
 #define OPCODE_HELLO 10
 #define OPCODE_HEARTBEAT_ACK 11
 
@@ -619,4 +620,54 @@ void ADiscordGatewayClientNative::HandleMessageCreate(const TSharedPtr<FJsonObje
             }
         }
     }
+}
+
+void ADiscordGatewayClientNative::UpdatePresence(const FString& StatusMessage)
+{
+#if WEBSOCKETS_AVAILABLE
+    if (!bIsConnected || !WebSocket.IsValid())
+    {
+        UE_LOG(LogDiscordGatewayNative, Warning, TEXT("Cannot update presence: Bot not connected"));
+        return;
+    }
+    
+    UE_LOG(LogDiscordGatewayNative, Log, TEXT("Updating bot presence: %s"), *StatusMessage);
+    
+    // Build presence update payload (opcode 3)
+    TSharedPtr<FJsonObject> PresencePayload = MakeShareable(new FJsonObject());
+    PresencePayload->SetNumberField(TEXT("op"), OPCODE_PRESENCE_UPDATE);
+    
+    // Build data object
+    TSharedPtr<FJsonObject> Data = MakeShareable(new FJsonObject());
+    Data->SetField(TEXT("since"), MakeShareable(new FJsonValueNull()));
+    Data->SetBoolField(TEXT("afk"), false);
+    Data->SetStringField(TEXT("status"), TEXT("online")); // online, dnd, idle, invisible
+    
+    // Build activities array
+    TArray<TSharedPtr<FJsonValue>> Activities;
+    TSharedPtr<FJsonObject> Activity = MakeShareable(new FJsonObject());
+    Activity->SetStringField(TEXT("name"), StatusMessage);
+    Activity->SetNumberField(TEXT("type"), 0); // 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching, 5 = Competing
+    Activities.Add(MakeShareable(new FJsonValueObject(Activity)));
+    
+    Data->SetArrayField(TEXT("activities"), Activities);
+    
+    PresencePayload->SetObjectField(TEXT("d"), Data);
+    
+    // Convert to JSON string
+    FString JsonString;
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+    if (FJsonSerializer::Serialize(PresencePayload.ToSharedRef(), Writer))
+    {
+        // Send via WebSocket
+        WebSocket->Send(JsonString);
+        UE_LOG(LogDiscordGatewayNative, Verbose, TEXT("Presence update sent: %s"), *JsonString);
+    }
+    else
+    {
+        UE_LOG(LogDiscordGatewayNative, Error, TEXT("Failed to serialize presence update payload"));
+    }
+#else
+    UE_LOG(LogDiscordGatewayNative, Warning, TEXT("Cannot update presence: WebSockets not available"));
+#endif
 }
