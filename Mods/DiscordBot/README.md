@@ -2,11 +2,12 @@
 
 A Discord bot integration mod for Satisfactory that uses WebSocket communication with the following Discord Gateway intents:
 
-- **Presence Intent** (1 << 8 = 256) - Allows the bot to receive presence updates
-- **Server Members Intent** (1 << 1 = 2) - Allows the bot to receive member join/leave events
-- **Message Content Intent** (1 << 15 = 32768) - Allows the bot to read message content
+- **Guilds Intent** (1 << 0 = 1) - Basic guild events (required baseline)
+- **Server Members Intent** (1 << 1 = 2) - PRIVILEGED - Allows the bot to receive member join/leave events
+- **Presence Intent** (1 << 8 = 256) - PRIVILEGED - Allows the bot to receive presence updates
+- **Message Content Intent** (1 << 15 = 32768) - PRIVILEGED - Allows the bot to read message content
 
-Combined Intent Value: **33026**
+Combined Intent Value: **33027** (includes baseline GUILDS + three privileged intents)
 
 ## Setup
 
@@ -100,7 +101,7 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
 The bot uses the Discord Gateway API v10 and establishes a WebSocket connection with the following intents:
 
 ```
-Intents = (1 << 8) | (1 << 1) | (1 << 15)  // 256 + 2 + 32768 = 33026
+Intents = (1 << 0) | (1 << 1) | (1 << 8) | (1 << 15)  // 1 + 2 + 256 + 32768 = 33027
 ```
 
 ### Discord Gateway Operations
