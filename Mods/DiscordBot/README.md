@@ -34,6 +34,11 @@ Combined Intent Value: **33027** (includes baseline GUILDS + three privileged in
      - Add Discord channel IDs with `+ChatChannelId=YOUR_CHANNEL_ID`
      - Customize sender name formats (optional)
      - See [TWO_WAY_CHAT.md](TWO_WAY_CHAT.md) for full documentation
+   - **For Server Status Notifications**:
+     - Set `bEnableServerNotifications=true`
+     - Set `NotificationChannelId=YOUR_CHANNEL_ID` (can be different from chat channels)
+     - Customize `ServerStartMessage` and `ServerStopMessage` (optional)
+     - Customize `BotPresenceMessage` to set bot status (optional)
 
 3. **Build the Mod**
    - Build the Satisfactory project with the DiscordBot mod included
@@ -105,6 +110,11 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
   - Automatic bot message filtering
   - Color-coded messages in-game
   - See [TWO_WAY_CHAT.md](TWO_WAY_CHAT.md) for detailed documentation
+- **🆕 Server Status Notifications**: Get notified when the server starts or stops
+  - Separate notification channel for server events
+  - Custom notification messages
+  - Bot presence updates (online/offline status)
+  - Configurable notification settings
 
 ## Dependencies
 
@@ -154,6 +164,78 @@ See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compat
 - The bot token should be kept secure and not committed to version control
 - Make sure your Discord bot has the necessary permissions in your server
 - To extend functionality, modify the `HandleGatewayEvent` method in `DiscordGatewayClientNative.cpp`
+
+## Server Status Notifications
+
+The Discord bot can automatically send notifications to a designated channel when the Satisfactory server starts or stops, and update its online/offline presence status.
+
+### Configuration
+
+Add the following settings to `Config/DiscordBot.ini`:
+
+```ini
+; Server Status Notifications
+bEnableServerNotifications=true
+
+; Channel ID for server status notifications (can be separate from chat channels)
+NotificationChannelId=YOUR_NOTIFICATION_CHANNEL_ID_HERE
+
+; Custom message when server starts (optional)
+ServerStartMessage=🟢 Satisfactory Server is now ONLINE!
+
+; Custom message when server stops (optional)
+ServerStopMessage=🔴 Satisfactory Server is now OFFLINE!
+
+; Custom bot presence/status message (appears as "Playing <message>")
+BotPresenceMessage=Satisfactory Server
+```
+
+### Features
+
+- **Separate Notification Channel**: Server status notifications can go to a different channel than chat messages
+- **Custom Messages**: Personalize your server start/stop messages with emojis and custom text
+- **Bot Presence Updates**: The bot's Discord status automatically changes to "online" when the server starts
+- **Custom Status Message**: Configure what appears in the bot's "Playing" status
+
+### How It Works
+
+1. **On Server Start**:
+   - The bot connects to Discord
+   - Sends the configured `ServerStartMessage` to the notification channel
+   - Updates its presence to show as "Playing <BotPresenceMessage>"
+   - Status indicator shows as 🟢 online
+
+2. **On Server Stop**:
+   - Sends the configured `ServerStopMessage` to the notification channel
+   - Bot disconnects and status shows as offline
+
+### Getting Channel IDs
+
+To find a Discord channel ID:
+1. Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode)
+2. Right-click on the desired channel
+3. Select "Copy ID"
+4. Paste the ID into the configuration file
+
+### Example Setup
+
+```ini
+[DiscordBot]
+BotToken=YOUR_BOT_TOKEN_HERE
+bEnabled=true
+bEnableServerNotifications=true
+
+; Notifications go to #server-status channel
+NotificationChannelId=123456789012345678
+
+; Chat goes to #satisfactory-chat channel
+ChatChannelId=987654321098765432
+
+ServerStartMessage=🎮 The factory is now open for business!
+ServerStopMessage=🛑 The factory has shut down for maintenance
+BotPresenceMessage=Factory Simulator 2024
+```
+
 
 ## Production Considerations
 
