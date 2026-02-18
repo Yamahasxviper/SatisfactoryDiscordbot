@@ -12,8 +12,8 @@
     <!-- Set default EngineDir if not already set -->
     <EngineDir Condition="'$(EngineDir)' == ''">$(MSBuildThisFileDirectory)ue\Engine\</EngineDir>
     
-    <!-- Fallback to C:\SML\ue\Engine for CI builds -->
-    <EngineDir Condition="'$(EngineDir)' != '' AND !Exists('$(EngineDir)') AND Exists('C:\SML\ue\Engine')">C:\SML\ue\Engine\</EngineDir>
+    <!-- Fallback to C:\SML\ue\Engine for CI builds if the default doesn't exist -->
+    <EngineDir Condition="('$(EngineDir)' == '' OR !Exists('$(EngineDir)')) AND Exists('C:\SML\ue\Engine')">C:\SML\ue\Engine\</EngineDir>
     
     <!-- Common properties for all C# projects -->
     <LangVersion>latest</LangVersion>
