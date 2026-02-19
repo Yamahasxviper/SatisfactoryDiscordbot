@@ -91,6 +91,8 @@ void FCustomWebSocket::Disconnect(int32 StatusCode, const FString& Reason)
         return;
     }
 
+    UE_LOG(LogCustomWebSocket, Log, TEXT("Disconnecting WebSocket (StatusCode: %d, Reason: %s)"), StatusCode, *Reason);
+
     // Send close frame
     TArray<uint8> CloseData;
     CloseData.Add((StatusCode >> 8) & 0xFF);
@@ -120,6 +122,7 @@ void FCustomWebSocket::Disconnect(int32 StatusCode, const FString& Reason)
     bIsConnected = false;
     bHandshakeComplete = false;
 
+    UE_LOG(LogCustomWebSocket, Log, TEXT("WebSocket disconnected"));
     OnClosed.ExecuteIfBound(StatusCode, Reason, true);
 }
 
@@ -252,23 +255,28 @@ bool FCustomWebSocket::PerformTCPConnection(const FString& Host, int32 Port)
         return false;
     }
 
+    UE_LOG(LogCustomWebSocket, Log, TEXT("Attempting to resolve host: %s"), *Host);
+
     // Resolve host
     TSharedPtr<FInternetAddr> Addr = SocketSubsystem->GetAddressFromString(Host);
     if (!Addr.IsValid())
     {
         // Try DNS resolution
+        UE_LOG(LogCustomWebSocket, Log, TEXT("Performing DNS lookup for: %s"), *Host);
         FAddressInfoResult GAIResult = SocketSubsystem->GetAddressInfo(*Host, nullptr, EAddressInfoFlags::Default, NAME_None);
         if (GAIResult.ReturnCode != SE_NO_ERROR || GAIResult.Results.Num() == 0)
         {
-            UE_LOG(LogCustomWebSocket, Error, TEXT("Failed to resolve host: %s"), *Host);
+            UE_LOG(LogCustomWebSocket, Error, TEXT("Failed to resolve host: %s (DNS lookup failed - check internet connection)"), *Host);
             return false;
         }
         Addr = GAIResult.Results[0].Address;
+        UE_LOG(LogCustomWebSocket, Log, TEXT("DNS resolution successful: %s"), *Addr->ToString(true));
     }
 
     Addr->SetPort(Port);
 
     // Create socket
+    UE_LOG(LogCustomWebSocket, Log, TEXT("Creating socket..."));
     Socket = SocketSubsystem->CreateSocket(NAME_Stream, TEXT("CustomWebSocket"), Addr->GetProtocolType());
     if (!Socket)
     {
@@ -280,9 +288,10 @@ bool FCustomWebSocket::PerformTCPConnection(const FString& Host, int32 Port)
     Socket->SetNonBlocking(false); // Use blocking for initial connection
 
     // Connect
+    UE_LOG(LogCustomWebSocket, Log, TEXT("Connecting to %s:%d..."), *Host, Port);
     if (!Socket->Connect(*Addr))
     {
-        UE_LOG(LogCustomWebSocket, Error, TEXT("Failed to connect to %s:%d"), *Host, Port);
+        UE_LOG(LogCustomWebSocket, Error, TEXT("Failed to connect to %s:%d (Connection refused - check internet connection and firewall)"), *Host, Port);
         SocketSubsystem->DestroySocket(Socket);
         Socket = nullptr;
         return false;
@@ -291,7 +300,11 @@ bool FCustomWebSocket::PerformTCPConnection(const FString& Host, int32 Port)
     // Now set non-blocking for async operations
     Socket->SetNonBlocking(true);
 
-    UE_LOG(LogCustomWebSocket, Log, TEXT("TCP connection established"));
+    UE_LOG(LogCustomWebSocket, Log, TEXT("========================================"));
+    UE_LOG(LogCustomWebSocket, Log, TEXT("TCP connection established successfully"));
+    UE_LOG(LogCustomWebSocket, Log, TEXT("Connected to: %s:%d"), *Host, Port);
+    UE_LOG(LogCustomWebSocket, Log, TEXT("Internet connection verified"));
+    UE_LOG(LogCustomWebSocket, Log, TEXT("========================================"));
     return true;
 }
 

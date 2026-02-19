@@ -88,15 +88,18 @@ void FDiscordBotErrorLogger::Serialize(const TCHAR* V, ELogVerbosity::Type Verbo
         return;
     }
 
-    // Only log Discord bot related messages
+    // Only log Discord bot and CustomWebSocket related messages
     FString CategoryString = Category.ToString();
-    if (!CategoryString.StartsWith(TEXT("LogDiscord")))
+    if (!CategoryString.StartsWith(TEXT("LogDiscord")) && !CategoryString.StartsWith(TEXT("LogCustomWebSocket")))
     {
         return;
     }
 
-    // Only log warnings and errors
-    if (Verbosity != ELogVerbosity::Warning && Verbosity != ELogVerbosity::Error)
+    // Log warnings, errors, and important informational messages
+    // Filter to only log connection-related info messages
+    if (Verbosity != ELogVerbosity::Warning && 
+        Verbosity != ELogVerbosity::Error && 
+        Verbosity != ELogVerbosity::Log)
     {
         return;
     }
@@ -110,6 +113,9 @@ void FDiscordBotErrorLogger::Serialize(const TCHAR* V, ELogVerbosity::Type Verbo
             break;
         case ELogVerbosity::Warning:
             VerbosityString = TEXT("WARNING");
+            break;
+        case ELogVerbosity::Log:
+            VerbosityString = TEXT("INFO");
             break;
         default:
             VerbosityString = TEXT("LOG");

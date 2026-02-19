@@ -120,6 +120,8 @@ private:
     /** Heartbeat tracking */
     bool bHeartbeatAckReceived;
     float LastHeartbeatTime;
+    int32 HeartbeatCount;
+    float ConnectionStartTime;
 
     /** Reconnection */
     int32 ReconnectAttempts;
