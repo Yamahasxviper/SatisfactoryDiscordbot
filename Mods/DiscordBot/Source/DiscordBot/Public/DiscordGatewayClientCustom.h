@@ -4,9 +4,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "DiscordGatewayClient.h"
 #include "CustomWebSocket.h"
-#include "Http.h"
 #include "DiscordGatewayClientCustom.generated.h"
 
 /**
@@ -35,7 +34,7 @@
  * - Need fallback option
  */
 UCLASS(Blueprintable)
-class DISCORDBOT_API ADiscordGatewayClientCustom : public AActor
+class DISCORDBOT_API ADiscordGatewayClientCustom : public ADiscordGatewayClient
 {
     GENERATED_BODY()
 
@@ -47,62 +46,25 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     /** Initialize the Discord bot with token */
-    UFUNCTION(BlueprintCallable, Category = "Discord")
-    void InitializeBot(const FString& BotToken);
+    virtual void InitializeBot(const FString& BotToken) override;
 
     /** Connect to Discord Gateway */
-    UFUNCTION(BlueprintCallable, Category = "Discord")
-    void Connect();
+    virtual void Connect() override;
 
     /** Disconnect from Discord Gateway */
-    UFUNCTION(BlueprintCallable, Category = "Discord")
-    void Disconnect();
+    virtual void Disconnect() override;
 
     /** Send a message to a Discord channel */
-    UFUNCTION(BlueprintCallable, Category = "Discord")
-    void SendMessage(const FString& ChannelId, const FString& Message);
-
-    /** Check if the bot is connected */
-    UFUNCTION(BlueprintPure, Category = "Discord")
-    bool IsConnected() const { return bIsConnected; }
+    virtual void SendMessage(const FString& ChannelId, const FString& Message) override;
 
     /** Set custom intents */
     UFUNCTION(BlueprintCallable, Category = "Discord")
     void SetIntents(int32 CustomIntents) { Intents = CustomIntents; }
 
     /** Update bot presence/status */
-    UFUNCTION(BlueprintCallable, Category = "Discord")
-    void UpdatePresence(const FString& StatusMessage, int32 ActivityType = 0);
+    virtual void UpdatePresence(const FString& StatusMessage, int32 ActivityType = 0) override;
 
 protected:
-    /** Discord bot token */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Discord")
-    FString BotToken;
-
-    /** Discord Gateway URL */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Discord")
-    FString GatewayURL;
-
-    /** Gateway intents value */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Discord")
-    int32 Intents;
-
-    /** Connection status */
-    UPROPERTY(BlueprintReadOnly, Category = "Discord")
-    bool bIsConnected;
-
-    /** Heartbeat interval in milliseconds */
-    UPROPERTY(BlueprintReadOnly, Category = "Discord")
-    int32 HeartbeatInterval;
-
-    /** Sequence number for gateway messages */
-    UPROPERTY(BlueprintReadOnly, Category = "Discord")
-    int32 SequenceNumber;
-
-    /** Session ID */
-    UPROPERTY(BlueprintReadOnly, Category = "Discord")
-    FString SessionId;
-
     /** Resume Gateway URL */
     UPROPERTY(BlueprintReadOnly, Category = "Discord")
     FString ResumeGatewayURL;

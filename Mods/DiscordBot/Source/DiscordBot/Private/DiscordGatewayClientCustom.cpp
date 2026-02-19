@@ -32,15 +32,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogDiscordGatewayCustom, Log, All);
 
 ADiscordGatewayClientCustom::ADiscordGatewayClientCustom()
 {
-    PrimaryActorTick.bCanEverTick = true;
-    PrimaryActorTick.bStartWithTickEnabled = true;
+    // Base class ADiscordGatewayClient initializes:
+    // PrimaryActorTick, GatewayURL, Intents, bIsConnected, HeartbeatInterval, SequenceNumber
 
-    // Initialize default values
-    GatewayURL = TEXT("wss://gateway.discord.gg");
-    Intents = DISCORD_INTENTS_COMBINED;
-    bIsConnected = false;
-    HeartbeatInterval = 41250; // Default Discord heartbeat interval
-    SequenceNumber = -1;
+    // Initialize custom-only default values
     bHeartbeatAckReceived = true;
     LastHeartbeatTime = 0.0f;
     HeartbeatCount = 0;
