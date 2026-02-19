@@ -427,7 +427,10 @@ bool FCustomWebSocket::PerformWebSocketHandshake()
     bHandshakeComplete = true;
     bIsConnected = true;
 
-    UE_LOG(LogCustomWebSocket, Log, TEXT("WebSocket handshake complete!"));
+    UE_LOG(LogCustomWebSocket, Log, TEXT("========================================"));
+    UE_LOG(LogCustomWebSocket, Log, TEXT("CustomWebSocket: Successfully connected to %s:%d"), *ServerHost, ServerPort);
+    UE_LOG(LogCustomWebSocket, Log, TEXT("CustomWebSocket: WebSocket handshake complete!"));
+    UE_LOG(LogCustomWebSocket, Log, TEXT("========================================"));
     OnConnected.ExecuteIfBound(true);
 
     return true;

@@ -177,7 +177,11 @@ void ADiscordGatewayClientCustom::ConnectWebSocket()
     // Append WebSocket query parameters
     FString FullURL = GatewayURL + TEXT("/?v=10&encoding=json");
     
-    UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Connecting to WebSocket: %s"), *FullURL);
+    UE_LOG(LogDiscordGatewayCustom, Log, TEXT("========================================"));
+    UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Discord Bot: Attempting to connect to Discord Gateway"));
+    UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Discord Bot: WebSocket URL: %s"), *FullURL);
+    UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Discord Bot: Using CustomWebSocket implementation"));
+    UE_LOG(LogDiscordGatewayCustom, Log, TEXT("========================================"));
     
     if (!WebSocket->Connect(FullURL))
     {
@@ -190,7 +194,10 @@ void ADiscordGatewayClientCustom::OnWebSocketConnected(bool bSuccess)
 {
     if (bSuccess)
     {
-        UE_LOG(LogDiscordGatewayCustom, Log, TEXT("WebSocket connected successfully"));
+        UE_LOG(LogDiscordGatewayCustom, Log, TEXT("========================================"));
+        UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Discord Bot: CustomWebSocket connection established!"));
+        UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Discord Bot: Waiting for Discord Gateway HELLO message..."));
+        UE_LOG(LogDiscordGatewayCustom, Log, TEXT("========================================"));
         ReconnectAttempts = 0;
         ReconnectDelay = 1.0f;
         // Wait for HELLO message before setting bIsConnected = true
@@ -314,7 +321,11 @@ void ADiscordGatewayClientCustom::HandleGatewayEvent(int32 OpCode, const TShared
             if (Data.IsValid() && Data->HasField(TEXT("session_id")))
             {
                 SessionId = Data->GetStringField(TEXT("session_id"));
-                UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Bot ready! Session ID: %s"), *SessionId);
+                UE_LOG(LogDiscordGatewayCustom, Log, TEXT("****************************************"));
+                UE_LOG(LogDiscordGatewayCustom, Log, TEXT("*** DISCORD BOT FULLY CONNECTED AND READY! ***"));
+                UE_LOG(LogDiscordGatewayCustom, Log, TEXT("*** CustomWebSocket successfully connected to Discord Gateway ***"));
+                UE_LOG(LogDiscordGatewayCustom, Log, TEXT("*** Session ID: %s ***"), *SessionId);
+                UE_LOG(LogDiscordGatewayCustom, Log, TEXT("****************************************"));
             }
             if (Data.IsValid() && Data->HasField(TEXT("resume_gateway_url")))
             {
