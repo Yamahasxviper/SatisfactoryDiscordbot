@@ -107,7 +107,9 @@ void FDiscordBotModule::StartupModule()
     
     ErrorLogger->Initialize(LogDirectory);
     
-    UE_LOG(LogDiscordBot, Log, TEXT("Error logging initialized at: %s"), *LogDirectory);
+    // Convert to absolute path for clearer logging
+    FString AbsoluteLogDirectory = FPaths::ConvertRelativePathToFull(LogDirectory);
+    UE_LOG(LogDiscordBot, Log, TEXT("Error logging initialized at: %s"), *AbsoluteLogDirectory);
 }
 
 void FDiscordBotModule::ShutdownModule()
