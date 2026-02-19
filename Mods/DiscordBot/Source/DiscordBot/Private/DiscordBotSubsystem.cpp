@@ -146,6 +146,18 @@ void UDiscordBotSubsystem::InitializeAndConnect(const FString& BotToken)
         }
     }
 
+    // Apply GatewayURL from config (used as fallback if the Discord API lookup fails)
+    if (GConfig)
+    {
+        FString ConfigFilename = GetPluginConfigFilename();
+        FString ConfigGatewayURL;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("GatewayURL"), ConfigGatewayURL, ConfigFilename)
+            && !ConfigGatewayURL.IsEmpty())
+        {
+            GatewayClient->SetGatewayURL(ConfigGatewayURL);
+        }
+    }
+
     // Initialize and connect
     GatewayClient->InitializeBot(BotToken);
     GatewayClient->Connect();
