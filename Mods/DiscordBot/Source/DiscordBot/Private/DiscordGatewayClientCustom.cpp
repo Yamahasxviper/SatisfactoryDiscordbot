@@ -248,12 +248,23 @@ void ADiscordGatewayClientCustom::OnWebSocketClosed(int32 StatusCode, const FStr
     UE_LOG(LogDiscordGatewayCustom, Warning, TEXT("WebSocket closed: %d - %s (clean: %s)"), 
         StatusCode, *Reason, bWasClean ? TEXT("yes") : TEXT("no"));
     
+    bool bWasConnected = bIsConnected;
     bIsConnected = false;
     
     // Clear heartbeat timer
     if (GetWorld())
     {
         GetWorld()->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+    }
+    
+    // Notify subsystem that bot is disconnected (only if it was previously connected)
+    if (bWasConnected && GetWorld() && GetWorld()->GetGameInstance())
+    {
+        UDiscordBotSubsystem* Subsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDiscordBotSubsystem>();
+        if (Subsystem)
+        {
+            Subsystem->OnBotDisconnected();
+        }
     }
     
     // Attempt reconnect for non-normal closures
@@ -319,6 +330,16 @@ void ADiscordGatewayClientCustom::HandleGatewayEvent(int32 OpCode, const TShared
             if (Data.IsValid() && Data->HasField(TEXT("resume_gateway_url")))
             {
                 ResumeGatewayURL = Data->GetStringField(TEXT("resume_gateway_url"));
+            }
+            
+            // Notify subsystem that bot is connected
+            if (GetWorld() && GetWorld()->GetGameInstance())
+            {
+                UDiscordBotSubsystem* Subsystem = GetWorld()->GetGameInstance()->GetSubsystem<UDiscordBotSubsystem>();
+                if (Subsystem)
+                {
+                    Subsystem->OnBotConnected();
+                }
             }
         }
         else if (EventType == TEXT("MESSAGE_CREATE"))

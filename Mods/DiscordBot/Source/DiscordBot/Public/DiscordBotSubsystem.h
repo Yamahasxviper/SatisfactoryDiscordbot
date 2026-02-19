@@ -56,6 +56,12 @@ public:
     /** Check if two-way chat is enabled */
     bool IsTwoWayChatEnabled() const { return bTwoWayChatEnabled; }
 
+    /** Called when bot successfully connects to websocket */
+    void OnBotConnected();
+
+    /** Called when bot disconnects from websocket */
+    void OnBotDisconnected();
+
 private:
     /** The Discord Gateway Client instance */
     UPROPERTY()
@@ -154,4 +160,19 @@ private:
 
     /** Update bot presence with current player count */
     void UpdateBotPresenceWithPlayerCount();
+
+    /** Connection notification enabled flag */
+    bool bConnectionNotificationsEnabled;
+
+    /** Connection notification channel ID */
+    FString ConnectionNotificationChannelId;
+
+    /** Custom message for successful connection */
+    FString ConnectionSuccessMessage;
+
+    /** Custom message for disconnection */
+    FString ConnectionFailureMessage;
+
+    /** Send connection status notification */
+    void SendConnectionNotification(bool bConnected);
 };

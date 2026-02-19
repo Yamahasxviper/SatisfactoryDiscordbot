@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "DiscordGatewayClientCustom.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBotSubsystem, Log, All);
 
@@ -112,11 +113,12 @@ void UDiscordBotSubsystem::InitializeAndConnect(const FString& BotToken)
         SpawnParams.Name = FName(TEXT("DiscordGatewayClient"));
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         
-        GatewayClient = GetWorld()->SpawnActor<ADiscordGatewayClient>(ADiscordGatewayClient::StaticClass(), SpawnParams);
+        // Use the Custom WebSocket implementation for production
+        GatewayClient = GetWorld()->SpawnActor<ADiscordGatewayClientCustom>(ADiscordGatewayClientCustom::StaticClass(), SpawnParams);
         
         if (GatewayClient)
         {
-            UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Discord Gateway Client spawned"));
+            UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Discord Gateway Client (Custom WebSocket) spawned"));
         }
         else
         {
@@ -336,6 +338,12 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
     CustomPresenceFormat.Empty();
     PlayerCountUpdateInterval = 30.0f; // Default to 30 seconds
     
+    // Connection notification defaults
+    bConnectionNotificationsEnabled = true;
+    ConnectionNotificationChannelId.Empty();
+    ConnectionSuccessMessage = TEXT("✅ Discord bot successfully connected to websocket!");
+    ConnectionFailureMessage = TEXT("⚠️ Discord bot disconnected from websocket");
+    
     if (GConfig)
     {
         // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
@@ -469,6 +477,49 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
             if (bShowPlayerNames)
             {
                 UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Player names display enabled (max names: %d)"), MaxPlayerNamesToShow);
+            }
+        }
+        
+        // Load connection notification settings
+        GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableConnectionNotifications"), bConnectionNotificationsEnabled, ConfigFilename);
+        GConfig->GetString(TEXT("DiscordBot"), TEXT("ConnectionNotificationChannelId"), ConnectionNotificationChannelId, ConfigFilename);
+        
+        // Clear connection channel ID if it's a placeholder value
+        if (ConnectionNotificationChannelId == TEXT("YOUR_CONNECTION_CHANNEL_ID_HERE") || 
+            ConnectionNotificationChannelId.StartsWith(TEXT("YOUR_")))
+        {
+            ConnectionNotificationChannelId.Empty();
+        }
+        
+        // Load custom connection messages
+        FString CustomConnectionSuccess;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ConnectionSuccessMessage"), CustomConnectionSuccess, ConfigFilename))
+        {
+            if (!CustomConnectionSuccess.IsEmpty())
+            {
+                ConnectionSuccessMessage = CustomConnectionSuccess;
+            }
+        }
+        
+        FString CustomConnectionFailure;
+        if (GConfig->GetString(TEXT("DiscordBot"), TEXT("ConnectionFailureMessage"), CustomConnectionFailure, ConfigFilename))
+        {
+            if (!CustomConnectionFailure.IsEmpty())
+            {
+                ConnectionFailureMessage = CustomConnectionFailure;
+            }
+        }
+        
+        if (bConnectionNotificationsEnabled)
+        {
+            UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Connection notifications enabled"));
+            if (!ConnectionNotificationChannelId.IsEmpty())
+            {
+                UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Connection Channel ID: %s"), *ConnectionNotificationChannelId);
+            }
+            else if (!NotificationChannelId.IsEmpty())
+            {
+                UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Using notification channel for connection status"));
             }
         }
     }
@@ -753,4 +804,51 @@ FString UDiscordBotSubsystem::FormatGameSender(const FString& PlayerName) const
     FString Formatted = GameSenderFormat;
     Formatted = Formatted.Replace(TEXT("{playername}"), *PlayerName);
     return Formatted;
+}
+
+void UDiscordBotSubsystem::OnBotConnected()
+{
+    UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Bot connection established"));
+    SendConnectionNotification(true);
+}
+
+void UDiscordBotSubsystem::OnBotDisconnected()
+{
+    UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Bot connection lost"));
+    SendConnectionNotification(false);
+}
+
+void UDiscordBotSubsystem::SendConnectionNotification(bool bConnected)
+{
+    if (!bConnectionNotificationsEnabled)
+    {
+        return;
+    }
+    
+    // Determine which channel to use
+    FString ChannelId = ConnectionNotificationChannelId.IsEmpty() ? NotificationChannelId : ConnectionNotificationChannelId;
+    
+    if (ChannelId.IsEmpty())
+    {
+        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send connection notification: No valid channel ID configured"));
+        return;
+    }
+    
+    // For disconnection, we can't send the message since we're not connected
+    // So we only send connection success notifications
+    if (!bConnected)
+    {
+        UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Bot disconnected - connection notification skipped (bot not connected)"));
+        return;
+    }
+    
+    if (!IsBotConnected())
+    {
+        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send connection notification: Bot not connected"));
+        return;
+    }
+    
+    const FString& Message = bConnected ? ConnectionSuccessMessage : ConnectionFailureMessage;
+    SendDiscordMessage(ChannelId, Message);
+    UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Connection notification sent: %s"), *Message);
 }
