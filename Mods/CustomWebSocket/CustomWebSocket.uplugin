@@ -14,7 +14,9 @@
 	"EnabledByDefault": true,
 	"CanContainContent": false,
 	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
 	"Installed": false,
+	"Remote": true,
 	"Modules": [
 		{
 			"Name": "CustomWebSocket",
