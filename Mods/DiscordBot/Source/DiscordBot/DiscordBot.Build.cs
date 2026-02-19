@@ -22,7 +22,8 @@ public class DiscordBot : ModuleRules
             "HTTP",
             "Sockets",        // For ISocketSubsystem (FCustomWebSocket)
             "Networking",     // For networking utilities
-            "OpenSSL"         // For TLS/SSL support (wss://)
+            "OpenSSL",        // For TLS/SSL support (wss://)
+            "Projects"        // For IPluginManager
         });
 
         // FactoryGame and SML dependencies
