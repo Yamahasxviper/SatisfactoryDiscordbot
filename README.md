@@ -21,6 +21,7 @@ See [BUILD_GUIDE.md](BUILD_GUIDE.md) for detailed build instructions.
 - SML and DiscordBot plugins are now properly registered in `FactoryGame.uproject` and will compile automatically. See [PLUGIN_COMPILATION_FIX.md](PLUGIN_COMPILATION_FIX.md) for details.
 - CustomWebSocket and DiscordBot are now properly packaged by the CI workflow. See [PACKAGING_FIX.md](PACKAGING_FIX.md) for details.
 - **CustomWebSocket can compile independently** from DiscordBot. See [INDEPENDENT_COMPILATION_GUIDE.md](INDEPENDENT_COMPILATION_GUIDE.md) for instructions on compiling plugins separately or together.
+- **CustomWebSocket is now in `Mods/` folder** for proper Alpakit integration. See [ALPAKIT_CUSTOMWEBSOCKET_FIX.md](ALPAKIT_CUSTOMWEBSOCKET_FIX.md) for details.
 
 ### Discord Bot Setup
 
