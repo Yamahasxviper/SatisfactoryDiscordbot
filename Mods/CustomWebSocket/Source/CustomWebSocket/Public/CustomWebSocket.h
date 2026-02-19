@@ -1,12 +1,10 @@
 // Copyright (c) 2024 Yamahasxviper
-// Custom WebSocket Implementation - Platform Agnostic
+// Custom WebSocket Implementation - UE5 Native WebSocket Wrapper
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Sockets.h"
-#include "SocketSubsystem.h"
-#include "IPAddress.h"
+#include "IWebSocket.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCustomWebSocket, Log, All);
 
@@ -16,91 +14,52 @@ DECLARE_DELEGATE_ThreeParams(FOnWebSocketClosed, int32 /* StatusCode */, const F
 DECLARE_DELEGATE_OneParam(FOnWebSocketError, const FString& /* Error */);
 
 /**
- * Custom WebSocket implementation using only Unreal's Sockets module
- * 
+ * WebSocket wrapper around Unreal Engine's native IWebSocket module
+ *
  * This implementation:
- * - Works on ALL platforms (Win64, Linux, Mac, Servers)
- * - No external dependencies beyond Sockets and OpenSSL
+ * - Works on ALL platforms (Win64, Linux, Mac, Dedicated Servers)
+ * - Native TLS/SSL support for wss:// via UE's WebSocket module
  * - RFC 6455 compliant
- * - Supports TLS/SSL for wss://
- * - Fully asynchronous with callbacks
- * 
- * Use this when:
- * - Native WebSocket module not available
- * - Need guaranteed cross-platform support
- * - Want full control over WebSocket behavior
+ * - Fully asynchronous, event-driven callbacks
+ * - No custom TLS or socket handling required
  */
 class CUSTOMWEBSOCKET_API FCustomWebSocket
 {
 public:
-    FCustomWebSocket();
-    ~FCustomWebSocket();
+	FCustomWebSocket();
+	~FCustomWebSocket();
 
-    /** Connect to WebSocket server */
-    bool Connect(const FString& URL);
+	/** Connect to WebSocket server */
+	bool Connect(const FString& URL);
 
-    /** Disconnect from server */
-    void Disconnect(int32 StatusCode = 1000, const FString& Reason = TEXT(""));
+	/** Disconnect from server */
+	void Disconnect(int32 StatusCode = 1000, const FString& Reason = TEXT(""));
 
-    /** Send text message */
-    bool SendText(const FString& Message);
+	/** Send text message */
+	bool SendText(const FString& Message);
 
-    /** Send binary message */
-    bool SendBinary(const TArray<uint8>& Data);
+	/** Send binary message */
+	bool SendBinary(const TArray<uint8>& Data);
 
-    /** Check if connected */
-    bool IsConnected() const { return bIsConnected; }
+	/** Check if connected */
+	bool IsConnected() const;
 
-    /** Tick for async operations */
-    void Tick(float DeltaTime);
+	/** Tick - no-op for UE native WebSocket (events fire automatically) */
+	void Tick(float DeltaTime);
 
-    /** Event delegates */
-    FOnWebSocketConnected OnConnected;
-    FOnWebSocketMessage OnMessage;
-    FOnWebSocketClosed OnClosed;
-    FOnWebSocketError OnError;
+	/** Event delegates */
+	FOnWebSocketConnected OnConnected;
+	FOnWebSocketMessage OnMessage;
+	FOnWebSocketClosed OnClosed;
+	FOnWebSocketError OnError;
 
 private:
-    /** Socket instance */
-    FSocket* Socket;
+	TSharedPtr<IWebSocket> WebSocketImpl;
+	bool bIsConnected;
 
-    /** Socket subsystem */
-    ISocketSubsystem* SocketSubsystem;
-
-    /** Connection state */
-    bool bIsConnected;
-    bool bIsSecure; // wss:// vs ws://
-
-    /** Server info */
-    FString ServerHost;
-    int32 ServerPort;
-    FString ServerPath;
-
-    /** WebSocket handshake */
-    FString SecWebSocketKey;
-    bool bHandshakeComplete;
-
-    /** Receive buffer */
-    TArray<uint8> ReceiveBuffer;
-
-    /** Send queue */
-    TQueue<TArray<uint8>> SendQueue;
-
-    /** Frame parsing state */
-    bool bParsingFrame;
-    uint8 CurrentOpcode;
-    TArray<uint8> FramePayload;
-
-    /** Helper methods */
-    bool ParseURL(const FString& URL, FString& OutHost, int32& OutPort, FString& OutPath, bool& OutIsSecure);
-    bool PerformTCPConnection(const FString& Host, int32 Port);
-    bool PerformTLSHandshake();
-    bool PerformWebSocketHandshake();
-    bool ProcessReceivedData();
-    bool ParseFrame(const TArray<uint8>& Data, int32& OutBytesConsumed);
-    TArray<uint8> CreateFrame(uint8 Opcode, const TArray<uint8>& Payload, bool bMask = true);
-    FString GenerateWebSocketKey();
-    FString CalculateAcceptKey(const FString& Key);
-    void HandleFrame(uint8 Opcode, const TArray<uint8>& Payload);
-    void SendPong(const TArray<uint8>& PingPayload);
+	void OnWebSocketConnected_Internal();
+	void OnWebSocketConnectionError_Internal(const FString& Error);
+	void OnWebSocketClosed_Internal(int32 StatusCode, const FString& Reason, bool bWasClean);
+	void OnWebSocketMessage_Internal(const FString& Message);
+	void OnWebSocketBinaryMessage_Internal(const TArray<uint8>& Data);
 };
