@@ -584,7 +584,7 @@ void ADiscordGatewayClientCustom::UpdatePresence(const FString& StatusMessage, i
     if (WebSocket.IsValid())
     {
         WebSocket->SendText(OutputString);
-        UE_LOG(LogDiscordGatewayCustom, Verbose, TEXT("Presence update sent"));
+        UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Presence update sent"));
     }
 }
 

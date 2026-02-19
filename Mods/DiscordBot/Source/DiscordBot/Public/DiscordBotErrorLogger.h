@@ -27,6 +27,9 @@ public:
     /** Check if the logger is initialized */
     bool IsInitialized() const { return bIsInitialized; }
 
+    /** Set the minimum verbosity level for messages written to the log file */
+    void SetMinVerbosity(ELogVerbosity::Type InMinVerbosity) { MinVerbosity = InMinVerbosity; }
+
 private:
     /** Write a formatted message to the log file */
     void WriteToFile(const FString& Message);
@@ -48,6 +51,9 @@ private:
 
     /** Maximum log file size in bytes (10MB) */
     static constexpr int64 MaxLogFileSize = 10 * 1024 * 1024;
+
+    /** Minimum verbosity level – messages at this level or more severe are written to the log file */
+    ELogVerbosity::Type MinVerbosity;
 
     /** Critical section for thread safety */
     FCriticalSection LogMutex;
