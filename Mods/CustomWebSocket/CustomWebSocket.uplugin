@@ -21,16 +21,7 @@
 		{
 			"Name": "CustomWebSocket",
 			"Type": "Runtime",
-			"LoadingPhase": "PreDefault",
-			"PlatformAllowList": [
-				"Win64",
-				"Linux",
-				"Mac"
-			],
-			"TargetAllowList": [
-				"Server",
-				"Editor"
-			]
+			"LoadingPhase": "PreDefault"
 		}
 	]
 }
