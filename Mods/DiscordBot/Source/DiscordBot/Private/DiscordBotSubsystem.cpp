@@ -8,6 +8,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "DiscordGatewayClientCustom.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBotSubsystem, Log, All);
 
@@ -112,7 +113,7 @@ void UDiscordBotSubsystem::InitializeAndConnect(const FString& BotToken)
         SpawnParams.Name = FName(TEXT("DiscordGatewayClient"));
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         
-        GatewayClient = GetWorld()->SpawnActor<ADiscordGatewayClient>(ADiscordGatewayClient::StaticClass(), SpawnParams);
+        GatewayClient = GetWorld()->SpawnActor<ADiscordGatewayClientCustom>(ADiscordGatewayClientCustom::StaticClass(), SpawnParams);
         
         if (GatewayClient)
         {

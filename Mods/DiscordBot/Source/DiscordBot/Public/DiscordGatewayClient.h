@@ -28,19 +28,19 @@ public:
 
     /** Initialize the Discord bot with token */
     UFUNCTION(BlueprintCallable, Category = "Discord")
-    void InitializeBot(const FString& BotToken);
+    virtual void InitializeBot(const FString& BotToken);
 
     /** Connect to Discord Gateway */
     UFUNCTION(BlueprintCallable, Category = "Discord")
-    void Connect();
+    virtual void Connect();
 
     /** Disconnect from Discord Gateway */
     UFUNCTION(BlueprintCallable, Category = "Discord")
-    void Disconnect();
+    virtual void Disconnect();
 
     /** Send a message to a Discord channel */
     UFUNCTION(BlueprintCallable, Category = "Discord")
-    void SendMessage(const FString& ChannelId, const FString& Message);
+    virtual void SendMessage(const FString& ChannelId, const FString& Message);
 
     /** Check if the bot is connected */
     UFUNCTION(BlueprintPure, Category = "Discord")
