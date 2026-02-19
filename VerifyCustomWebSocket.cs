@@ -83,7 +83,7 @@ namespace CustomWebSocketVerifier
         static bool VerifyPluginStructure(string projectRoot)
         {
             bool passed = true;
-            string pluginPath = Path.Combine(projectRoot, "Plugins", "CustomWebSocket");
+            string pluginPath = Path.Combine(projectRoot, "Mods", "CustomWebSocket");
             
             // Check plugin descriptor
             string upluginPath = Path.Combine(pluginPath, "CustomWebSocket.uplugin");
@@ -153,7 +153,7 @@ namespace CustomWebSocketVerifier
         static bool VerifySourceFiles(string projectRoot)
         {
             bool passed = true;
-            string sourcePath = Path.Combine(projectRoot, "Plugins", "CustomWebSocket", "Source", "CustomWebSocket");
+            string sourcePath = Path.Combine(projectRoot, "Mods", "CustomWebSocket", "Source", "CustomWebSocket");
             
             // Required files
             var requiredFiles = new Dictionary<string, string>
@@ -192,7 +192,7 @@ namespace CustomWebSocketVerifier
         static bool VerifyBuildConfiguration(string projectRoot)
         {
             bool passed = true;
-            string buildFilePath = Path.Combine(projectRoot, "Plugins", "CustomWebSocket", 
+            string buildFilePath = Path.Combine(projectRoot, "Mods", "CustomWebSocket", 
                 "Source", "CustomWebSocket", "CustomWebSocket.Build.cs");
             
             if (!File.Exists(buildFilePath))
@@ -230,7 +230,7 @@ namespace CustomWebSocketVerifier
         static bool VerifyDependencies(string projectRoot)
         {
             bool passed = true;
-            string headerPath = Path.Combine(projectRoot, "Plugins", "CustomWebSocket", 
+            string headerPath = Path.Combine(projectRoot, "Mods", "CustomWebSocket", 
                 "Source", "CustomWebSocket", "Public", "CustomWebSocket.h");
             
             if (!File.Exists(headerPath))
@@ -272,7 +272,7 @@ namespace CustomWebSocketVerifier
         static bool AnalyzeCodeQuality(string projectRoot)
         {
             bool passed = true;
-            string implPath = Path.Combine(projectRoot, "Plugins", "CustomWebSocket", 
+            string implPath = Path.Combine(projectRoot, "Mods", "CustomWebSocket", 
                 "Source", "CustomWebSocket", "Private", "CustomWebSocket.cpp");
             
             if (!File.Exists(implPath))
@@ -334,7 +334,7 @@ namespace CustomWebSocketVerifier
         static bool VerifyRFC6455Compliance(string projectRoot)
         {
             bool passed = true;
-            string implPath = Path.Combine(projectRoot, "Plugins", "CustomWebSocket", 
+            string implPath = Path.Combine(projectRoot, "Mods", "CustomWebSocket", 
                 "Source", "CustomWebSocket", "Private", "CustomWebSocket.cpp");
             
             if (!File.Exists(implPath))
