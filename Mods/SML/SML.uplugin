@@ -20,7 +20,15 @@
 		{
 			"Name": "SML",
 			"Type": "Runtime",
-			"LoadingPhase": "PostDefault"
+			"LoadingPhase": "PostDefault",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux"
+			],
+			"TargetAllowList": [
+				"Server",
+				"Editor"
+			]
 		}
 	],
 	"LocalizationTargets": [
