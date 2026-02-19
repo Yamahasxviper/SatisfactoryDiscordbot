@@ -17,8 +17,11 @@ class DISCORDBOT_API UDiscordChatRelay : public UObject
     GENERATED_BODY()
 
 public:
-    /** Initialize the chat relay with the chat manager */
-    void Initialize(AFGChatManager* ChatManager);
+    /** Initialize the chat relay using the game world (obtains AFGChatManager internally) */
+    void Initialize(UWorld* World);
+
+    /** Broadcast a Discord message into the game chat */
+    void BroadcastDiscordMessageToGame(const FString& Username, const FString& Message, const FString& SenderFormat);
 
     /** Deinitialize and unbind from chat manager */
     void Deinitialize();
