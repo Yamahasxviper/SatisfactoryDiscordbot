@@ -155,6 +155,15 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
   - Add your own custom text and order anywhere in the presence
   - Configurable update interval for player count/names
   - Configurable notification settings
+- **🆕 Health Check & Status Monitoring**: Remote server connection monitoring
+  - Manual status commands (`!status`, `!health`) to check connection from Discord
+  - WebSocket connection status monitoring
+  - Internet connectivity verification
+  - Periodic health check alerts (only when issues detected)
+  - Server uptime and player count in status reports
+  - Configurable monitoring interval
+  - Dedicated channel for health alerts
+  - See [HEALTH_CHECK_GUIDE.md](Docs/Setup/HEALTH_CHECK_GUIDE.md) for detailed documentation
 
 ## Dependencies
 

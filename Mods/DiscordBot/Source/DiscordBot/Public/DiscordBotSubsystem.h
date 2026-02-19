@@ -154,4 +154,26 @@ private:
 
     /** Update bot presence with current player count */
     void UpdateBotPresenceWithPlayerCount();
+
+    /** Health check configuration */
+    bool bEnableHealthCheckCommand;
+    bool bEnablePeriodicHealthCheck;
+    float HealthCheckInterval;
+    FString HealthCheckChannelId;
+    FTimerHandle HealthCheckTimerHandle;
+
+    /** Load health check configuration from config */
+    void LoadHealthCheckConfig();
+
+    /** Handle bot commands from Discord messages */
+    void HandleBotCommand(const FString& ChannelId, const FString& Username, const FString& Command);
+
+    /** Check if internet connectivity is available */
+    bool CheckInternetConnectivity();
+
+    /** Send health status message to Discord */
+    void SendHealthStatus(const FString& ChannelId);
+
+    /** Perform periodic health check */
+    void PerformPeriodicHealthCheck();
 };

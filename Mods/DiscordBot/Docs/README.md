@@ -12,6 +12,7 @@ Start here if you're setting up the Discord bot for the first time:
 - **[Channel ID Formats](Setup/CHANNEL_ID_FORMATS.md)** - How to configure channel IDs
 - **[Two-Way Chat](Setup/TWO_WAY_CHAT.md)** - Enable Discord ↔ Game chat
 - **[Two-Way Chat Examples](Setup/TWO_WAY_CHAT_EXAMPLES.md)** - Configuration examples
+- **[Health Check Guide](Setup/HEALTH_CHECK_GUIDE.md)** - Remote server status monitoring
 
 ### 🔧 Troubleshooting
 Having issues? Check these guides:
