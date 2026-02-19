@@ -35,17 +35,25 @@ The SML and DiscordBot plugins are now properly registered in `FactoryGame.uproj
 ./Engine/Build/BatchFiles/Linux/Build.sh FactoryServer Linux Shipping -project="/path/to/FactoryGame.uproject"
 ```
 
-### Package Mods
+### Package Mods and Plugins
 
-To package the plugins as mods:
+To package the plugins and mods for distribution:
 
 ```powershell
-# Package SML
+# Package SML Mod
 .\Engine\Build\BatchFiles\RunUAT.bat -ScriptsForProject="C:\Path\To\FactoryGame.uproject" PackagePlugin -Project="C:\Path\To\FactoryGame.uproject" -dlcname=SML -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
 
-# Package DiscordBot
+# Package CustomWebSocket Plugin
+.\Engine\Build\BatchFiles\RunUAT.bat -ScriptsForProject="C:\Path\To\FactoryGame.uproject" PackagePlugin -Project="C:\Path\To\FactoryGame.uproject" -dlcname=CustomWebSocket -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
+
+# Package DiscordBot Mod
 .\Engine\Build\BatchFiles\RunUAT.bat -ScriptsForProject="C:\Path\To\FactoryGame.uproject" PackagePlugin -Project="C:\Path\To\FactoryGame.uproject" -dlcname=DiscordBot -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
 ```
+
+Packaged plugins will be available in:
+- `Saved/ArchivedPlugins/SML/*.zip`
+- `Saved/ArchivedPlugins/CustomWebSocket/*.zip`
+- `Saved/ArchivedPlugins/DiscordBot/*.zip`
 
 ## What Gets Compiled
 
