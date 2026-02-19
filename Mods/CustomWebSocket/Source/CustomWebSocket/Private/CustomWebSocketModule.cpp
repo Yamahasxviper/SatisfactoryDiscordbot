@@ -4,18 +4,20 @@
 #include "CustomWebSocketModule.h"
 #include "Modules/ModuleManager.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogCustomWebSocket, Log, All);
+
 #define LOCTEXT_NAMESPACE "FCustomWebSocketModule"
 
 void FCustomWebSocketModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory
-	UE_LOG(LogTemp, Log, TEXT("CustomWebSocket module loaded"));
+	UE_LOG(LogCustomWebSocket, Log, TEXT("CustomWebSocket module loaded"));
 }
 
 void FCustomWebSocketModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module
-	UE_LOG(LogTemp, Log, TEXT("CustomWebSocket module unloaded"));
+	UE_LOG(LogCustomWebSocket, Log, TEXT("CustomWebSocket module unloaded"));
 }
 
 #undef LOCTEXT_NAMESPACE

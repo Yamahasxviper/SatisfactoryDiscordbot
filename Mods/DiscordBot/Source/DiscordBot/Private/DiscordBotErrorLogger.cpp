@@ -9,6 +9,7 @@
 
 FDiscordBotErrorLogger::FDiscordBotErrorLogger()
     : bIsInitialized(false)
+    , MinVerbosity(ELogVerbosity::Log)
 {
 }
 
@@ -95,11 +96,8 @@ void FDiscordBotErrorLogger::Serialize(const TCHAR* V, ELogVerbosity::Type Verbo
         return;
     }
 
-    // Log warnings, errors, and important informational messages
-    // Filter to only log connection-related info messages
-    if (Verbosity != ELogVerbosity::Warning && 
-        Verbosity != ELogVerbosity::Error && 
-        Verbosity != ELogVerbosity::Log)
+    // Only write messages at or more severe than the configured minimum verbosity
+    if (Verbosity > MinVerbosity)
     {
         return;
     }
@@ -116,6 +114,12 @@ void FDiscordBotErrorLogger::Serialize(const TCHAR* V, ELogVerbosity::Type Verbo
             break;
         case ELogVerbosity::Log:
             VerbosityString = TEXT("INFO");
+            break;
+        case ELogVerbosity::Verbose:
+            VerbosityString = TEXT("VERBOSE");
+            break;
+        case ELogVerbosity::VeryVerbose:
+            VerbosityString = TEXT("VERY VERBOSE");
             break;
         default:
             VerbosityString = TEXT("LOG");

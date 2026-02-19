@@ -738,7 +738,7 @@ void UDiscordBotSubsystem::UpdateBotPresenceWithPlayerCount()
     }
     
     GatewayClient->UpdatePresence(PresenceMessage, BotActivityType);
-    UE_LOG(LogDiscordBotSubsystem, Verbose, TEXT("Bot presence updated: %s (Type: %d)"), *PresenceMessage, BotActivityType);
+    UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Bot presence updated: %s (Type: %d)"), *PresenceMessage, BotActivityType);
 }
 
 

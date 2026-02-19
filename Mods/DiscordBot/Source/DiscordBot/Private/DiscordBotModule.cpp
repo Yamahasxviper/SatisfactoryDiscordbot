@@ -107,6 +107,24 @@ void FDiscordBotModule::StartupModule()
     
     ErrorLogger->Initialize(LogDirectory);
     
+    // Read LogLevel from config and apply to error logger
+    // LogLevel: 0=Error, 1=Warning, 2=Log (default), 3=Verbose
+    int32 LogLevelValue = 2;
+    if (GConfig)
+    {
+        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        GConfig->GetInt(TEXT("DiscordBot"), TEXT("LogLevel"), LogLevelValue, ConfigFilename);
+    }
+    ELogVerbosity::Type ConfiguredVerbosity;
+    switch (LogLevelValue)
+    {
+        case 0:  ConfiguredVerbosity = ELogVerbosity::Error;   break;
+        case 1:  ConfiguredVerbosity = ELogVerbosity::Warning; break;
+        case 3:  ConfiguredVerbosity = ELogVerbosity::Verbose; break;
+        default: ConfiguredVerbosity = ELogVerbosity::Log;     break;
+    }
+    ErrorLogger->SetMinVerbosity(ConfiguredVerbosity);
+    
     // Convert to absolute path for clearer logging
     FString AbsoluteLogDirectory = FPaths::ConvertRelativePathToFull(LogDirectory);
     UE_LOG(LogDiscordBot, Log, TEXT("Error logging initialized at: %s"), *AbsoluteLogDirectory);
