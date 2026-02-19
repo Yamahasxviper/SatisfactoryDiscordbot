@@ -65,6 +65,9 @@ private:
     UPROPERTY()
     UDiscordChatRelay* ChatRelay;
 
+    /** Get the config filename to use (plugin's DiscordBot.ini with Game.ini as fallback) */
+    FString GetPluginConfigFilename() const;
+
     /** Load bot token from config */
     FString LoadBotTokenFromConfig();
 

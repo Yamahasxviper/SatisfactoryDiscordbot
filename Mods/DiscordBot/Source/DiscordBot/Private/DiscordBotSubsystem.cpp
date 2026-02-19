@@ -3,14 +3,35 @@
 #include "DiscordBotSubsystem.h"
 #include "Engine/World.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/Paths.h"
 #include "Logging/LogMacros.h"
 #include "FGChatManager.h"
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "DiscordGatewayClientCustom.h"
+#include "Interfaces/IPluginManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBotSubsystem, Log, All);
+
+FString UDiscordBotSubsystem::GetPluginConfigFilename() const
+{
+    TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("DiscordBot"));
+    if (Plugin.IsValid())
+    {
+        FString PluginConfigPath = Plugin->GetBaseDir() / TEXT("Config") / TEXT("DiscordBot.ini");
+        if (FPaths::FileExists(PluginConfigPath))
+        {
+            if (!GConfig->Find(PluginConfigPath, false))
+            {
+                GConfig->LoadFile(PluginConfigPath);
+            }
+            return PluginConfigPath;
+        }
+    }
+    // Fall back to the Game config hierarchy (DefaultGame.ini and platform overrides)
+    return GConfig->GetConfigFilename(TEXT("Game"));
+}
 
 void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -28,8 +49,7 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     bool bEnabled = false;
     if (GConfig)
     {
-        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
-        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        FString ConfigFilename = GetPluginConfigFilename();
         GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnabled"), bEnabled, ConfigFilename);
     }
     
@@ -169,8 +189,7 @@ FString UDiscordBotSubsystem::LoadBotTokenFromConfig()
     
     if (GConfig)
     {
-        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
-        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        FString ConfigFilename = GetPluginConfigFilename();
         GConfig->GetString(TEXT("DiscordBot"), TEXT("BotToken"), BotToken, ConfigFilename);
     }
     
@@ -186,8 +205,7 @@ void UDiscordBotSubsystem::LoadTwoWayChatConfig()
     
     if (GConfig)
     {
-        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
-        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        FString ConfigFilename = GetPluginConfigFilename();
         
         // Load two-way chat enabled flag
         GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableTwoWayChat"), bTwoWayChatEnabled, ConfigFilename);
@@ -339,8 +357,7 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
     
     if (GConfig)
     {
-        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
-        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        FString ConfigFilename = GetPluginConfigFilename();
         
         // Load server notification enabled flag
         GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnableServerNotifications"), bServerNotificationsEnabled, ConfigFilename);

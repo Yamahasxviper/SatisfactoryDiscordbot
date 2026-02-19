@@ -90,12 +90,32 @@ void FDiscordBotModule::StartupModule()
     // Determine log directory path
     FString LogDirectory;
     
-    // Try to load from config first
-    if (GConfig)
+    // Resolve the plugin's DiscordBot.ini config file, falling back to Game.ini
+    FString PluginConfigFilename;
     {
-        // Use explicit config filename for cross-platform compatibility (especially dedicated servers)
-        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
-        GConfig->GetString(TEXT("DiscordBot"), TEXT("ErrorLogDirectory"), LogDirectory, ConfigFilename);
+        TSharedPtr<IPlugin> DiscordBotPlugin = IPluginManager::Get().FindPlugin(TEXT("DiscordBot"));
+        if (DiscordBotPlugin.IsValid())
+        {
+            FString PluginConfigPath = DiscordBotPlugin->GetBaseDir() / TEXT("Config") / TEXT("DiscordBot.ini");
+            if (FPaths::FileExists(PluginConfigPath))
+            {
+                if (!GConfig->Find(PluginConfigPath, false))
+                {
+                    GConfig->LoadFile(PluginConfigPath);
+                }
+                PluginConfigFilename = PluginConfigPath;
+            }
+        }
+        if (PluginConfigFilename.IsEmpty() && GConfig)
+        {
+            PluginConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+        }
+    }
+
+    // Try to load from config first
+    if (GConfig && !PluginConfigFilename.IsEmpty())
+    {
+        GConfig->GetString(TEXT("DiscordBot"), TEXT("ErrorLogDirectory"), LogDirectory, PluginConfigFilename);
     }
     
     // If not configured, use default location in the mod's directory
@@ -110,10 +130,9 @@ void FDiscordBotModule::StartupModule()
     // Read LogLevel from config and apply to error logger
     // LogLevel: 0=Error, 1=Warning, 2=Log (default), 3=Verbose
     int32 LogLevelValue = 2;
-    if (GConfig)
+    if (GConfig && !PluginConfigFilename.IsEmpty())
     {
-        FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
-        GConfig->GetInt(TEXT("DiscordBot"), TEXT("LogLevel"), LogLevelValue, ConfigFilename);
+        GConfig->GetInt(TEXT("DiscordBot"), TEXT("LogLevel"), LogLevelValue, PluginConfigFilename);
     }
     ELogVerbosity::Type ConfiguredVerbosity;
     switch (LogLevelValue)
