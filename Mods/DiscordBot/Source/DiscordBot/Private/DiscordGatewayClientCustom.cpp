@@ -43,6 +43,8 @@ ADiscordGatewayClientCustom::ADiscordGatewayClientCustom()
     SequenceNumber = -1;
     bHeartbeatAckReceived = true;
     LastHeartbeatTime = 0.0f;
+    HeartbeatCount = 0;
+    ConnectionStartTime = 0.0f;
     ReconnectAttempts = 0;
     ReconnectDelay = 1.0f;
 }
@@ -318,6 +320,8 @@ void ADiscordGatewayClientCustom::HandleGatewayEvent(int32 OpCode, const TShared
         if (EventType == TEXT("READY"))
         {
             bIsConnected = true;
+            ConnectionStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+            HeartbeatCount = 0;
             if (Data.IsValid() && Data->HasField(TEXT("session_id")))
             {
                 SessionId = Data->GetStringField(TEXT("session_id"));
@@ -325,6 +329,7 @@ void ADiscordGatewayClientCustom::HandleGatewayEvent(int32 OpCode, const TShared
                 UE_LOG(LogDiscordGatewayCustom, Log, TEXT("*** DISCORD BOT FULLY CONNECTED AND READY! ***"));
                 UE_LOG(LogDiscordGatewayCustom, Log, TEXT("*** CustomWebSocket successfully connected to Discord Gateway ***"));
                 UE_LOG(LogDiscordGatewayCustom, Log, TEXT("*** Session ID: %s ***"), *SessionId);
+                UE_LOG(LogDiscordGatewayCustom, Log, TEXT("*** Internet connection: ACTIVE ***"));
                 UE_LOG(LogDiscordGatewayCustom, Log, TEXT("****************************************"));
             }
             if (Data.IsValid() && Data->HasField(TEXT("resume_gateway_url")))
@@ -475,7 +480,26 @@ void ADiscordGatewayClientCustom::SendHeartbeat()
         WebSocket->SendText(OutputString);
         bHeartbeatAckReceived = false;
         LastHeartbeatTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+        HeartbeatCount++;
+        
         UE_LOG(LogDiscordGatewayCustom, Verbose, TEXT("Heartbeat sent"));
+        
+        // Log connection status every 10 heartbeats (approximately every 7 minutes)
+        if (HeartbeatCount % 10 == 0)
+        {
+            float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+            float UptimeMinutes = (CurrentTime - ConnectionStartTime) / 60.0f;
+            
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("========================================"));
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Connection Status Report"));
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Status: CONNECTED"));
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("WebSocket: ACTIVE"));
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Internet Connection: ACTIVE"));
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Uptime: %.1f minutes"), UptimeMinutes);
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Heartbeats sent: %d"), HeartbeatCount);
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Session ID: %s"), *SessionId);
+            UE_LOG(LogDiscordGatewayCustom, Log, TEXT("========================================"));
+        }
     }
 }
 
