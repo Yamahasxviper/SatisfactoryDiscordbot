@@ -453,6 +453,106 @@ This document provides solutions for common WebSocket connection issues when usi
 
 ---
 
+### Issue 12: CustomWebSocket Module Not Found
+
+**Symptoms:**
+- Error log: "Failed to load CustomWebSocket module!"
+- Bot fails to initialize completely
+- No WebSocket connection attempts made
+- Error appears during module startup
+
+**Root Causes:**
+1. CustomWebSocket plugin not installed in Mods folder
+2. CustomWebSocket.uplugin file missing or corrupted
+3. Plugin not enabled in project configuration
+4. Module loading order issue
+
+**Solutions:**
+
+1. **Verify CustomWebSocket Plugin Installation**
+   - Check that `Mods/CustomWebSocket/` folder exists
+   - Verify `CustomWebSocket.uplugin` is present
+   - Ensure all source files are in place:
+     ```
+     Mods/CustomWebSocket/
+     ├── CustomWebSocket.uplugin
+     └── Source/
+         └── CustomWebSocket/
+             ├── CustomWebSocket.Build.cs
+             ├── Public/
+             │   ├── CustomWebSocket.h
+             │   └── CustomWebSocketModule.h
+             └── Private/
+                 ├── CustomWebSocket.cpp
+                 └── CustomWebSocketModule.cpp
+     ```
+
+2. **Check Plugin Configuration**
+   - Verify `DiscordBot.uplugin` declares dependency:
+     ```json
+     "Plugins": [
+         {
+             "Name": "CustomWebSocket",
+             "Enabled": true,
+             "SemVersion": "^1.0.0"
+         }
+     ]
+     ```
+
+3. **Verify Module Loading Phases**
+   - CustomWebSocket must load before DiscordBot
+   - CustomWebSocket: `"LoadingPhase": "PreDefault"`
+   - DiscordBot: `"LoadingPhase": "PostDefault"`
+   - Check both `.uplugin` files for correct loading phases
+
+4. **Check Build Dependencies**
+   - Verify `DiscordBot.Build.cs` includes CustomWebSocket:
+     ```csharp
+     PublicDependencyModuleNames.AddRange(new[] {
+         "CustomWebSocket"
+     });
+     ```
+
+5. **Automatic Module Loading (Since v1.0.0)**
+   - DiscordBot now automatically attempts to load CustomWebSocket if not found
+   - Check logs for:
+     - "CustomWebSocket module already loaded" ✅ (Good)
+     - "CustomWebSocket module loaded successfully" ✅ (Good - auto-loaded)
+     - "Failed to load CustomWebSocket module!" ❌ (Problem - plugin missing)
+
+6. **Re-install CustomWebSocket Plugin**
+   - If above checks fail, re-copy the CustomWebSocket folder
+   - Ensure no files are missing or corrupted
+   - Rebuild the project
+
+**Expected Log Output (Success):**
+```
+LogDiscordBot: DiscordBot module starting up
+LogDiscordBot: CustomWebSocket module already loaded
+LogDiscordBot: Error logging initialized at: Saved/Logs/DiscordBot
+```
+
+**Expected Log Output (Auto-Load Success):**
+```
+LogDiscordBot: DiscordBot module starting up
+LogDiscordBot: Warning: CustomWebSocket module not loaded, attempting to load...
+LogDiscordBot: CustomWebSocket module loaded successfully
+LogDiscordBot: Error logging initialized at: Saved/Logs/DiscordBot
+```
+
+**Error Log Output (Failure):**
+```
+LogDiscordBot: DiscordBot module starting up
+LogDiscordBot: Warning: CustomWebSocket module not loaded, attempting to load...
+LogDiscordBot: Error: Failed to load CustomWebSocket module! Please ensure the CustomWebSocket plugin is installed in the Mods folder.
+LogDiscordBot: Error: The DiscordBot requires the CustomWebSocket plugin to function. Check that:
+LogDiscordBot: Error:   1. Mods/CustomWebSocket/ folder exists
+LogDiscordBot: Error:   2. CustomWebSocket.uplugin is present
+LogDiscordBot: Error:   3. The plugin is enabled in your project
+```
+
+---
+
 ## Logging and Debugging
 
 ### Enable Detailed Logging
@@ -488,6 +588,15 @@ DiscordBot_YYYYMMDD_HHMMSS.log
 ## Quick Diagnostic Checklist
 
 Use this checklist to systematically diagnose issues:
+
+- [ ] **Plugin Installation**
+  - CustomWebSocket plugin folder exists in Mods/
+  - CustomWebSocket.uplugin file present
+  - All source files in place
+
+- [ ] **Module Loading**
+  - Check logs for "CustomWebSocket module already loaded" or "loaded successfully"
+  - No "Failed to load CustomWebSocket module!" errors
 
 - [ ] **Internet Connectivity**
   - `ping gateway.discord.gg` returns responses
@@ -534,6 +643,7 @@ Use this checklist to systematically diagnose issues:
 | "Invalid handshake response" | Wrong HTTP status | Check token and intents again |
 | "Failed to resolve host" | DNS failure | Check DNS, internet, firewall |
 | "Not connected" | Attempted message before connect | Wait for READY event |
+| "Failed to load CustomWebSocket module!" | Plugin missing or not installed | Install CustomWebSocket plugin in Mods folder |
 
 ---
 
