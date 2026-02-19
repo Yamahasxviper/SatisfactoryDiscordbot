@@ -481,27 +481,31 @@ void UDiscordBotSubsystem::SendServerStartNotification()
     {
         return;
     }
-    
-    if (NotificationChannelId.IsEmpty())
+
+    // Send the start notification message only when a channel is configured and the bot is connected.
+    // This is intentionally separate from the presence update timer below so that the timer always
+    // starts regardless of whether a notification channel has been configured.
+    if (!NotificationChannelId.IsEmpty())
     {
-        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send server start notification: No valid channel ID configured"));
-        return;
+        if (IsBotConnected())
+        {
+            SendDiscordMessage(NotificationChannelId, ServerStartMessage);
+            UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server start notification sent: %s"), *ServerStartMessage);
+        }
+        else
+        {
+            UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send server start notification: Bot not connected"));
+        }
     }
-    
-    if (!IsBotConnected())
-    {
-        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot send server start notification: Bot not connected"));
-        return;
-    }
-    
-    SendDiscordMessage(NotificationChannelId, ServerStartMessage);
-    UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Server start notification sent: %s"), *ServerStartMessage);
-    
-    // Update bot presence/status with initial player count
+
+    // Update bot presence/status with initial player count.
+    // UpdateBotPresenceWithPlayerCount() safely returns early if the bot is not yet connected,
+    // so it is safe to call here even before the Discord READY event has been received.
     UpdateBotPresenceWithPlayerCount();
-    
-    // Start periodic player count updates if enabled
-    if (bShowPlayerCount && GetWorld())
+
+    // Start the periodic presence update timer so that connection status ("Bot presence updated")
+    // is logged regularly regardless of whether a notification channel is configured.
+    if ((bShowPlayerCount || bShowPlayerNames || bUseCustomPresenceFormat) && GetWorld())
     {
         GetWorld()->GetTimerManager().SetTimer(
             PlayerCountUpdateTimerHandle,
