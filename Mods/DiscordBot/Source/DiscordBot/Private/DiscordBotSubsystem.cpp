@@ -8,6 +8,9 @@
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "HttpModule.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Misc/DateTime.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBotSubsystem, Log, All);
 
