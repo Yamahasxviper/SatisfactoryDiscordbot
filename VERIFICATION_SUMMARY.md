@@ -242,12 +242,12 @@ Comprehensive documentation is available:
 1. **COMPILATION_VERIFICATION.md** - Full verification report with detailed analysis
 2. **VERIFICATION_SUMMARY.md** - This quick reference guide
 3. **README.md** - Main mod documentation
-4. **SETUP.md** - Setup and configuration guide
-5. **TWO_WAY_CHAT.md** - Two-way chat feature documentation
-6. **TWO_WAY_CHAT_EXAMPLES.md** - Configuration examples
-7. **WEBSOCKET_TROUBLESHOOTING.md** - WebSocket debugging guide
-8. **CUSTOM_WEBSOCKET.md** - CustomWebSocket implementation details
-9. **PRIVILEGED_INTENTS_GUIDE.md** - Discord intents configuration
+4. **Docs/Setup/SETUP.md** - Setup and configuration guide
+5. **Docs/Setup/TWO_WAY_CHAT.md** - Two-way chat feature documentation
+6. **Docs/Setup/TWO_WAY_CHAT_EXAMPLES.md** - Configuration examples
+7. **Docs/Troubleshooting/WEBSOCKET_TROUBLESHOOTING.md** - WebSocket debugging guide
+8. **Docs/Technical/CUSTOM_WEBSOCKET.md** - CustomWebSocket implementation details
+9. **Docs/Setup/PRIVILEGED_INTENTS_GUIDE.md** - Discord intents configuration
 
 ---
 

@@ -227,7 +227,7 @@ The mod performs the following validations:
 - [Server Configuration Fix](SERVER_CONFIG_FIX.md) - Details on the cross-platform config loading fix
 - [Setup Guide](Mods/DiscordBot/SETUP.md) - Initial setup instructions
 - [Two-Way Chat](Mods/DiscordBot/TWO_WAY_CHAT.md) - Chat configuration details
-- [Error Logging](Mods/DiscordBot/ERROR_LOGGING.md) - Logging configuration
+- [Error Logging](Mods/DiscordBot/Docs/Troubleshooting/ERROR_LOGGING.md) - Logging configuration
 
 ## Technical References
 

@@ -380,12 +380,12 @@ The Discord Bot mod code is **ready to compile** with Unreal Engine 5.3.2-CSS.
 Comprehensive documentation is provided in the repository:
 
 - `README.md` - Main documentation
-- `SETUP.md` - Setup instructions
-- `TWO_WAY_CHAT.md` - Two-way chat feature guide
-- `TWO_WAY_CHAT_EXAMPLES.md` - Configuration examples
-- `WEBSOCKET_TROUBLESHOOTING.md` - WebSocket debugging guide
-- `CUSTOM_WEBSOCKET.md` - CustomWebSocket implementation details
-- `PRIVILEGED_INTENTS_GUIDE.md` - Discord intents configuration
+- `Docs/Setup/SETUP.md` - Setup instructions
+- `Docs/Setup/TWO_WAY_CHAT.md` - Two-way chat feature guide
+- `Docs/Setup/TWO_WAY_CHAT_EXAMPLES.md` - Configuration examples
+- `Docs/Troubleshooting/WEBSOCKET_TROUBLESHOOTING.md` - WebSocket debugging guide
+- `Docs/Technical/CUSTOM_WEBSOCKET.md` - CustomWebSocket implementation details
+- `Docs/Setup/PRIVILEGED_INTENTS_GUIDE.md` - Discord intents configuration
 
 ---
 

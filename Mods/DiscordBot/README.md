@@ -2,6 +2,18 @@
 
 A **server-side-only** Discord bot integration mod for Satisfactory that uses WebSocket communication with the following Discord Gateway intents:
 
+## 📚 Documentation
+
+All guides and documentation are now organized in the **[Docs/](Docs/)** folder:
+
+- **[Setup Guides](Docs/Setup/)** - Quick start, setup instructions, and configuration guides
+- **[Troubleshooting](Docs/Troubleshooting/)** - WebSocket issues, error logging, and common problems
+- **[Technical Documentation](Docs/Technical/)** - Architecture, WebSocket implementation, and advanced topics
+
+See **[Docs/README.md](Docs/README.md)** for a complete guide index.
+
+---
+
 > ⚠️ **Server-Side Mod**: This mod is marked as `"Remote": true` and is designed to run on the server only. **Clients do not need to install this mod** to join the server. The Discord bot functionality runs entirely server-side.
 
 - **Guilds Intent** (1 << 0 = 1) - Basic guild events (required baseline)
@@ -11,7 +23,7 @@ A **server-side-only** Discord bot integration mod for Satisfactory that uses We
 
 Combined Intent Value: **33027** (includes baseline GUILDS + three privileged intents)
 
-> 📖 **For detailed information about Privileged Gateway Intents, see [PRIVILEGED_INTENTS_GUIDE.md](PRIVILEGED_INTENTS_GUIDE.md)**
+> 📖 **For detailed information about Privileged Gateway Intents, see [PRIVILEGED_INTENTS_GUIDE.md](Docs/Setup/PRIVILEGED_INTENTS_GUIDE.md)**
 
 ## Setup
 
@@ -109,13 +121,13 @@ Client->SendMessage(TEXT("CHANNEL_ID"), TEXT("Hello from Satisfactory!"));
   - Automatic log rotation to prevent large files
   - Captures all Discord bot errors and warnings
   - Configurable log directory location
-  - See [ERROR_LOGGING.md](ERROR_LOGGING.md) for detailed documentation
+  - See [ERROR_LOGGING.md](Docs/Troubleshooting/ERROR_LOGGING.md) for detailed documentation
 - **🆕 Two-Way Chat Integration**: Relay messages between Discord and in-game chat
   - Multiple Discord channel support
   - Customizable sender name formats
   - Automatic bot message filtering
   - Color-coded messages in-game
-  - See [TWO_WAY_CHAT.md](TWO_WAY_CHAT.md) for detailed documentation
+  - See [TWO_WAY_CHAT.md](Docs/Setup/TWO_WAY_CHAT.md) for detailed documentation
 - **🆕 Server Status Notifications**: Get notified when the server starts or stops
   - Separate notification channel for server events
   - Custom notification messages
@@ -168,7 +180,7 @@ This mod uses the **CustomWebSocket plugin** which provides:
 
 > **Note:** The `DiscordGatewayClient` class in the codebase is a reference implementation showing Discord Gateway protocol structure. It does NOT implement actual WebSocket connection and is kept for educational purposes only.
 
-See [WEBSOCKET_COMPATIBILITY.md](WEBSOCKET_COMPATIBILITY.md) for detailed compatibility analysis.
+See [WEBSOCKET_COMPATIBILITY.md](Docs/Technical/WEBSOCKET_COMPATIBILITY.md) for detailed compatibility analysis.
 
 ### Security & Best Practices
 
@@ -407,9 +419,9 @@ The CustomWebSocket plugin implementation:
 
 ## Quick Start
 
-For detailed setup instructions, see [SETUP.md](SETUP.md)
+For detailed setup instructions, see [SETUP.md](Docs/Setup/SETUP.md)
 
-For information about Privileged Gateway Intents configuration, see [PRIVILEGED_INTENTS_GUIDE.md](PRIVILEGED_INTENTS_GUIDE.md)
+For information about Privileged Gateway Intents configuration, see [PRIVILEGED_INTENTS_GUIDE.md](Docs/Setup/PRIVILEGED_INTENTS_GUIDE.md)
 
 ## License
 
