@@ -8,6 +8,8 @@
 #include "SocketSubsystem.h"
 #include "IPAddress.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogCustomWebSocket, Log, All);
+
 DECLARE_DELEGATE_OneParam(FOnWebSocketConnected, bool /* bSuccess */);
 DECLARE_DELEGATE_TwoParams(FOnWebSocketMessage, const FString& /* Message */, bool /* bIsText */);
 DECLARE_DELEGATE_ThreeParams(FOnWebSocketClosed, int32 /* StatusCode */, const FString& /* Reason */, bool /* bWasClean */);
