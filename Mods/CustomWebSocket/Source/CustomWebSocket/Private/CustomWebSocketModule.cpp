@@ -2,9 +2,8 @@
 // Custom WebSocket Plugin Module Implementation
 
 #include "CustomWebSocketModule.h"
+#include "CustomWebSocket.h"
 #include "Modules/ModuleManager.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogCustomWebSocket, Log, All);
 
 #define LOCTEXT_NAMESPACE "FCustomWebSocketModule"
 

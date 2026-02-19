@@ -6,7 +6,7 @@
 #include "Misc/SecureHash.h"
 #include "HAL/PlatformProcess.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogCustomWebSocket, Log, All);
+DEFINE_LOG_CATEGORY(LogCustomWebSocket);
 
 // WebSocket opcodes (RFC 6455)
 #define WS_OPCODE_CONTINUATION 0x0
