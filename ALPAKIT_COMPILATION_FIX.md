@@ -7,9 +7,9 @@
 
 ## Problem Statement
 
-> "alpakit is not compileing my discord projet or my custome websocket"
+> "alpakit is not compileing my discord projet or my custome websocket" *(original issue text)*
 
-Alpakit, the Satisfactory mod packaging tool, was not compiling or packaging the DiscordBot mod and CustomWebSocket plugin, even though they were properly registered in the project and compiled by Unreal Engine.
+**Summary:** Alpakit, the Satisfactory mod packaging tool, was not compiling or packaging the DiscordBot mod and CustomWebSocket plugin, even though they were properly registered in the project and compiled by Unreal Engine.
 
 ---
 
