@@ -17,7 +17,9 @@ It also serves as the Unreal project used for developing mods.
 
 See [BUILD_GUIDE.md](BUILD_GUIDE.md) for detailed build instructions.
 
-**⚠️ Having Alpakit Issues?** See [ALPAKIT_TROUBLESHOOTING_GUIDE.md](ALPAKIT_TROUBLESHOOTING_GUIDE.md) for complete troubleshooting steps.
+**⚠️ Having Alpakit Issues?** 
+- **Quick Fix:** [ALPAKIT_QUICK_REFERENCE.md](ALPAKIT_QUICK_REFERENCE.md) (5-second check + common solutions)
+- **Complete Guide:** [ALPAKIT_TROUBLESHOOTING_GUIDE.md](ALPAKIT_TROUBLESHOOTING_GUIDE.md) (detailed troubleshooting)
 
 **Note:** As of Feb 2026:
 - SML and DiscordBot plugins are now properly registered in `FactoryGame.uproject` and will compile automatically. See [PLUGIN_COMPILATION_FIX.md](PLUGIN_COMPILATION_FIX.md) for details.
