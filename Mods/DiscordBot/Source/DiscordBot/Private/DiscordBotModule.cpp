@@ -6,12 +6,35 @@
 #include "Logging/LogMacros.h"
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBot, Log, All);
 
 void FDiscordBotModule::StartupModule()
 {
     UE_LOG(LogDiscordBot, Log, TEXT("DiscordBot module starting up"));
+    
+    // Verify CustomWebSocket module is loaded
+    if (!FModuleManager::Get().IsModuleLoaded(TEXT("CustomWebSocket")))
+    {
+        UE_LOG(LogDiscordBot, Warning, TEXT("CustomWebSocket module not loaded, attempting to load..."));
+        if (!FModuleManager::Get().LoadModule(TEXT("CustomWebSocket")))
+        {
+            UE_LOG(LogDiscordBot, Error, TEXT("Failed to load CustomWebSocket module! Please ensure the CustomWebSocket plugin is installed in the Mods folder."));
+            UE_LOG(LogDiscordBot, Error, TEXT("The DiscordBot requires the CustomWebSocket plugin to function. Check that:"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  1. Mods/CustomWebSocket/ folder exists"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  2. CustomWebSocket.uplugin is present"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  3. The plugin is enabled in your project"));
+        }
+        else
+        {
+            UE_LOG(LogDiscordBot, Log, TEXT("CustomWebSocket module loaded successfully"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogDiscordBot, Log, TEXT("CustomWebSocket module already loaded"));
+    }
     
     // Initialize error logger
     ErrorLogger = MakeUnique<FDiscordBotErrorLogger>();
