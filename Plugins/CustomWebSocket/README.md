@@ -31,6 +31,7 @@ This plugin provides a complete RFC 6455-compliant WebSocket implementation usin
 1. Copy the `CustomWebSocket` folder to your project's `Plugins` directory
 2. Regenerate project files
 3. Build your project
+   - **Having Alpakit compilation issues?** See [../../ALPAKIT_TROUBLESHOOTING_GUIDE.md](../../ALPAKIT_TROUBLESHOOTING_GUIDE.md)
 
 ### Method 2: Add as Git Submodule
 ```bash

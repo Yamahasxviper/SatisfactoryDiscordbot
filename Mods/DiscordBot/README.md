@@ -43,6 +43,8 @@ Combined Intent Value: **33027** (includes baseline GUILDS + three privileged in
 3. **Build the Mod**
    - Build the Satisfactory project with the DiscordBot mod included
    - The mod will be compiled as part of the build process
+   - **Having Alpakit compilation issues?** See [../../ALPAKIT_TROUBLESHOOTING_GUIDE.md](../../ALPAKIT_TROUBLESHOOTING_GUIDE.md)
+   - For general build instructions, see [../../BUILD_GUIDE.md](../../BUILD_GUIDE.md)
 
 ## Usage
 
