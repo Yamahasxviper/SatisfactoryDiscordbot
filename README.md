@@ -17,7 +17,9 @@ It also serves as the Unreal project used for developing mods.
 
 See [BUILD_GUIDE.md](BUILD_GUIDE.md) for detailed build instructions.
 
-**Note:** As of Feb 2026, SML and DiscordBot plugins are now properly registered in `FactoryGame.uproject` and will compile automatically. See [PLUGIN_COMPILATION_FIX.md](PLUGIN_COMPILATION_FIX.md) for details.
+**Note:** As of Feb 2026:
+- SML and DiscordBot plugins are now properly registered in `FactoryGame.uproject` and will compile automatically. See [PLUGIN_COMPILATION_FIX.md](PLUGIN_COMPILATION_FIX.md) for details.
+- CustomWebSocket and DiscordBot are now properly packaged by the CI workflow. See [PACKAGING_FIX.md](PACKAGING_FIX.md) for details.
 
 ### Discord Bot Setup
 

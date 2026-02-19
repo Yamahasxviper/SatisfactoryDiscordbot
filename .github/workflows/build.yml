@@ -60,9 +60,29 @@ jobs:
       - name: Package SML Mod
         run: .\\ue\\Engine\\Build\\BatchFiles\\RunUAT.bat -ScriptsForProject="C:\\SML\\SML\\FactoryGame.uproject" PackagePlugin -Project="C:\\SML\\SML\\FactoryGame.uproject" -dlcname=SML -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
 
+      - name: Package CustomWebSocket Plugin
+        run: .\\ue\\Engine\\Build\\BatchFiles\\RunUAT.bat -ScriptsForProject="C:\\SML\\SML\\FactoryGame.uproject" PackagePlugin -Project="C:\\SML\\SML\\FactoryGame.uproject" -dlcname=CustomWebSocket -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
+
+      - name: Package DiscordBot Mod
+        run: .\\ue\\Engine\\Build\\BatchFiles\\RunUAT.bat -ScriptsForProject="C:\\SML\\SML\\FactoryGame.uproject" PackagePlugin -Project="C:\\SML\\SML\\FactoryGame.uproject" -dlcname=DiscordBot -merge -build -server -clientconfig=Shipping -serverconfig=Shipping -platform=Win64 -serverplatform=Win64+Linux -nocompileeditor -installed
+
       - name: Archive SML artifact
         uses: actions/upload-artifact@v4
         if: ${{ github.event_name == 'push' }}
         with:
           name: sml
           path: C:\\SML\\SML\\Saved\\ArchivedPlugins\\SML\\*.zip
+
+      - name: Archive CustomWebSocket artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'push' }}
+        with:
+          name: customwebsocket
+          path: C:\\SML\\SML\\Saved\\ArchivedPlugins\\CustomWebSocket\\*.zip
+
+      - name: Archive DiscordBot artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'push' }}
+        with:
+          name: discordbot
+          path: C:\\SML\\SML\\Saved\\ArchivedPlugins\\DiscordBot\\*.zip
