@@ -99,7 +99,7 @@ Package Process (AFTER FIX):
 ✅ Package SML
    └─ Output: Saved/ArchivedPlugins/SML/*.zip
 ✅ Package CustomWebSocket
-   └─ Output: Saved/ArchivedPlugins/CustomWebSocket/*.zip
+   └─ Output: Saved/ArchivedMods/CustomWebSocket/*.zip
 ✅ Package DiscordBot
    └─ Output: Saved/ArchivedPlugins/DiscordBot/*.zip
 
@@ -206,7 +206,7 @@ For developers building locally, the updated BUILD_GUIDE.md now includes all thr
 - `.github/workflows/build.yml` - CI workflow (modified)
 - `BUILD_GUIDE.md` - Build and packaging guide (modified)
 - `PLUGIN_COMPILATION_FIX.md` - Previous fix for plugin compilation
-- `Plugins/CustomWebSocket/README.md` - CustomWebSocket documentation
+- `Mods/CustomWebSocket/README.md` - CustomWebSocket documentation
 - `Mods/DiscordBot/README.md` - DiscordBot documentation
 
 ---

@@ -21,7 +21,7 @@ Satisfactory uses a custom Unreal Engine build (5.3.2-CSS), and we've provided a
 **This mod uses:** CustomWebSocket plugin for Discord Gateway connection
 
 The CustomWebSocket plugin is located at:
-- Plugin: `Plugins/CustomWebSocket/`
+- Plugin: `Mods/CustomWebSocket/`
 - Implementation: Custom RFC 6455 WebSocket protocol
 - Platform support: Win64, Linux, Mac, Dedicated Servers
 
@@ -113,7 +113,7 @@ The Discord bot works automatically with the subsystem:
 
 **Cause:** CustomWebSocket plugin not loaded
 **Fix:** Ensure the CustomWebSocket plugin is enabled:
-- Check `Plugins/CustomWebSocket/CustomWebSocket.uplugin` exists
+- Check `Mods/CustomWebSocket/CustomWebSocket.uplugin` exists
 - Verify `DiscordBot.Build.cs` includes "CustomWebSocket" in dependencies
 
 ### Build Errors

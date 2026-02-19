@@ -134,12 +134,12 @@ $ python3 -c "import json; print(json.load(open('Mods/DiscordBot/DiscordBot.uplu
 
 ### Plugin Descriptors
 - `Mods/DiscordBot/DiscordBot.uplugin` - **Modified** (added SemVersion)
-- `Plugins/CustomWebSocket/CustomWebSocket.uplugin` - Defines SemVersion "1.0.0"
+- `Mods/CustomWebSocket/CustomWebSocket.uplugin` - Defines SemVersion "1.0.0"
 - `FactoryGame.uproject` - Enables CustomWebSocket plugin
 
 ### Build Configuration
 - `Mods/DiscordBot/Source/DiscordBot/DiscordBot.Build.cs` - Declares CustomWebSocket module dependency
-- `Plugins/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs` - CustomWebSocket build config
+- `Mods/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs` - CustomWebSocket build config
 
 ### Verification Scripts
 - `verify_discordbot_integration.sh` - Tests DiscordBot + CustomWebSocket integration

@@ -151,7 +151,7 @@ This allows minor updates and patches while preventing breaking changes.
 
 ## Files Modified
 
-1. **Plugins/CustomWebSocket/CustomWebSocket.uplugin**
+1. **Mods/CustomWebSocket/CustomWebSocket.uplugin**
    - Added `"SemVersion": "1.0.0"` field
    - No other changes
 

@@ -61,7 +61,7 @@ Fixed the icon files to match the standard Unreal Engine plugin icon format:
 
 **Files Modified:**
 - `Mods/DiscordBot/Resources/Icon128.png`: 2366 bytes → 143 bytes
-- `Plugins/CustomWebSocket/Resources/Icon128.png`: 2366 bytes → 143 bytes
+- `Mods/CustomWebSocket/Resources/Icon128.png`: 2366 bytes → 143 bytes
 
 **Format Changes:**
 ```
@@ -140,7 +140,7 @@ PNG image data, 128 x 128, 8-bit/color RGBA, non-interlaced
 $ file Mods/DiscordBot/Resources/Icon128.png
 PNG image data, 128 x 128, 8-bit/color RGBA, non-interlaced
 
-$ file Plugins/CustomWebSocket/Resources/Icon128.png
+$ file Mods/CustomWebSocket/Resources/Icon128.png
 PNG image data, 128 x 128, 8-bit/color RGBA, non-interlaced
 ```
 

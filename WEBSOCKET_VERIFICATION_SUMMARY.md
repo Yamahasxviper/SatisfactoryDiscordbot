@@ -381,7 +381,7 @@ The websocket WILL WORK correctly!
 - Discord Gateway: https://discord.com/developers/docs/topics/gateway
 
 ### Repository Files
-- Plugin: `Plugins/CustomWebSocket/`
+- Plugin: `Mods/CustomWebSocket/`
 - DiscordBot: `Mods/DiscordBot/`
 - Verification: `verify_websocket.sh`, `verify_discordbot_integration.sh`
 - Reports: `CUSTOMWEBSOCKET_VERIFICATION_REPORT.md`, `VERIFICATION_SUMMARY.md`

@@ -8,7 +8,7 @@
 	"Category": "Networking",
 	"CreatedBy": "Yamahasxviper",
 	"CreatedByURL": "https://github.com/Yamahasxviper/SatisfactoryDiscordbot",
-	"DocsURL": "https://github.com/Yamahasxviper/SatisfactoryDiscordbot/blob/main/Plugins/CustomWebSocket/README.md",
+	"DocsURL": "https://github.com/Yamahasxviper/SatisfactoryDiscordbot/blob/main/Mods/CustomWebSocket/README.md",
 	"SupportURL": "https://github.com/Yamahasxviper/SatisfactoryDiscordbot/issues",
 	"EnabledByDefault": true,
 	"CanContainContent": false,

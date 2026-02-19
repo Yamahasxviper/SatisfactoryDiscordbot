@@ -21,7 +21,7 @@ Alpakit requires a `Config/Alpakit.ini` configuration file in each plugin/mod di
 
 **Missing Files:**
 - ❌ `Mods/DiscordBot/Config/Alpakit.ini` - **Did not exist**
-- ❌ `Plugins/CustomWebSocket/Config/Alpakit.ini` - **Did not exist**
+- ❌ `Mods/CustomWebSocket/Config/Alpakit.ini` - **Did not exist**
 
 **Existing Files (for reference):**
 - ✅ `Mods/SML/Config/Alpakit.ini` - Already existed
@@ -48,7 +48,7 @@ Targets=LinuxServer
 
 #### 2. CustomWebSocket Alpakit Configuration
 
-**File:** `Plugins/CustomWebSocket/Config/Alpakit.ini`
+**File:** `Mods/CustomWebSocket/Config/Alpakit.ini`
 
 ```ini
 [ModTargets]
@@ -64,7 +64,7 @@ Updated the `FilterPlugin.ini` files to include the new Alpakit.ini files in the
 **File:** `Mods/DiscordBot/Config/FilterPlugin.ini`
 - Added `/Config/Alpakit.ini` to the list of files to include
 
-**File:** `Plugins/CustomWebSocket/Config/FilterPlugin.ini`
+**File:** `Mods/CustomWebSocket/Config/FilterPlugin.ini`
 - Added `/Config/Alpakit.ini` to the list of files to include
 
 ---
@@ -157,7 +157,7 @@ To verify the fix works:
 4. **Select both plugins** and click "Alpakit!"
 5. **Check for packaged .zip files** in:
    - `Saved/ArchivedPlugins/DiscordBot/*.zip`
-   - `Saved/ArchivedPlugins/CustomWebSocket/*.zip`
+   - `Saved/ArchivedMods/CustomWebSocket/*.zip`
 
 ---
 
@@ -185,7 +185,7 @@ To verify the fix works:
 - `PLUGIN_COMPILATION_FIX.md` - Plugin registration in FactoryGame.uproject
 - `PACKAGING_FIX.md` - CI/CD packaging workflow
 - `Mods/DiscordBot/README.md` - DiscordBot setup and usage
-- `Plugins/CustomWebSocket/README.md` - CustomWebSocket documentation
+- `Mods/CustomWebSocket/README.md` - CustomWebSocket documentation
 
 ---
 

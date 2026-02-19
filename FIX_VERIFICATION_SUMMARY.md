@@ -30,7 +30,7 @@ After thorough investigation, **the fix for this issue has already been implemen
 ### Current State (All Correct)
 
 #### 1. CustomWebSocket Plugin Configuration
-**File:** `Plugins/CustomWebSocket/CustomWebSocket.uplugin`
+**File:** `Mods/CustomWebSocket/CustomWebSocket.uplugin`
 ```json
 {
   "FileVersion": 3,
