@@ -27,21 +27,31 @@ public class CustomWebSocket : ModuleRules
 			// Add private dependencies here if needed
 		});
 
-		// Platform-specific includes
+		// Platform-specific configurations
+		// Note: Platform-specific defines are already provided by Unreal Engine
+		// (e.g., PLATFORM_WINDOWS, PLATFORM_LINUX, PLATFORM_MAC, PLATFORM_ANDROID, PLATFORM_IOS)
+		// We use Unreal's cross-platform socket subsystem which works on all platforms
+		
+		// Additional platform-specific settings can be added here if needed
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			// Windows-specific
-			PublicDefinitions.Add("PLATFORM_WINDOWS=1");
+			// Windows-specific settings
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			// Linux-specific
-			PublicDefinitions.Add("PLATFORM_LINUX=1");
+			// Linux-specific settings
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			// Mac-specific
-			PublicDefinitions.Add("PLATFORM_MAC=1");
+			// Mac-specific settings
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			// Android-specific settings
+		}
+		else if (Target.Platform == UnrealTargetPlatform.IOS)
+		{
+			// iOS-specific settings
 		}
 	}
 }
