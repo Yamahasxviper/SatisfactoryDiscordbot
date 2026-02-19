@@ -92,8 +92,8 @@ void FDiscordBotModule::StartupModule()
     
     // Resolve the plugin's DiscordBot.ini config file, falling back to Game.ini
     FString PluginConfigFilename;
+    TSharedPtr<IPlugin> DiscordBotPlugin = IPluginManager::Get().FindPlugin(TEXT("DiscordBot"));
     {
-        TSharedPtr<IPlugin> DiscordBotPlugin = IPluginManager::Get().FindPlugin(TEXT("DiscordBot"));
         if (DiscordBotPlugin.IsValid())
         {
             FString PluginConfigPath = DiscordBotPlugin->GetBaseDir() / TEXT("Config") / TEXT("DiscordBot.ini");
@@ -118,11 +118,21 @@ void FDiscordBotModule::StartupModule()
         GConfig->GetString(TEXT("DiscordBot"), TEXT("ErrorLogDirectory"), LogDirectory, PluginConfigFilename);
     }
     
-    // If not configured, use default location in the mod's directory
+    // If not configured, use default location inside the mod's own directory
     if (LogDirectory.IsEmpty())
     {
-        // Use Saved/Logs/DiscordBot as default location
-        LogDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Logs"), TEXT("DiscordBot"));
+        if (DiscordBotPlugin.IsValid())
+        {
+            // Store logs inside the mod's installation directory so they are
+            // co-located with the mod when packaged as a DLC by Alpakit
+            LogDirectory = DiscordBotPlugin->GetBaseDir() / TEXT("Logs");
+        }
+        else
+        {
+            // Fallback: should not normally occur, but avoids a crash if the
+            // plugin descriptor cannot be found at startup
+            LogDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Logs"), TEXT("DiscordBot"));
+        }
     }
     
     ErrorLogger->Initialize(LogDirectory);
