@@ -456,10 +456,6 @@ void UDiscordBotSubsystem::LoadServerNotificationConfig()
             {
                 UE_LOG(LogDiscordBotSubsystem, Log, TEXT("  - Notification Channel ID: %s"), *NotificationChannelId);
             }
-            else
-            {
-                UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("  - No valid notification channel ID configured"));
-            }
             
             if (bUseCustomPresenceFormat && !CustomPresenceFormat.IsEmpty())
             {
