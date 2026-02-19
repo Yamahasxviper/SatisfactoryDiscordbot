@@ -36,7 +36,7 @@ check_fail() {
 
 echo "Test 1: Verify CustomWebSocket has no references to DiscordBot"
 echo "----------------------------------------------------------------"
-if grep -r "DiscordBot" Plugins/CustomWebSocket/Source/ 2>/dev/null; then
+if grep -r "DiscordBot" Mods/CustomWebSocket/Source/ 2>/dev/null; then
     check_fail "CustomWebSocket has references to DiscordBot (should be independent)"
 else
     check_pass "CustomWebSocket has NO references to DiscordBot"
@@ -54,8 +54,8 @@ echo ""
 
 echo "Test 3: Verify CustomWebSocket has SemVersion"
 echo "----------------------------------------------------------------"
-if grep -q '"SemVersion"' Plugins/CustomWebSocket/CustomWebSocket.uplugin 2>/dev/null; then
-    VERSION=$(grep '"SemVersion"' Plugins/CustomWebSocket/CustomWebSocket.uplugin | cut -d'"' -f4)
+if grep -q '"SemVersion"' Mods/CustomWebSocket/CustomWebSocket.uplugin 2>/dev/null; then
+    VERSION=$(grep '"SemVersion"' Mods/CustomWebSocket/CustomWebSocket.uplugin | cut -d'"' -f4)
     check_pass "CustomWebSocket has SemVersion: $VERSION"
 else
     check_fail "CustomWebSocket missing SemVersion field"
@@ -74,7 +74,7 @@ echo ""
 
 echo "Test 5: Verify CustomWebSocket loads before DiscordBot"
 echo "----------------------------------------------------------------"
-CW_PHASE=$(grep '"LoadingPhase"' Plugins/CustomWebSocket/CustomWebSocket.uplugin | cut -d'"' -f4)
+CW_PHASE=$(grep '"LoadingPhase"' Mods/CustomWebSocket/CustomWebSocket.uplugin | cut -d'"' -f4)
 DB_PHASE=$(grep '"LoadingPhase"' Mods/DiscordBot/DiscordBot.uplugin | cut -d'"' -f4)
 
 if [ "$CW_PHASE" = "PreDefault" ] && [ "$DB_PHASE" = "PostDefault" ]; then
@@ -86,7 +86,7 @@ echo ""
 
 echo "Test 6: Verify CustomWebSocket.Build.cs has no DiscordBot dependencies"
 echo "----------------------------------------------------------------"
-if grep -q "DiscordBot" Plugins/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs 2>/dev/null; then
+if grep -q "DiscordBot" Mods/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs 2>/dev/null; then
     check_fail "CustomWebSocket.Build.cs has DiscordBot dependency"
 else
     check_pass "CustomWebSocket.Build.cs has NO DiscordBot dependency"
@@ -126,8 +126,8 @@ echo ""
 
 echo "Test 9: Verify CustomWebSocket source files exist"
 echo "----------------------------------------------------------------"
-if [ -f "Plugins/CustomWebSocket/Source/CustomWebSocket/Public/CustomWebSocket.h" ] && \
-   [ -f "Plugins/CustomWebSocket/Source/CustomWebSocket/Private/CustomWebSocket.cpp" ]; then
+if [ -f "Mods/CustomWebSocket/Source/CustomWebSocket/Public/CustomWebSocket.h" ] && \
+   [ -f "Mods/CustomWebSocket/Source/CustomWebSocket/Private/CustomWebSocket.cpp" ]; then
     check_pass "CustomWebSocket source files exist"
 else
     check_fail "CustomWebSocket source files missing"
@@ -147,7 +147,7 @@ echo ""
 echo "Test 11: Verify CustomWebSocket includes are correct"
 echo "----------------------------------------------------------------"
 # CustomWebSocket should only include standard Unreal modules
-if grep -h "^#include" Plugins/CustomWebSocket/Source/CustomWebSocket/Public/*.h | \
+if grep -h "^#include" Mods/CustomWebSocket/Source/CustomWebSocket/Public/*.h | \
    grep -v "CoreMinimal.h" | \
    grep -v "Sockets.h" | \
    grep -v "SocketSubsystem.h" | \

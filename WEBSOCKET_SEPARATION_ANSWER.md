@@ -38,7 +38,7 @@
 ## Why CustomWebSocket is Already Separate
 
 ### 1. Location in Project
-- **CustomWebSocket:** `Plugins/CustomWebSocket/` (plugin)
+- **CustomWebSocket:** `Mods/CustomWebSocket/` (plugin)
 - **DiscordBot:** `Mods/DiscordBot/` (mod)
 
 Different directories = different components
@@ -46,7 +46,7 @@ Different directories = different components
 ### 2. Zero Reverse Dependencies
 ```bash
 # Search for any DiscordBot references in CustomWebSocket
-grep -r "DiscordBot" Plugins/CustomWebSocket/Source/
+grep -r "DiscordBot" Mods/CustomWebSocket/Source/
 # Result: No matches found ✅
 ```
 
@@ -99,7 +99,7 @@ Package just the WebSocket plugin:
 ```
 Building CustomWebSocket... ✅
 Packaging CustomWebSocket... ✅
-Output: Saved/ArchivedPlugins/CustomWebSocket/*.zip
+Output: Saved/ArchivedMods/CustomWebSocket/*.zip
 ```
 
 DiscordBot is NOT compiled or included. CustomWebSocket works independently!
@@ -158,7 +158,7 @@ Build:
 
 ```bash
 # Look at CustomWebSocket header
-cat Plugins/CustomWebSocket/Source/CustomWebSocket/Public/CustomWebSocket.h | grep -i discord
+cat Mods/CustomWebSocket/Source/CustomWebSocket/Public/CustomWebSocket.h | grep -i discord
 # Expected: No matches ✅
 ```
 
@@ -168,7 +168,7 @@ No Discord references in CustomWebSocket code!
 
 ```bash
 # CustomWebSocket dependencies
-cat Plugins/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs
+cat Mods/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs
 ```
 
 **Dependencies:**
@@ -190,7 +190,7 @@ cat Mods/DiscordBot/Source/DiscordBot/DiscordBot.Build.cs
 
 ```bash
 # CustomWebSocket loading phase
-cat Plugins/CustomWebSocket/CustomWebSocket.uplugin | grep LoadingPhase
+cat Mods/CustomWebSocket/CustomWebSocket.uplugin | grep LoadingPhase
 # Result: "PreDefault" (loads early)
 
 # DiscordBot loading phase
@@ -238,7 +238,7 @@ CustomWebSocket loads BEFORE DiscordBot, proving they're separate modules.
 Because CustomWebSocket is independent, you can copy it to other projects:
 
 ### Steps
-1. Copy `Plugins/CustomWebSocket/` folder
+1. Copy `Mods/CustomWebSocket/` folder
 2. Add to target project's `.uproject`:
    ```json
    {
@@ -331,7 +331,7 @@ A: Not necessary. They're already separate modules with independent compilation.
 **See Also:**
 - [INDEPENDENT_COMPILATION_GUIDE.md](INDEPENDENT_COMPILATION_GUIDE.md) - Full guide with examples
 - [BUILD_GUIDE.md](BUILD_GUIDE.md) - Standard build instructions
-- [Plugins/CustomWebSocket/README.md](Plugins/CustomWebSocket/README.md) - WebSocket plugin docs
+- [Mods/CustomWebSocket/README.md](Mods/CustomWebSocket/README.md) - WebSocket plugin docs
 - [Mods/DiscordBot/README.md](Mods/DiscordBot/README.md) - Discord bot docs
 
 ---

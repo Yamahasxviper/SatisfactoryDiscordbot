@@ -246,7 +246,7 @@ All three plugins have complete, valid structures:
 - ✅ 6 header files, 6 implementation files
 - ✅ Complete Discord Gateway implementation
 
-**CustomWebSocket** (`Plugins/CustomWebSocket/`)
+**CustomWebSocket** (`Mods/CustomWebSocket/`)
 - ✅ CustomWebSocket.uplugin
 - ✅ Source/CustomWebSocket/CustomWebSocket.Build.cs
 - ✅ RFC 6455 compliant WebSocket implementation

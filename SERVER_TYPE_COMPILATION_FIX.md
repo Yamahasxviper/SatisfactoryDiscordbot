@@ -21,7 +21,7 @@ The `DiscordBot` module lacked explicit platform and target restrictions, which 
 
 ### Changes Applied
 
-#### 1. CustomWebSocket Plugin (`Plugins/CustomWebSocket/CustomWebSocket.uplugin`)
+#### 1. CustomWebSocket Plugin (`Mods/CustomWebSocket/CustomWebSocket.uplugin`)
 
 **Before:**
 ```json

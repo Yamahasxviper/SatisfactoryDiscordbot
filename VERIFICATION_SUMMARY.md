@@ -186,7 +186,7 @@ Mods/DiscordBot/
 │       ├── DiscordGatewayClient.cpp ✅
 │       └── DiscordGatewayClientCustom.cpp ✅
 
-Plugins/CustomWebSocket/
+Mods/CustomWebSocket/
 ├── Source/CustomWebSocket/
 │   ├── CustomWebSocket.Build.cs ✅
 │   ├── Public/

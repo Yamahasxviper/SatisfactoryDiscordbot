@@ -56,7 +56,7 @@ All critical compilation issues have been identified and **fixed**. The code is 
 
 **Status:** ✅ **FIXED**
 
-#### CustomWebSocket Plugin Changes (`Plugins/CustomWebSocket/CustomWebSocket.uplugin`):
+#### CustomWebSocket Plugin Changes (`Mods/CustomWebSocket/CustomWebSocket.uplugin`):
 - ✅ Replaced deprecated `WhitelistPlatforms` with `PlatformAllowList`
 - ✅ Removed unsupported platforms (Android, IOS)
 - ✅ Kept essential server platforms: Win64, Linux, Mac
@@ -145,7 +145,7 @@ All virtual function overrides use the `override` keyword:
 - ✅ SML (Satisfactory Mod Loader) ^3.11.3
 
 #### CustomWebSocket Plugin
-- ✅ Plugin exists at `Plugins/CustomWebSocket/`
+- ✅ Plugin exists at `Mods/CustomWebSocket/`
 - ✅ CustomWebSocket.uplugin configured correctly
 - ✅ Build.cs configured correctly
 - ✅ Source files present
@@ -422,7 +422,7 @@ Mods/DiscordBot/
 └── Config/
     └── DiscordBot.ini
 
-Plugins/CustomWebSocket/
+Mods/CustomWebSocket/
 ├── CustomWebSocket.uplugin
 ├── Source/CustomWebSocket/
 │   ├── CustomWebSocket.Build.cs

@@ -76,7 +76,7 @@ Added two plugin entries to the "Plugins" array:
 3. **CustomWebSocket Plugin** (already present, verified)
    - Name: "CustomWebSocket"
    - Enabled: true
-   - Location: `Plugins/CustomWebSocket/CustomWebSocket.uplugin`
+   - Location: `Mods/CustomWebSocket/CustomWebSocket.uplugin`
    - Purpose: Platform-agnostic WebSocket implementation for Discord Gateway
 
 ---
@@ -96,7 +96,7 @@ Added two plugin entries to the "Plugins" array:
 ```
 ✓ Mods/SML/SML.uplugin
 ✓ Mods/DiscordBot/DiscordBot.uplugin
-✓ Plugins/CustomWebSocket/CustomWebSocket.uplugin
+✓ Mods/CustomWebSocket/CustomWebSocket.uplugin
 ```
 
 ### 3. Build Configuration Dependencies
@@ -159,7 +159,7 @@ Mods/DiscordBot/
 
 **CustomWebSocket:**
 ```
-Plugins/CustomWebSocket/
+Mods/CustomWebSocket/
 ├── CustomWebSocket.uplugin
 └── Source/
     └── CustomWebSocket/
@@ -276,10 +276,10 @@ Building DiscordBot...
 - `FactoryGame.uproject` - Main project file (modified)
 - `Mods/SML/SML.uplugin` - SML plugin descriptor
 - `Mods/DiscordBot/DiscordBot.uplugin` - DiscordBot plugin descriptor
-- `Plugins/CustomWebSocket/CustomWebSocket.uplugin` - CustomWebSocket plugin descriptor
+- `Mods/CustomWebSocket/CustomWebSocket.uplugin` - CustomWebSocket plugin descriptor
 - `Mods/SML/Source/SML/SML.Build.cs` - SML build configuration
 - `Mods/DiscordBot/Source/DiscordBot/DiscordBot.Build.cs` - DiscordBot build configuration
-- `Plugins/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs` - CustomWebSocket build configuration
+- `Mods/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs` - CustomWebSocket build configuration
 
 ---
 

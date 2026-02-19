@@ -14,7 +14,7 @@ This guide explains how to compile **CustomWebSocket** and **DiscordBot** either
 ## Architecture Summary
 
 ### CustomWebSocket Plugin
-- **Location:** `Plugins/CustomWebSocket/`
+- **Location:** `Mods/CustomWebSocket/`
 - **Type:** Runtime Plugin
 - **Dependencies:** Core, CoreUObject, Engine, Sockets, Networking, OpenSSL
 - **Loading Phase:** PreDefault
@@ -103,8 +103,8 @@ CustomWebSocket can be compiled as a standalone plugin without DiscordBot or SML
 ```
 
 **Output Location:**
-- `Saved/ArchivedPlugins/CustomWebSocket/CustomWebSocket-Win64-Shipping.zip`
-- `Saved/ArchivedPlugins/CustomWebSocket/CustomWebSocket-Linux-Shipping.zip`
+- `Saved/ArchivedMods/CustomWebSocket/CustomWebSocket-Win64-Shipping.zip`
+- `Saved/ArchivedMods/CustomWebSocket/CustomWebSocket-Linux-Shipping.zip`
 
 #### Method B: Disable DiscordBot in .uproject
 
@@ -169,7 +169,7 @@ DiscordBot requires CustomWebSocket to be available (compiled or packaged) becau
 CustomWebSocket is a general-purpose WebSocket implementation. You can use it in other Unreal Engine projects without DiscordBot.
 
 **Steps:**
-1. Copy `Plugins/CustomWebSocket/` to your project's `Plugins/` folder
+1. Copy `Mods/CustomWebSocket/` to your project's `Plugins/` folder
 2. Add to your project's `.uproject` file:
    ```json
    {
@@ -241,8 +241,8 @@ cat FactoryGame.uproject | grep -A 2 "Name.*CustomWebSocket\|Name.*DiscordBot"
 
 ```bash
 # CustomWebSocket files
-ls -la Plugins/CustomWebSocket/CustomWebSocket.uplugin
-ls -la Plugins/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs
+ls -la Mods/CustomWebSocket/CustomWebSocket.uplugin
+ls -la Mods/CustomWebSocket/Source/CustomWebSocket/CustomWebSocket.Build.cs
 
 # DiscordBot files
 ls -la Mods/DiscordBot/DiscordBot.uplugin
@@ -278,7 +278,7 @@ cat Mods/DiscordBot/DiscordBot.uplugin | grep -A 10 "Plugins"
 
 ```bash
 # CustomWebSocket should NOT reference DiscordBot
-grep -r "DiscordBot" Plugins/CustomWebSocket/Source/
+grep -r "DiscordBot" Mods/CustomWebSocket/Source/
 # Expected: No results (exit code 1)
 ```
 
@@ -296,7 +296,7 @@ ERROR: Could not find definition for module 'CustomWebSocket'
 ```
 
 **Solution:**
-- Verify `Plugins/CustomWebSocket/CustomWebSocket.uplugin` exists
+- Verify `Mods/CustomWebSocket/CustomWebSocket.uplugin` exists
 - Check it's enabled in `FactoryGame.uproject`
 - Ensure `"SemVersion": "1.0.0"` is present in `CustomWebSocket.uplugin`
 
@@ -331,19 +331,19 @@ After compilation, plugin binaries are located:
 
 ### Development Build
 ```
-Plugins/CustomWebSocket/Binaries/Win64/UE-CustomWebSocket-Win64-Development.dll
+Mods/CustomWebSocket/Binaries/Win64/UE-CustomWebSocket-Win64-Development.dll
 Mods/DiscordBot/Binaries/Win64/UE-DiscordBot-Win64-Development.dll
 ```
 
 ### Shipping Build
 ```
-Plugins/CustomWebSocket/Binaries/Win64/UE-CustomWebSocket-Win64-Shipping.dll
+Mods/CustomWebSocket/Binaries/Win64/UE-CustomWebSocket-Win64-Shipping.dll
 Mods/DiscordBot/Binaries/Win64/UE-DiscordBot-Win64-Shipping.dll
 ```
 
 ### Packaged Build
 ```
-Saved/ArchivedPlugins/CustomWebSocket/CustomWebSocket-Win64-Shipping.zip
+Saved/ArchivedMods/CustomWebSocket/CustomWebSocket-Win64-Shipping.zip
 Saved/ArchivedPlugins/DiscordBot/DiscordBot-Win64-Shipping.zip
 ```
 
@@ -422,7 +422,7 @@ If you have compilation issues:
 
 1. **Verify plugin files exist** (check paths above)
 2. **Run verification scripts:** `./verify_websocket.sh`, `./verify_discordbot_integration.sh`
-3. **Check documentation:** `Plugins/CustomWebSocket/README.md`, `Mods/DiscordBot/README.md`
+3. **Check documentation:** `Mods/CustomWebSocket/README.md`, `Mods/DiscordBot/README.md`
 4. **Review this guide** for your specific scenario
 5. **Open an issue:** https://github.com/Yamahasxviper/SatisfactoryDiscordbot/issues
 

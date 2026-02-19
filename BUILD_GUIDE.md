@@ -52,7 +52,7 @@ To package the plugins and mods for distribution:
 
 Packaged plugins will be available in:
 - `Saved/ArchivedPlugins/SML/*.zip`
-- `Saved/ArchivedPlugins/CustomWebSocket/*.zip`
+- `Saved/ArchivedMods/CustomWebSocket/*.zip`
 - `Saved/ArchivedPlugins/DiscordBot/*.zip`
 
 ## What Gets Compiled
@@ -109,7 +109,7 @@ Build succeeded
 - Verify the plugin is enabled in FactoryGame.uproject
 
 ### "Could not find dependency 'CustomWebSocket'"
-- Check that `Plugins/CustomWebSocket/CustomWebSocket.uplugin` exists
+- Check that `Mods/CustomWebSocket/CustomWebSocket.uplugin` exists
 - Verify the plugin is enabled in FactoryGame.uproject
 
 ### "Missing module SML"
@@ -125,7 +125,7 @@ After building, verify the plugins are loaded:
 2. **Check Binaries folder** for plugin DLLs:
    - `Mods/SML/Binaries/Win64/UE-SML-Win64-Shipping.dll`
    - `Mods/DiscordBot/Binaries/Win64/UE-DiscordBot-Win64-Shipping.dll`
-   - `Plugins/CustomWebSocket/Binaries/Win64/UE-CustomWebSocket-Win64-Shipping.dll`
+   - `Mods/CustomWebSocket/Binaries/Win64/UE-CustomWebSocket-Win64-Shipping.dll`
 
 3. **In-game verification** (after running the server):
    - Check logs for "SML initialized"
@@ -153,7 +153,7 @@ After building successfully:
 - `PLUGIN_COMPILATION_FIX.md` - Complete fix documentation
 - `Mods/DiscordBot/README.md` - Discord bot setup guide
 - `Mods/DiscordBot/QUICKSTART_NATIVE.md` - Quick start guide
-- `Plugins/CustomWebSocket/README.md` - WebSocket plugin details
+- `Mods/CustomWebSocket/README.md` - WebSocket plugin details
 - `.github/workflows/build.yml` - CI build configuration
 
 ## Support

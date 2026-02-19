@@ -52,7 +52,7 @@ check_content() {
 
 # CHECK 1: Plugin Structure
 echo "✓ CHECK 1: Plugin Structure"
-PLUGIN_PATH="$PROJECT_ROOT/Plugins/CustomWebSocket"
+PLUGIN_PATH="$PROJECT_ROOT/Mods/CustomWebSocket"
 UPLUGIN_PATH="$PLUGIN_PATH/CustomWebSocket.uplugin"
 
 if [ -f "$UPLUGIN_PATH" ]; then

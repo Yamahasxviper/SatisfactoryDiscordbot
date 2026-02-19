@@ -134,7 +134,7 @@ The CustomWebSocket plugin is:
 The fixes were implemented in previous PRs and include:
 
 ### Fix 1: Added SemVersion to CustomWebSocket.uplugin
-- **File:** `Plugins/CustomWebSocket/CustomWebSocket.uplugin`
+- **File:** `Mods/CustomWebSocket/CustomWebSocket.uplugin`
 - **Change:** Added `"SemVersion": "1.0.0"` field
 - **Purpose:** Enable proper version resolution for dependent plugins
 

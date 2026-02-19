@@ -18,7 +18,7 @@ This document addresses the compatibility of WebSocket implementations with Sati
 
 **Details:**
 - **Implementation**: CustomWebSocket plugin (RFC 6455 compliant)
-- **Availability**: Included in the mod (`Plugins/CustomWebSocket/`)
+- **Availability**: Included in the mod (`Mods/CustomWebSocket/`)
 - **Platform Support**: ALL platforms (Win64, Linux, Mac, Dedicated Servers)
 - **CSS Compatibility**: ✅ Works with custom CSS engine builds
 - **Protocol**: RFC 6455 WebSocket protocol - exactly what Discord Gateway requires
