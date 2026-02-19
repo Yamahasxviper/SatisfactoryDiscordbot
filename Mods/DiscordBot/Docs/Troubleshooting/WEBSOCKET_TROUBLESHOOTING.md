@@ -4,6 +4,55 @@
 
 This document provides solutions for common WebSocket connection issues when using the Discord Bot mod with the CustomWebSocket implementation.
 
+## Verifying Successful Connection
+
+### How to Check if the Bot is Connected
+
+If you have access to the server log files, you can easily verify if the Discord bot has successfully connected to the custom WebSocket by looking for these specific log messages:
+
+**1. Connection Attempt:**
+```
+========================================
+Discord Bot: Attempting to connect to Discord Gateway
+Discord Bot: WebSocket URL: wss://gateway.discord.gg/?v=10&encoding=json
+Discord Bot: Using CustomWebSocket implementation
+========================================
+```
+
+**2. CustomWebSocket Connection Established:**
+```
+========================================
+CustomWebSocket: Successfully connected to gateway.discord.gg:443
+CustomWebSocket: WebSocket handshake complete!
+========================================
+```
+
+**3. Discord Gateway Connection Established:**
+```
+========================================
+Discord Bot: CustomWebSocket connection established!
+Discord Bot: Waiting for Discord Gateway HELLO message...
+========================================
+```
+
+**4. Bot Fully Ready (Final Confirmation):**
+```
+****************************************
+*** DISCORD BOT FULLY CONNECTED AND READY! ***
+*** CustomWebSocket successfully connected to Discord Gateway ***
+*** Session ID: <your_session_id> ***
+****************************************
+```
+
+**✅ If you see all four log sections, especially the final "DISCORD BOT FULLY CONNECTED AND READY" message, your bot is successfully connected and operational!**
+
+### Log File Locations
+
+- **Windows Server:** `%LOCALAPPDATA%\FactoryGame\Saved\Logs\FactoryGame.log`
+- **Linux Server:** `~/.config/Epic/FactoryGame/Saved/Logs/FactoryGame.log`
+
+---
+
 ## Connection Issues
 
 ### Issue 1: Connection Failed - "Invalid WebSocket URL"
