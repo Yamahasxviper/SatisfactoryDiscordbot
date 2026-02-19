@@ -9,6 +9,8 @@
 
 > "custome websockets not being compiles with my discord project and not showing a plgins folder after its compiled"
 
+*Note: Original problem statement preserved as reported by the user.*
+
 ### Root Cause
 
 The issue was that while the **CustomWebSocket plugin** and **DiscordBot mod** were being **compiled** during the build process, they were **not being packaged** by the CI workflow. The CI workflow only had a packaging step for SML, which meant:
