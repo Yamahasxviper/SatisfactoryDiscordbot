@@ -14,31 +14,31 @@ The Discord Bot mod uses Unreal Engine's configuration system to store all setti
 
 The Discord Bot mod reads configuration from the following locations (in order of priority):
 
-### 1. Development/Editor
+### 1. Plugin Config (Primary - Recommended)
+```
+Mods/DiscordBot/Config/DiscordBot.ini
+```
+This is the primary configuration file that ships with the mod. Users should edit this file to set their bot token, channel IDs, and other settings. The code explicitly loads this file at startup.
+
+### 2. Development/Editor (Fallback)
 ```
 Config/DefaultGame.ini
 ```
-Used when running in the Unreal Editor for development and testing.
+Used as a fallback when the plugin's `DiscordBot.ini` file is not found. Also used when running in the Unreal Editor for development and testing.
 
-### 2. Windows Dedicated Server
+### 3. Windows Dedicated Server (Fallback override)
 ```
-Config/WindowsServer/WindowsServerGame.ini  (highest priority)
+Config/WindowsServer/WindowsServerGame.ini  (highest priority fallback)
 Config/DefaultGame.ini                       (fallback)
 ```
-Platform-specific settings override the defaults from DefaultGame.ini.
+These platform-specific settings apply only when the plugin's `DiscordBot.ini` is not present.
 
-### 3. Linux Dedicated Server
+### 4. Linux Dedicated Server (Fallback override)
 ```
-Config/LinuxServer/LinuxServerGame.ini      (highest priority)
+Config/LinuxServer/LinuxServerGame.ini      (highest priority fallback)
 Config/DefaultGame.ini                       (fallback)
 ```
-Platform-specific settings override the defaults from DefaultGame.ini.
-
-### 4. Generic Dedicated Server
-```
-Config/DefaultGame.ini
-```
-Used if no platform-specific config exists.
+These platform-specific settings apply only when the plugin's `DiscordBot.ini` is not present.
 
 ## How Configuration Persistence Works
 
@@ -58,7 +58,7 @@ Used if no platform-specific config exists.
 ### For Server Administrators
 
 **Initial Setup:**
-1. Edit `Config/DefaultGame.ini` or platform-specific config file
+1. Edit `Mods/DiscordBot/Config/DiscordBot.ini` (the primary config file)
 2. Set your Discord bot token: `BotToken=your_actual_token_here`
 3. Set your channel IDs: `ChatChannelId=your_channel_id`
 4. Configure other settings as desired
@@ -85,15 +85,15 @@ Used if no platform-specific config exists.
 1. Add property to `UDiscordBotSubsystem` class
 2. Load setting in `Initialize()`, `LoadTwoWayChatConfig()`, or `LoadServerNotificationConfig()`
 3. Use `GConfig->GetString/GetBool/GetInt/GetFloat()`
-4. Always use `GConfig->GetConfigFilename(TEXT("Game"))` for cross-platform compatibility
+4. Always use `GetPluginConfigFilename()` to read from `Mods/DiscordBot/Config/DiscordBot.ini` with Game config as fallback
 5. Document the new setting in config files and README
 
 **Configuration Loading Pattern:**
 ```cpp
 if (GConfig)
 {
-    // Use explicit config filename for cross-platform compatibility
-    FString ConfigFilename = GConfig->GetConfigFilename(TEXT("Game"));
+    // Use GetPluginConfigFilename() to read from DiscordBot.ini (with Game config fallback)
+    FString ConfigFilename = GetPluginConfigFilename();
     GConfig->GetBool(TEXT("DiscordBot"), TEXT("bEnabled"), bEnabled, ConfigFilename);
 }
 ```
@@ -152,9 +152,9 @@ The mod performs the following validations:
 ### Problem: Settings not being applied after restart
 **Cause:** Editing the wrong config file
 **Solution:** 
-- For Windows Server: Edit `Config/WindowsServer/WindowsServerGame.ini`
-- For Linux Server: Edit `Config/LinuxServer/LinuxServerGame.ini`
-- For Editor/Dev: Edit `Config/DefaultGame.ini`
+- Edit `Mods/DiscordBot/Config/DiscordBot.ini` (primary config)
+- As fallback, edit `Config/DefaultGame.ini` if the plugin file is not found
+- Platform-specific Game configs are only used when the plugin's DiscordBot.ini is absent
 
 ### Problem: Config file not found
 **Cause:** Config file doesn't exist for your platform
@@ -195,19 +195,14 @@ The mod performs the following validations:
 - Don't expect runtime changes (via Blueprint) to persist
 - Don't use special characters in config values without understanding INI format
 
-## Migration from Mods/DiscordBot/Config/DiscordBot.ini
+## Primary Config Location
 
-**Historical Note:** Earlier versions of the mod used a separate config file at `Mods/DiscordBot/Config/DiscordBot.ini`. 
+**`Mods/DiscordBot/Config/DiscordBot.ini`** is the primary configuration file.
 
 **Current Behavior:** 
-- Config is now read from `Config/DefaultGame.ini` and platform-specific overrides
-- This ensures proper packaging and deployment to dedicated servers
-- Settings are merged into the Game config hierarchy automatically
-
-**No Migration Needed:**
-- If you have settings in both locations, `Config/DefaultGame.ini` takes precedence
-- The separate `Mods/DiscordBot/Config/DiscordBot.ini` file is kept for reference
-- You can safely use either location, but `Config/DefaultGame.ini` is recommended
+- The code explicitly loads `Mods/DiscordBot/Config/DiscordBot.ini` at startup using `IPluginManager` to find the plugin's directory
+- If the plugin's config file is not found, the code falls back to `Config/DefaultGame.ini` and platform-specific game configs
+- Server administrators should edit `Mods/DiscordBot/Config/DiscordBot.ini` directly
 
 ## Summary
 
