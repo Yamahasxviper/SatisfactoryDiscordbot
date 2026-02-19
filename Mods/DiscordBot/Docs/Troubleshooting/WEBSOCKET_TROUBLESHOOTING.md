@@ -456,79 +456,81 @@ This document provides solutions for common WebSocket connection issues when usi
 ### Issue 12: CustomWebSocket Module Not Found
 
 **Symptoms:**
-- Error log: "Failed to load CustomWebSocket module!"
+- Error log: "CRITICAL ERROR: CustomWebSocket plugin not found!"
 - Bot fails to initialize completely
 - No WebSocket connection attempts made
 - Error appears during module startup
 
 **Root Causes:**
-1. CustomWebSocket plugin not installed in Mods folder
-2. CustomWebSocket.uplugin file missing or corrupted
-3. Plugin not enabled in project configuration
-4. Module loading order issue
+1. CustomWebSocket mod not installed via mod manager (most common)
+2. CustomWebSocket mod is installed but not enabled
+3. Mods are installed in different locations
+4. Module loading order issue (rare)
 
 **Solutions:**
 
-1. **Verify CustomWebSocket Plugin Installation**
-   - Check that `Mods/CustomWebSocket/` folder exists
-   - Verify `CustomWebSocket.uplugin` is present
-   - Ensure all source files are in place:
-     ```
-     Mods/CustomWebSocket/
-     ├── CustomWebSocket.uplugin
-     └── Source/
-         └── CustomWebSocket/
-             ├── CustomWebSocket.Build.cs
-             ├── Public/
-             │   ├── CustomWebSocket.h
-             │   └── CustomWebSocketModule.h
-             └── Private/
-                 ├── CustomWebSocket.cpp
-                 └── CustomWebSocketModule.cpp
-     ```
+1. **Install CustomWebSocket Mod (Most Common Solution)**
+   
+   ⚠️ **IMPORTANT**: DiscordBot and CustomWebSocket are **TWO SEPARATE MODS**.
+   
+   Both must be installed via the Satisfactory Mod Manager (SMM):
+   
+   - Open Satisfactory Mod Manager (SMM)
+   - Search for "CustomWebSocket"
+   - Click "Install" or "Enable"
+   - Search for "DiscordBot" 
+   - Click "Install" or "Enable"
+   - Restart your game/server
+   
+   **Note**: Installing DiscordBot alone is NOT enough. You MUST also install CustomWebSocket.
 
-2. **Check Plugin Configuration**
-   - Verify `DiscordBot.uplugin` declares dependency:
-     ```json
-     "Plugins": [
-         {
-             "Name": "CustomWebSocket",
-             "Enabled": true,
-             "SemVersion": "^1.0.0"
-         }
-     ]
-     ```
+2. **Verify Both Mods Are Enabled**
+   
+   In SMM, check that both mods show as enabled:
+   - ✅ CustomWebSocket - Enabled
+   - ✅ DiscordBot - Enabled
+   
+   If one is disabled, enable it and restart.
 
-3. **Verify Module Loading Phases**
-   - CustomWebSocket must load before DiscordBot
-   - CustomWebSocket: `"LoadingPhase": "PreDefault"`
-   - DiscordBot: `"LoadingPhase": "PostDefault"`
-   - Check both `.uplugin` files for correct loading phases
+3. **Check Installation Location**
+   
+   Both mods should be installed in the same mods directory:
+   - **Windows**: `%LOCALAPPDATA%/FactoryGame/Saved/Paks/Mods/`
+   - **Linux**: `~/.config/Epic/FactoryGame/Saved/Paks/Mods/`
+   
+   If you manually installed the mods, ensure both are in the same location.
 
-4. **Check Build Dependencies**
-   - Verify `DiscordBot.Build.cs` includes CustomWebSocket:
-     ```csharp
-     PublicDependencyModuleNames.AddRange(new[] {
-         "CustomWebSocket"
-     });
-     ```
+4. **Verify Mod Versions**
+   
+   - Make sure you have compatible versions of both mods
+   - Update both mods to the latest version via SMM
+   - Incompatible versions may cause loading failures
 
-5. **Automatic Module Loading (Since v1.0.0)**
-   - DiscordBot now automatically attempts to load CustomWebSocket if not found
-   - Check logs for:
-     - "CustomWebSocket module already loaded" ✅ (Good)
-     - "CustomWebSocket module loaded successfully" ✅ (Good - auto-loaded)
-     - "Failed to load CustomWebSocket module!" ❌ (Problem - plugin missing)
+5. **Check Game Logs**
+   
+   Look for detailed error messages in the game logs:
+   ```
+   LogDiscordBot: CRITICAL ERROR: CustomWebSocket plugin not found!
+   LogDiscordBot: SOLUTION:
+   LogDiscordBot:   1. Install the CustomWebSocket mod from the Satisfactory Mod Manager (SMM)
+   LogDiscordBot:   2. Make sure both DiscordBot and CustomWebSocket are enabled
+   LogDiscordBot:   3. Restart your game/server
+   ```
+   
+   The logs will show the plugin location if it's found but not loaded properly.
 
-6. **Re-install CustomWebSocket Plugin**
-   - If above checks fail, re-copy the CustomWebSocket folder
-   - Ensure no files are missing or corrupted
-   - Rebuild the project
+6. **Reinstall Both Mods**
+   
+   If problems persist:
+   - Uninstall both DiscordBot and CustomWebSocket via SMM
+   - Restart the game/server
+   - Reinstall both mods via SMM
+   - Restart again
 
 **Expected Log Output (Success):**
 ```
 LogDiscordBot: DiscordBot module starting up
-LogDiscordBot: CustomWebSocket module already loaded
+LogDiscordBot: CustomWebSocket module already loaded from: C:/Path/To/Mods/CustomWebSocket
 LogDiscordBot: Error logging initialized at: Saved/Logs/DiscordBot
 ```
 
@@ -536,19 +538,42 @@ LogDiscordBot: Error logging initialized at: Saved/Logs/DiscordBot
 ```
 LogDiscordBot: DiscordBot module starting up
 LogDiscordBot: Warning: CustomWebSocket module not loaded, attempting to load...
-LogDiscordBot: CustomWebSocket module loaded successfully
+LogDiscordBot: CustomWebSocket module loaded successfully from: C:/Path/To/Mods/CustomWebSocket
 LogDiscordBot: Error logging initialized at: Saved/Logs/DiscordBot
 ```
 
-**Error Log Output (Failure):**
+**Error Log Output (Not Installed):**
 ```
 LogDiscordBot: DiscordBot module starting up
 LogDiscordBot: Warning: CustomWebSocket module not loaded, attempting to load...
-LogDiscordBot: Error: Failed to load CustomWebSocket module! Please ensure the CustomWebSocket plugin is installed in the Mods folder.
-LogDiscordBot: Error: The DiscordBot requires the CustomWebSocket plugin to function. Check that:
-LogDiscordBot: Error:   1. Mods/CustomWebSocket/ folder exists
-LogDiscordBot: Error:   2. CustomWebSocket.uplugin is present
-LogDiscordBot: Error:   3. The plugin is enabled in your project
+LogDiscordBot: Error: ========================================================================================
+LogDiscordBot: Error: CRITICAL ERROR: CustomWebSocket plugin not found!
+LogDiscordBot: Error: ========================================================================================
+LogDiscordBot: Error: The DiscordBot mod requires the CustomWebSocket mod to be installed.
+LogDiscordBot: Error:
+LogDiscordBot: Error: SOLUTION:
+LogDiscordBot: Error:   1. Install the CustomWebSocket mod from the Satisfactory Mod Manager (SMM)
+LogDiscordBot: Error:   2. Make sure both DiscordBot and CustomWebSocket are enabled
+LogDiscordBot: Error:   3. Restart your game/server
+LogDiscordBot: Error:
+LogDiscordBot: Error: NOTE: DiscordBot and CustomWebSocket are separate mods and must BOTH be installed.
+LogDiscordBot: Error: They should be installed in the same mods directory (typically via mod manager).
+LogDiscordBot: Error: ========================================================================================
+```
+
+**Error Log Output (Not Enabled):**
+```
+LogDiscordBot: DiscordBot module starting up
+LogDiscordBot: Warning: CustomWebSocket module not loaded, attempting to load...
+LogDiscordBot: Error: ========================================================================================
+LogDiscordBot: Error: ERROR: CustomWebSocket plugin found but not enabled!
+LogDiscordBot: Error: ========================================================================================
+LogDiscordBot: Error: Plugin location: C:/Path/To/Mods/CustomWebSocket
+LogDiscordBot: Error:
+LogDiscordBot: Error: SOLUTION:
+LogDiscordBot: Error:   1. Enable the CustomWebSocket mod in your mod manager
+LogDiscordBot: Error:   2. Restart your game/server
+LogDiscordBot: Error: ========================================================================================
 ```
 
 ---

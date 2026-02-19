@@ -15,6 +15,7 @@ Start here if you're setting up the Discord bot for the first time:
 
 ### 🔧 Troubleshooting
 Having issues? Check these guides:
+- **[Missing CustomWebSocket](Troubleshooting/MISSING_CUSTOMWEBSOCKET.md)** - ⚠️ **START HERE** if you see "CustomWebSocket plugin not found"
 - **[WebSocket Troubleshooting](Troubleshooting/WEBSOCKET_TROUBLESHOOTING.md)** - Fix WebSocket connection issues
 - **[Error Logging](Troubleshooting/ERROR_LOGGING.md)** - Comprehensive error logging guide
 - **[Error Logging Quickstart](Troubleshooting/ERROR_LOGGING_QUICKSTART.md)** - Quick guide to error logs

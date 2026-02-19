@@ -25,6 +25,12 @@ See [BUILD_GUIDE.md](BUILD_GUIDE.md) for detailed build instructions.
 
 ### Discord Bot Setup
 
+⚠️ **Important**: The DiscordBot mod requires **TWO separate mods** to be installed:
+1. **DiscordBot** - Discord integration features
+2. **CustomWebSocket** - Required WebSocket dependency
+
+Both must be installed via the Satisfactory Mod Manager (SMM).
+
 The DiscordBot mod provides Discord integration for Satisfactory servers:
 - Two-way chat between Discord and in-game
 - Server status updates
@@ -32,6 +38,8 @@ The DiscordBot mod provides Discord integration for Satisfactory servers:
 - Presence updates
 
 See [Mods/DiscordBot/README.md](Mods/DiscordBot/README.md) for setup instructions.
+
+**Troubleshooting**: If you see "CustomWebSocket plugin not found" error, see [Mods/DiscordBot/Docs/Troubleshooting/MISSING_CUSTOMWEBSOCKET.md](Mods/DiscordBot/Docs/Troubleshooting/MISSING_CUSTOMWEBSOCKET.md)
 
 ## Documentation
 
