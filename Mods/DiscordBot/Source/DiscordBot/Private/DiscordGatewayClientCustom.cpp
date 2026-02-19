@@ -135,7 +135,10 @@ void ADiscordGatewayClientCustom::OnGetGatewayURLComplete(FHttpRequestPtr Reques
 {
     if (!bWasSuccessful || !Response.IsValid())
     {
-        UE_LOG(LogDiscordGatewayCustom, Error, TEXT("Failed to get gateway URL"));
+        UE_LOG(LogDiscordGatewayCustom, Error, TEXT("Failed to get gateway URL from Discord API"));
+        UE_LOG(LogDiscordGatewayCustom, Warning, TEXT("Falling back to configured gateway URL: %s"), *GatewayURL);
+        // Fall back to the stored GatewayURL (set from config or the hardcoded default)
+        ConnectWebSocket();
         return;
     }
 

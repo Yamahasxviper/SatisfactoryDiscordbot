@@ -50,6 +50,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Discord")
     virtual void UpdatePresence(const FString& StatusMessage, int32 ActivityType = 0);
 
+    /** Set the Gateway URL (used as fallback if Discord API lookup fails) */
+    UFUNCTION(BlueprintCallable, Category = "Discord")
+    void SetGatewayURL(const FString& InGatewayURL) { GatewayURL = InGatewayURL; }
+
 protected:
     /** Discord bot token */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Discord")
