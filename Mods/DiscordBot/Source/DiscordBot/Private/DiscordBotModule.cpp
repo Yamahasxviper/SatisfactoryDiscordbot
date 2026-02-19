@@ -7,6 +7,7 @@
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Modules/ModuleManager.h"
+#include "Interfaces/IPluginManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBot, Log, All);
 
@@ -18,22 +19,69 @@ void FDiscordBotModule::StartupModule()
     if (!FModuleManager::Get().IsModuleLoaded(TEXT("CustomWebSocket")))
     {
         UE_LOG(LogDiscordBot, Warning, TEXT("CustomWebSocket module not loaded, attempting to load..."));
-        if (!FModuleManager::Get().LoadModule(TEXT("CustomWebSocket")))
+        
+        // First, check if the CustomWebSocket plugin is even discovered
+        TSharedPtr<IPlugin> CustomWebSocketPlugin = IPluginManager::Get().FindPlugin(TEXT("CustomWebSocket"));
+        
+        if (!CustomWebSocketPlugin.IsValid())
         {
-            UE_LOG(LogDiscordBot, Error, TEXT("Failed to load CustomWebSocket module! Please ensure the CustomWebSocket plugin is installed in the Mods folder."));
-            UE_LOG(LogDiscordBot, Error, TEXT("The DiscordBot requires the CustomWebSocket plugin to function. Check that:"));
-            UE_LOG(LogDiscordBot, Error, TEXT("  1. Mods/CustomWebSocket/ folder exists"));
-            UE_LOG(LogDiscordBot, Error, TEXT("  2. CustomWebSocket.uplugin is present"));
-            UE_LOG(LogDiscordBot, Error, TEXT("  3. The plugin is enabled in your project"));
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+            UE_LOG(LogDiscordBot, Error, TEXT("CRITICAL ERROR: CustomWebSocket plugin not found!"));
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+            UE_LOG(LogDiscordBot, Error, TEXT("The DiscordBot mod requires the CustomWebSocket mod to be installed."));
+            UE_LOG(LogDiscordBot, Error, TEXT(""));
+            UE_LOG(LogDiscordBot, Error, TEXT("SOLUTION:"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  1. Install the CustomWebSocket mod from the Satisfactory Mod Manager (SMM)"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  2. Make sure both DiscordBot and CustomWebSocket are enabled"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  3. Restart your game/server"));
+            UE_LOG(LogDiscordBot, Error, TEXT(""));
+            UE_LOG(LogDiscordBot, Error, TEXT("NOTE: DiscordBot and CustomWebSocket are separate mods and must BOTH be installed."));
+            UE_LOG(LogDiscordBot, Error, TEXT("They should be installed in the same mods directory (typically via mod manager)."));
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+        }
+        else if (!CustomWebSocketPlugin->IsEnabled())
+        {
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+            UE_LOG(LogDiscordBot, Error, TEXT("ERROR: CustomWebSocket plugin found but not enabled!"));
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+            UE_LOG(LogDiscordBot, Error, TEXT("Plugin location: %s"), *CustomWebSocketPlugin->GetBaseDir());
+            UE_LOG(LogDiscordBot, Error, TEXT(""));
+            UE_LOG(LogDiscordBot, Error, TEXT("SOLUTION:"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  1. Enable the CustomWebSocket mod in your mod manager"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  2. Restart your game/server"));
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+        }
+        else if (!FModuleManager::Get().LoadModule(TEXT("CustomWebSocket")))
+        {
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+            UE_LOG(LogDiscordBot, Error, TEXT("ERROR: Failed to load CustomWebSocket module!"));
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
+            UE_LOG(LogDiscordBot, Error, TEXT("Plugin location: %s"), *CustomWebSocketPlugin->GetBaseDir());
+            UE_LOG(LogDiscordBot, Error, TEXT("Plugin is enabled: %s"), CustomWebSocketPlugin->IsEnabled() ? TEXT("Yes") : TEXT("No"));
+            UE_LOG(LogDiscordBot, Error, TEXT(""));
+            UE_LOG(LogDiscordBot, Error, TEXT("This is likely a plugin loading order issue. Try:"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  1. Verify both mods are the latest versions"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  2. Try reinstalling both DiscordBot and CustomWebSocket mods"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  3. Make sure no other mods conflict with these mods"));
+            UE_LOG(LogDiscordBot, Error, TEXT("  4. Check the game logs for additional errors"));
+            UE_LOG(LogDiscordBot, Error, TEXT("========================================================================================"));
         }
         else
         {
-            UE_LOG(LogDiscordBot, Log, TEXT("CustomWebSocket module loaded successfully"));
+            UE_LOG(LogDiscordBot, Log, TEXT("CustomWebSocket module loaded successfully from: %s"), *CustomWebSocketPlugin->GetBaseDir());
         }
     }
     else
     {
-        UE_LOG(LogDiscordBot, Log, TEXT("CustomWebSocket module already loaded"));
+        TSharedPtr<IPlugin> CustomWebSocketPlugin = IPluginManager::Get().FindPlugin(TEXT("CustomWebSocket"));
+        if (CustomWebSocketPlugin.IsValid())
+        {
+            UE_LOG(LogDiscordBot, Log, TEXT("CustomWebSocket module already loaded from: %s"), *CustomWebSocketPlugin->GetBaseDir());
+        }
+        else
+        {
+            UE_LOG(LogDiscordBot, Log, TEXT("CustomWebSocket module already loaded"));
+        }
     }
     
     // Initialize error logger

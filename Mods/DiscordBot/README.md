@@ -2,6 +2,23 @@
 
 A **server-side-only** Discord bot integration mod for Satisfactory that uses WebSocket communication with the following Discord Gateway intents:
 
+## ⚠️ Important: Two Mods Required
+
+**This mod requires TWO separate mods to be installed:**
+
+1. **DiscordBot** - This mod (Discord integration features)
+2. **CustomWebSocket** - Required dependency (WebSocket implementation)
+
+**Both mods must be installed and enabled via the Satisfactory Mod Manager (SMM).**
+
+If you only install DiscordBot, you will see an error: "CRITICAL ERROR: CustomWebSocket plugin not found!"
+
+**Installation via SMM:**
+- Install "CustomWebSocket" mod
+- Install "DiscordBot" mod  
+- Enable both mods
+- Restart your game/server
+
 ## 📚 Documentation
 
 All guides and documentation are now organized in the **[Docs/](Docs/)** folder:
