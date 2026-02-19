@@ -22,9 +22,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogDiscordGateway, Log, All);
 // Guilds Intent (1 << 0) = 1 - Basic guild events (required baseline)
 // Server Members Intent (1 << 1) = 2 - PRIVILEGED
 // Presence Intent (1 << 8) = 256 - PRIVILEGED
+// Guild Messages Intent (1 << 9) = 512 - Required to receive MESSAGE_CREATE events
 // Message Content Intent (1 << 15) = 32768 - PRIVILEGED
-// Combined: 1 + 2 + 256 + 32768 = 33027
-#define DISCORD_INTENTS_COMBINED 33027
+// Combined: 1 + 2 + 256 + 512 + 32768 = 33539
+#define DISCORD_INTENTS_COMBINED 33539
 
 ADiscordGatewayClient::ADiscordGatewayClient()
 {
@@ -148,7 +149,7 @@ void ADiscordGatewayClient::ConnectWebSocket()
     UE_LOG(LogDiscordGateway, Warning, TEXT("This is a reference implementation only"));
     UE_LOG(LogDiscordGateway, Warning, TEXT("Use DiscordGatewayClientCustom for production"));
     UE_LOG(LogDiscordGateway, Log, TEXT("Gateway URL: %s"), *GatewayURL);
-    UE_LOG(LogDiscordGateway, Log, TEXT("Intents: %d (Presence: 256, Server Members: 2, Message Content: 32768)"), Intents);
+    UE_LOG(LogDiscordGateway, Log, TEXT("Intents: %d (Presence: 256, Server Members: 2, Guild Messages: 512, Message Content: 32768)"), Intents);
     
     // In a real implementation, you would:
     // 1. Connect to the WebSocket
