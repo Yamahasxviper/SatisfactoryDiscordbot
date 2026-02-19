@@ -152,7 +152,7 @@ After building successfully:
 
 - `PLUGIN_COMPILATION_FIX.md` - Complete fix documentation
 - `Mods/DiscordBot/README.md` - Discord bot setup guide
-- `Mods/DiscordBot/QUICKSTART_NATIVE.md` - Quick start guide
+- `Mods/DiscordBot/Docs/Setup/QUICKSTART_NATIVE.md` - Quick start guide
 - `Mods/CustomWebSocket/README.md` - WebSocket plugin details
 - `.github/workflows/build.yml` - CI build configuration
 

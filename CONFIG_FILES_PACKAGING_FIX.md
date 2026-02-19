@@ -64,9 +64,9 @@ This tells Unreal to treat these as "additional" directories, but `FilterPlugin.
 ; Include all documentation and guide files
 /README.md
 /SETUP.md
-/QUICKSTART_NATIVE.md
+/Docs/Setup/QUICKSTART_NATIVE.md
 ... (other documentation files)
-/WEBSOCKET_TROUBLESHOOTING.md
+/Docs/Troubleshooting/WEBSOCKET_TROUBLESHOOTING.md
 ```
 
 **Packaging Result:**
@@ -88,7 +88,7 @@ This tells Unreal to treat these as "additional" directories, but `FilterPlugin.
 ; Include all documentation and guide files
 /README.md
 ... (documentation files)
-/WEBSOCKET_TROUBLESHOOTING.md
+/Docs/Troubleshooting/WEBSOCKET_TROUBLESHOOTING.md
 
 ; Include Config files for plugin settings
 /Config/DiscordBot.ini
