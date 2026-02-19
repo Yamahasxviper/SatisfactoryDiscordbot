@@ -163,28 +163,33 @@ Each package will contain:
 After the fix, users will be able to:
 
 1. **Download all three artifacts** from GitHub Actions or Releases
-2. **Extract the CustomWebSocket plugin** to their `Plugins/` folder
+2. **Extract the CustomWebSocket mod** to their `Mods/` folder
 3. **Extract the SML mod** to their `Mods/` folder
 4. **Extract the DiscordBot mod** to their `Mods/` folder
 
 ### Installation Structure
 ```
 SatisfactoryDedicatedServer/
-├── Plugins/
-│   └── CustomWebSocket/          ← From customwebsocket artifact
-│       ├── CustomWebSocket.uplugin
-│       ├── Binaries/
-│       └── ...
-└── Mods/
-    ├── SML/                       ← From sml artifact
-    │   ├── SML.uplugin
-    │   ├── Binaries/
-    │   └── ...
-    └── DiscordBot/                ← From discordbot artifact
-        ├── DiscordBot.uplugin
-        ├── Binaries/
-        └── ...
+└── FactoryGame/
+    └── Mods/
+        ├── CustomWebSocket/           ← From customwebsocket artifact
+        │   ├── CustomWebSocket.uplugin
+        │   ├── Binaries/
+        │   └── ...
+        ├── SML/                       ← From sml artifact
+        │   ├── SML.uplugin
+        │   ├── Binaries/
+        │   └── ...
+        └── DiscordBot/                ← From discordbot artifact
+            ├── DiscordBot.uplugin
+            ├── Binaries/
+            └── ...
 ```
+
+> **Note:** Both `CustomWebSocket` and `DiscordBot` are installed in the `Mods/` folder.
+> They are both `EPluginType::Mod` plugins and must be in `Mods/` for Alpakit to discover
+> and package them correctly. Installing `CustomWebSocket` in `Plugins/` instead would make
+> it a `EPluginType::Project` plugin, causing it to be hidden from Alpakit's mod list.
 
 ---
 

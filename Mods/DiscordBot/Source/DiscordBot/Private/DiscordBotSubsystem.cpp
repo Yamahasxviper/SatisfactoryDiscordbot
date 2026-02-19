@@ -509,9 +509,10 @@ void UDiscordBotSubsystem::SendServerStartNotification()
     // so it is safe to call here even before the Discord READY event has been received.
     UpdateBotPresenceWithPlayerCount();
 
-    // Start the periodic presence update timer so that connection status ("Bot presence updated")
-    // is logged regularly regardless of whether a notification channel is configured.
-    if ((bShowPlayerCount || bShowPlayerNames || bUseCustomPresenceFormat) && GetWorld())
+    // Start the periodic presence update timer regardless of which display options are enabled.
+    // This ensures the bot's basic presence (e.g. "Playing Satisfactory Server") is always set
+    // even when bShowPlayerCount, bShowPlayerNames, and bUseCustomPresenceFormat are all false.
+    if (GetWorld())
     {
         GetWorld()->GetTimerManager().SetTimer(
             PlayerCountUpdateTimerHandle,
@@ -520,7 +521,7 @@ void UDiscordBotSubsystem::SendServerStartNotification()
             PlayerCountUpdateInterval,
             true // Loop
         );
-        UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Player count update timer started (interval: %.1fs)"), PlayerCountUpdateInterval);
+        UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Bot presence update timer started (interval: %.1fs)"), PlayerCountUpdateInterval);
     }
 }
 
