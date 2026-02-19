@@ -83,9 +83,6 @@ private:
     /** Send server stop notification */
     void SendServerStopNotification();
 
-    /** Format Discord username for in-game display */
-    FString FormatDiscordSender(const FString& Username) const;
-
     /** Format in-game player name for Discord */
     FString FormatGameSender(const FString& PlayerName) const;
 

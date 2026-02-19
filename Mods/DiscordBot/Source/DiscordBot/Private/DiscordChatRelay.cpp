@@ -8,11 +8,18 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordChatRelay, Log, All);
 
-void UDiscordChatRelay::Initialize(AFGChatManager* ChatManager)
+void UDiscordChatRelay::Initialize(UWorld* World)
 {
+    if (!World)
+    {
+        UE_LOG(LogDiscordChatRelay, Error, TEXT("Cannot initialize chat relay: World is null"));
+        return;
+    }
+
+    AFGChatManager* ChatManager = AFGChatManager::Get(World);
     if (!ChatManager)
     {
-        UE_LOG(LogDiscordChatRelay, Error, TEXT("Cannot initialize chat relay: ChatManager is null"));
+        UE_LOG(LogDiscordChatRelay, Error, TEXT("Cannot initialize chat relay: ChatManager not found in world"));
         return;
     }
 
@@ -112,4 +119,27 @@ void UDiscordChatRelay::OnChatMessageAdded()
 
         // LastMessageCount stays equal to Messages.Num() (the maximum buffer size)
     }
+}
+
+void UDiscordChatRelay::BroadcastDiscordMessageToGame(const FString& Username, const FString& Message, const FString& SenderFormat)
+{
+    if (!CachedChatManager)
+    {
+        UE_LOG(LogDiscordChatRelay, Warning, TEXT("Cannot broadcast Discord message: ChatManager not available"));
+        return;
+    }
+
+    // Format the sender name using the configured format string
+    FString FormattedSender = SenderFormat;
+    FormattedSender = FormattedSender.Replace(TEXT("{username}"), *Username);
+
+    FChatMessageStruct ChatMessage;
+    ChatMessage.MessageType = EFGChatMessageType::CMT_CustomMessage;
+    ChatMessage.MessageSender = FText::FromString(FormattedSender);
+    ChatMessage.MessageText = FText::FromString(Message);
+    ChatMessage.MessageSenderColor = FLinearColor(0.4f, 0.6f, 1.0f); // Light blue for Discord messages
+
+    CachedChatManager->BroadcastChatMessage(ChatMessage);
+
+    UE_LOG(LogDiscordChatRelay, Log, TEXT("Discord message relayed to game: [%s] %s"), *FormattedSender, *Message);
 }

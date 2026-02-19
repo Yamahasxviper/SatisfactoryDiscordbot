@@ -5,7 +5,6 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/Paths.h"
 #include "Logging/LogMacros.h"
-#include "FGChatManager.h"
 #include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
@@ -67,15 +66,8 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
                 // Initialize chat relay if two-way chat is enabled
                 if (bTwoWayChatEnabled)
                 {
-                    if (AFGChatManager* ChatManager = AFGChatManager::Get(GetWorld()))
-                    {
-                        ChatRelay = NewObject<UDiscordChatRelay>(this);
-                        ChatRelay->Initialize(ChatManager);
-                    }
-                    else
-                    {
-                        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot initialize chat relay: ChatManager not found"));
-                    }
+                    ChatRelay = NewObject<UDiscordChatRelay>(this);
+                    ChatRelay->Initialize(GetWorld());
                 }
                 
                 // Send server start notification after bot is ready
@@ -305,29 +297,14 @@ void UDiscordBotSubsystem::OnDiscordMessageReceived(const FString& ChannelId, co
         return;
     }
     
-    // Format the sender name
-    FString FormattedSender = FormatDiscordSender(Username);
-    
-    // Get the chat manager and broadcast the message
-    if (UWorld* World = GetWorld())
+    // Delegate broadcast to the chat relay which owns all AFGChatManager interaction
+    if (ChatRelay)
     {
-        AFGChatManager* ChatManager = AFGChatManager::Get(World);
-        if (ChatManager)
-        {
-            FChatMessageStruct ChatMessage;
-            ChatMessage.MessageType = EFGChatMessageType::CMT_CustomMessage;
-            ChatMessage.MessageSender = FText::FromString(FormattedSender);
-            ChatMessage.MessageText = FText::FromString(Message);
-            ChatMessage.MessageSenderColor = FLinearColor(0.4f, 0.6f, 1.0f); // Light blue for Discord messages
-            
-            ChatManager->BroadcastChatMessage(ChatMessage);
-            
-            UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Discord message relayed to game: [%s] %s"), *FormattedSender, *Message);
-        }
-        else
-        {
-            UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot relay Discord message: ChatManager not found"));
-        }
+        ChatRelay->BroadcastDiscordMessageToGame(Username, Message, DiscordSenderFormat);
+    }
+    else
+    {
+        UE_LOG(LogDiscordBotSubsystem, Warning, TEXT("Cannot relay Discord message: ChatRelay not initialized"));
     }
 }
 
@@ -774,13 +751,6 @@ void UDiscordBotSubsystem::UpdateBotPresenceWithPlayerCount()
     UE_LOG(LogDiscordBotSubsystem, Log, TEXT("Bot presence updated: %s (Type: %d)"), *PresenceMessage, BotActivityType);
 }
 
-
-FString UDiscordBotSubsystem::FormatDiscordSender(const FString& Username) const
-{
-    FString Formatted = DiscordSenderFormat;
-    Formatted = Formatted.Replace(TEXT("{username}"), *Username);
-    return Formatted;
-}
 
 FString UDiscordBotSubsystem::FormatGameSender(const FString& PlayerName) const
 {
