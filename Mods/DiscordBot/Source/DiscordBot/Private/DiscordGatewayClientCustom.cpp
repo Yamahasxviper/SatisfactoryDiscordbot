@@ -26,9 +26,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogDiscordGatewayCustom, Log, All);
 // Guilds Intent (1 << 0) = 1 - Basic guild events (required baseline)
 // Server Members Intent (1 << 1) = 2 - PRIVILEGED
 // Presence Intent (1 << 8) = 256 - PRIVILEGED
+// Guild Messages Intent (1 << 9) = 512 - Required to receive MESSAGE_CREATE events
 // Message Content Intent (1 << 15) = 32768 - PRIVILEGED
-// Combined: 1 + 2 + 256 + 32768 = 33027
-#define DISCORD_INTENTS_COMBINED 33027
+// Combined: 1 + 2 + 256 + 512 + 32768 = 33539
+#define DISCORD_INTENTS_COMBINED 33539
 
 ADiscordGatewayClientCustom::ADiscordGatewayClientCustom()
 {
@@ -572,8 +573,9 @@ void ADiscordGatewayClientCustom::UpdatePresence(const FString& StatusMessage, i
     Data->SetArrayField(TEXT("activities"), Activities);
     
     // AFK and since fields
+    // 'since' must be null when the bot is not idle (per Discord Gateway spec)
     Data->SetBoolField(TEXT("afk"), false);
-    Data->SetNumberField(TEXT("since"), FDateTime::UtcNow().ToUnixTimestamp() * 1000);
+    Data->SetField(TEXT("since"), MakeShareable(new FJsonValueNull()));
     
     PresencePayload->SetObjectField(TEXT("d"), Data);
     
