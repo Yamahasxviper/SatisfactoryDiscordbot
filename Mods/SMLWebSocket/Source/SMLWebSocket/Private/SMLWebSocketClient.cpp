@@ -38,12 +38,19 @@ void USMLWebSocketClient::Connect(const FString& Url,
                                   const TArray<FString>& Protocols,
                                   const TMap<FString, FString>& ExtraHeaders)
 {
-	// Stop any existing connection.
+	// Stop any existing connection first.
 	StopRunnable();
 
 	bIsConnected = false;
 
-	Runnable = MakeShared<FSMLWebSocketRunnable>(this, Url, Protocols, ExtraHeaders);
+	// Build the reconnect configuration from our current property values.
+	FSMLWebSocketReconnectConfig ReconnectCfg;
+	ReconnectCfg.bAutoReconnect            = bAutoReconnect;
+	ReconnectCfg.ReconnectInitialDelay     = ReconnectInitialDelaySeconds;
+	ReconnectCfg.MaxReconnectDelay         = MaxReconnectDelaySeconds;
+	ReconnectCfg.MaxReconnectAttempts      = MaxReconnectAttempts;
+
+	Runnable = MakeShared<FSMLWebSocketRunnable>(this, Url, Protocols, ExtraHeaders, ReconnectCfg);
 	RunnableThread = FRunnableThread::Create(Runnable.Get(),
 	                                         TEXT("SMLWebSocketThread"),
 	                                         0,
@@ -129,4 +136,10 @@ void USMLWebSocketClient::Internal_OnError(const FString& ErrorMessage)
 {
 	bIsConnected = false;
 	OnError.Broadcast(ErrorMessage);
+}
+
+void USMLWebSocketClient::Internal_OnReconnecting(int32 AttemptNumber, float DelaySeconds)
+{
+	bIsConnected = false;
+	OnReconnecting.Broadcast(AttemptNumber, DelaySeconds);
 }

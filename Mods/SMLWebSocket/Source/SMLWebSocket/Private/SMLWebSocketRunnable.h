@@ -29,6 +29,16 @@ struct FSMLWebSocketCloseRequest
 	FString Reason;
 };
 
+// ── Reconnect configuration (passed from USMLWebSocketClient at Connect time) ─
+
+struct FSMLWebSocketReconnectConfig
+{
+	bool  bAutoReconnect{true};
+	float ReconnectInitialDelay{2.0f}; // seconds
+	float MaxReconnectDelay{30.0f};    // seconds
+	int32 MaxReconnectAttempts{0};     // 0 = infinite
+};
+
 // ── State machine ─────────────────────────────────────────────────────────────
 
 enum class ESMLWebSocketRunnableState : uint8
@@ -48,6 +58,11 @@ enum class ESMLWebSocketRunnableState : uint8
  * Background thread that manages the raw TCP (+ optional SSL) socket and the
  * WebSocket protocol (RFC 6455) for USMLWebSocketClient.
  *
+ * When bAutoReconnect is true the thread will re-attempt the full connection
+ * sequence (TCP → TLS → HTTP upgrade) with exponential back-off whenever the
+ * connection is lost due to a server-side or network failure. User-initiated
+ * closes (EnqueueClose) always terminate the loop without reconnecting.
+ *
  * All public game-thread callbacks are dispatched via AsyncTask so that
  * delegates always fire on the game thread.
  */
@@ -57,7 +72,8 @@ public:
 	FSMLWebSocketRunnable(USMLWebSocketClient* InOwner,
 	                      const FString& InUrl,
 	                      const TArray<FString>& InProtocols,
-	                      const TMap<FString, FString>& InExtraHeaders);
+	                      const TMap<FString, FString>& InExtraHeaders,
+	                      const FSMLWebSocketReconnectConfig& InReconnectCfg);
 
 	virtual ~FSMLWebSocketRunnable() override;
 
@@ -76,7 +92,10 @@ public:
 	/** Queue a binary message to be sent. */
 	void EnqueueBinary(const TArray<uint8>& Data);
 
-	/** Request a graceful WebSocket close. */
+	/**
+	 * Request a graceful WebSocket close. Suppresses auto-reconnect so the
+	 * thread exits cleanly after the closing handshake completes.
+	 */
 	void EnqueueClose(int32 Code, const FString& Reason);
 
 	/** True once the WebSocket handshake has been completed. */
@@ -89,6 +108,9 @@ private:
 	bool PerformSslHandshake(const FString& Host);
 	bool SendHttpUpgradeRequest(const FString& Host, int32 Port, const FString& Path, const FString& Key);
 	bool ReadHttpUpgradeResponse(const FString& ExpectedAcceptKey);
+
+	/** Tear down the existing socket and SSL state so a new attempt can start. */
+	void CleanupConnection();
 
 	// ── OpenSSL helpers ───────────────────────────────────────────────────────
 
@@ -129,7 +151,13 @@ private:
 	/** Build and send a WebSocket frame (client-to-server, always masked). */
 	bool SendWsFrame(uint8 Opcode, const uint8* Data, int32 DataSize, bool bFinal = true);
 
-	/** Read and process the next incoming WebSocket frame. Returns false on fatal error. */
+	/**
+	 * Read and process the next incoming WebSocket frame.
+	 * Returns false when the loop should exit:
+	 *   • A WebSocket Close frame was received (bReceivedServerClose is set).
+	 *   • A fatal TCP/SSL error was detected.
+	 *   • bStopRequested is true.
+	 */
 	bool ProcessIncomingFrame();
 
 	/** Send a Pong frame in response to a Ping. */
@@ -153,12 +181,13 @@ private:
 	void NotifyBinaryMessage(const TArray<uint8>& Data, bool bIsFinal);
 	void NotifyClosed(int32 Code, const FString& Reason);
 	void NotifyError(const FString& Error);
+	void NotifyReconnecting(int32 AttemptNumber, float DelaySeconds);
 
 	// ── Fields ────────────────────────────────────────────────────────────────
 
 	TWeakObjectPtr<USMLWebSocketClient> Owner;
 
-	// URL components parsed during Init()
+	// URL components parsed during construction
 	FString ParsedHost;
 	FString ParsedPath;
 	int32   ParsedPort{80};
@@ -166,6 +195,9 @@ private:
 
 	TArray<FString>        Protocols;
 	TMap<FString, FString> ExtraHeaders;
+
+	// Reconnect configuration (immutable after construction)
+	FSMLWebSocketReconnectConfig ReconnectCfg;
 
 	// Unreal TCP socket (blocking mode)
 	FSocket* Socket{nullptr};
@@ -180,6 +212,13 @@ private:
 	TAtomic<ESMLWebSocketRunnableState> State{ESMLWebSocketRunnableState::Idle};
 	FThreadSafeBool bStopRequested{false};
 	FThreadSafeBool bConnected{false};
+
+	// Set by EnqueueClose(); prevents auto-reconnect after a user-initiated close.
+	FThreadSafeBool bUserInitiatedClose{false};
+
+	// Set by ProcessIncomingFrame() when a WS Close frame arrives from the server.
+	// Used by Run() to know that NotifyClosed was already dispatched (skip NotifyError).
+	bool bReceivedServerClose{false};
 
 	// Outbound queues (game thread → I/O thread)
 	TQueue<FSMLWebSocketOutboundMessage, EQueueMode::Mpsc> OutboundMessages;

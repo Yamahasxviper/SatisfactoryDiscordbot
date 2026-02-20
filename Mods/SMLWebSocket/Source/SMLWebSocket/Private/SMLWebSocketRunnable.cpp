@@ -4,6 +4,7 @@
 #include "SMLWebSocketClient.h"
 
 #include "Async/Async.h"
+#include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/Base64.h"
 #include "Sockets.h"
@@ -42,10 +43,12 @@ static constexpr int32 PollIntervalMs = 100;
 FSMLWebSocketRunnable::FSMLWebSocketRunnable(USMLWebSocketClient* InOwner,
                                              const FString& InUrl,
                                              const TArray<FString>& InProtocols,
-                                             const TMap<FString, FString>& InExtraHeaders)
+                                             const TMap<FString, FString>& InExtraHeaders,
+                                             const FSMLWebSocketReconnectConfig& InReconnectCfg)
 	: Owner(InOwner)
 	, Protocols(InProtocols)
 	, ExtraHeaders(InExtraHeaders)
+	, ReconnectCfg(InReconnectCfg)
 {
 	// Parse the URL into components.
 	// Expected forms:  ws://host[:port]/path   or   wss://host[:port]/path
@@ -120,104 +123,185 @@ bool FSMLWebSocketRunnable::Init()
 
 uint32 FSMLWebSocketRunnable::Run()
 {
-	// ── 1. Resolve host and connect TCP socket ────────────────────────────────
-	State.Store(ESMLWebSocketRunnableState::Connecting);
-	if (!ResolveAndConnect(ParsedHost, ParsedPort))
-	{
-		NotifyError(FString::Printf(TEXT("Failed to connect to %s:%d"), *ParsedHost, ParsedPort));
-		State.Store(ESMLWebSocketRunnableState::Closed);
-		return 1;
-	}
-	if (bStopRequested) { State.Store(ESMLWebSocketRunnableState::Closed); return 0; }
+	int32 AttemptNumber   = 0;         // counts failed / reconnect attempts
+	float CurrentDelay    = ReconnectCfg.ReconnectInitialDelay;
 
-	// ── 2. Optional TLS handshake ─────────────────────────────────────────────
-	if (bUseSsl)
+	// ── Outer reconnect loop ──────────────────────────────────────────────────
+	while (!bStopRequested && !bUserInitiatedClose)
 	{
-		State.Store(ESMLWebSocketRunnableState::SslHandshake);
-		if (!PerformSslHandshake(ParsedHost))
+		// ── Back-off sleep between reconnect attempts ─────────────────────────
+		if (AttemptNumber > 0)
 		{
-			NotifyError(TEXT("SSL handshake failed"));
-			State.Store(ESMLWebSocketRunnableState::Closed);
-			return 1;
+			// Cap the attempt count against MaxReconnectAttempts before sleeping.
+			if (ReconnectCfg.MaxReconnectAttempts > 0 &&
+			    AttemptNumber > ReconnectCfg.MaxReconnectAttempts)
+			{
+				NotifyError(FString::Printf(
+					TEXT("SMLWebSocket: Gave up reconnecting after %d attempts"), ReconnectCfg.MaxReconnectAttempts));
+				break;
+			}
+
+			// Notify the game thread that a reconnect is about to begin.
+			NotifyReconnecting(AttemptNumber, CurrentDelay);
+
+			// Sleep in 100 ms slices so bStopRequested / bUserInitiatedClose can
+			// interrupt the wait immediately.
+			const double SleepEnd = FPlatformTime::Seconds() + static_cast<double>(CurrentDelay);
+			while (!bStopRequested && !bUserInitiatedClose &&
+			       FPlatformTime::Seconds() < SleepEnd)
+			{
+				FPlatformProcess::Sleep(0.1f);
+			}
+			if (bStopRequested || bUserInitiatedClose) break;
+
+			// Exponential back-off, capped at MaxReconnectDelay.
+			CurrentDelay = FMath::Min(CurrentDelay * 2.0f, ReconnectCfg.MaxReconnectDelay);
+
+			// Clean up any socket/SSL state left over from the previous attempt.
+			CleanupConnection();
 		}
-		if (bStopRequested) { State.Store(ESMLWebSocketRunnableState::Closed); return 0; }
-	}
 
-	// ── 3. Send HTTP upgrade request ──────────────────────────────────────────
-	State.Store(ESMLWebSocketRunnableState::SendingHttpUpgrade);
-	const FString ClientKey = GenerateWebSocketKey();
-	const FString AcceptKey = ComputeAcceptKey(ClientKey);
+		// Reset per-attempt flags.
+		bReceivedServerClose = false;
+		FragmentBuffer.Empty();
 
-	if (!SendHttpUpgradeRequest(ParsedHost, ParsedPort, ParsedPath, ClientKey))
-	{
-		NotifyError(TEXT("Failed to send HTTP upgrade request"));
-		State.Store(ESMLWebSocketRunnableState::Closed);
-		return 1;
-	}
-	if (bStopRequested) { State.Store(ESMLWebSocketRunnableState::Closed); return 0; }
-
-	// ── 4. Read and validate HTTP 101 response ────────────────────────────────
-	State.Store(ESMLWebSocketRunnableState::ReadingHttpUpgradeResponse);
-	if (!ReadHttpUpgradeResponse(AcceptKey))
-	{
-		NotifyError(TEXT("WebSocket upgrade handshake rejected by server"));
-		State.Store(ESMLWebSocketRunnableState::Closed);
-		return 1;
-	}
-	if (bStopRequested) { State.Store(ESMLWebSocketRunnableState::Closed); return 0; }
-
-	// ── 5. Connected – main read/write loop ───────────────────────────────────
-	State.Store(ESMLWebSocketRunnableState::Connected);
-	bConnected = true;
-	NotifyConnected();
-
-	while (!bStopRequested)
-	{
-		// Check for a pending close request from the game thread
-		FSMLWebSocketCloseRequest CloseReq;
-		if (CloseRequests.Dequeue(CloseReq))
+		// ── 1. Resolve host and connect TCP socket ────────────────────────────
+		State.Store(ESMLWebSocketRunnableState::Connecting);
+		if (!ResolveAndConnect(ParsedHost, ParsedPort))
 		{
-			State.Store(ESMLWebSocketRunnableState::Closing);
-			bConnected = false;
+			NotifyError(FString::Printf(TEXT("SMLWebSocket: Failed to connect to %s:%d"), *ParsedHost, ParsedPort));
+			if (!ReconnectCfg.bAutoReconnect) break;
+			++AttemptNumber;
+			continue;
+		}
+		if (bStopRequested || bUserInitiatedClose) break;
 
-			// Build and send close frame payload: 2-byte big-endian status code + reason UTF-8
-			const FTCHARToUTF8 Utf8Reason(*CloseReq.Reason);
-			TArray<uint8> ClosePayload;
-			ClosePayload.SetNum(2 + Utf8Reason.Length());
-			ClosePayload[0] = static_cast<uint8>((CloseReq.Code >> 8) & 0xFF);
-			ClosePayload[1] = static_cast<uint8>(CloseReq.Code & 0xFF);
-			FMemory::Memcpy(ClosePayload.GetData() + 2, Utf8Reason.Get(), Utf8Reason.Length());
+		// ── 2. Optional TLS handshake ─────────────────────────────────────────
+		if (bUseSsl)
+		{
+			State.Store(ESMLWebSocketRunnableState::SslHandshake);
+			if (!PerformSslHandshake(ParsedHost))
+			{
+				NotifyError(TEXT("SMLWebSocket: SSL handshake failed"));
+				if (!ReconnectCfg.bAutoReconnect) break;
+				++AttemptNumber;
+				continue;
+			}
+			if (bStopRequested || bUserInitiatedClose) break;
+		}
 
-			SendWsFrame(WsOpcode::Close, ClosePayload.GetData(), ClosePayload.Num());
-			NotifyClosed(CloseReq.Code, CloseReq.Reason);
+		// ── 3. Send HTTP upgrade request ──────────────────────────────────────
+		State.Store(ESMLWebSocketRunnableState::SendingHttpUpgrade);
+		const FString ClientKey = GenerateWebSocketKey();
+		const FString AcceptKey = ComputeAcceptKey(ClientKey);
+
+		if (!SendHttpUpgradeRequest(ParsedHost, ParsedPort, ParsedPath, ClientKey))
+		{
+			NotifyError(TEXT("SMLWebSocket: Failed to send HTTP upgrade request"));
+			if (!ReconnectCfg.bAutoReconnect) break;
+			++AttemptNumber;
+			continue;
+		}
+		if (bStopRequested || bUserInitiatedClose) break;
+
+		// ── 4. Read and validate HTTP 101 response ────────────────────────────
+		State.Store(ESMLWebSocketRunnableState::ReadingHttpUpgradeResponse);
+		if (!ReadHttpUpgradeResponse(AcceptKey))
+		{
+			NotifyError(TEXT("SMLWebSocket: WebSocket upgrade handshake rejected by server"));
+			if (!ReconnectCfg.bAutoReconnect) break;
+			++AttemptNumber;
+			continue;
+		}
+		if (bStopRequested || bUserInitiatedClose) break;
+
+		// ── 5. Connected – main read/write loop ───────────────────────────────
+		// Reset back-off: a successful connection means the server is up.
+		AttemptNumber = 0;
+		CurrentDelay  = ReconnectCfg.ReconnectInitialDelay;
+
+		State.Store(ESMLWebSocketRunnableState::Connected);
+		bConnected = true;
+		NotifyConnected();
+
+		while (!bStopRequested && !bUserInitiatedClose)
+		{
+			// Check for a user-requested close from the game thread.
+			FSMLWebSocketCloseRequest CloseReq;
+			if (CloseRequests.Dequeue(CloseReq))
+			{
+				State.Store(ESMLWebSocketRunnableState::Closing);
+				bConnected = false;
+
+				// Build and send close frame payload (2-byte code + UTF-8 reason).
+				const FTCHARToUTF8 Utf8Reason(*CloseReq.Reason);
+				TArray<uint8> ClosePayload;
+				ClosePayload.SetNum(2 + Utf8Reason.Length());
+				ClosePayload[0] = static_cast<uint8>((CloseReq.Code >> 8) & 0xFF);
+				ClosePayload[1] = static_cast<uint8>(CloseReq.Code & 0xFF);
+				FMemory::Memcpy(ClosePayload.GetData() + 2, Utf8Reason.Get(), Utf8Reason.Length());
+
+				SendWsFrame(WsOpcode::Close, ClosePayload.GetData(), ClosePayload.Num());
+				NotifyClosed(CloseReq.Code, CloseReq.Reason);
+				bUserInitiatedClose = true;
+				break;
+			}
+
+			// Flush pending outbound messages before blocking on reads so that sends
+			// have at most ~PollIntervalMs latency even when no data arrives.
+			FlushOutboundQueue();
+
+			// Poll for incoming data (short timeout keeps the loop responsive).
+			bool bDataAvailable = false;
+			if (bUseSsl && SslInstance && SSL_pending(SslInstance) > 0)
+			{
+				bDataAvailable = true;
+			}
+			else if (Socket)
+			{
+				bDataAvailable = Socket->Wait(ESocketWaitConditions::WaitForRead,
+				                              FTimespan::FromMilliseconds(PollIntervalMs));
+			}
+
+			if (bDataAvailable)
+			{
+				if (!ProcessIncomingFrame())
+				{
+					// Connection lost (server Close frame or TCP/SSL error).
+					bConnected = false;
+					break;
+				}
+			}
+		}
+
+		bConnected = false;
+
+		// ── Decide whether to reconnect ───────────────────────────────────────
+		if (bStopRequested || bUserInitiatedClose)
+		{
+			// Deliberate stop – do not reconnect.
 			break;
 		}
 
-		// Flush any pending outbound messages (do this before blocking on reads so
-		// sends have at most ~PollIntervalMs latency even when no data arrives).
-		FlushOutboundQueue();
-
-		// Poll for incoming data with a short timeout so the loop remains responsive.
-		// For SSL, also check whether OpenSSL has already buffered a full record.
-		bool bDataAvailable = false;
-		if (bUseSsl && SslInstance && SSL_pending(SslInstance) > 0)
+		if (!ReconnectCfg.bAutoReconnect)
 		{
-			bDataAvailable = true;
-		}
-		else if (Socket)
-		{
-			bDataAvailable = Socket->Wait(ESocketWaitConditions::WaitForRead,
-			                              FTimespan::FromMilliseconds(PollIntervalMs));
-		}
-
-		if (bDataAvailable)
-		{
-			// Process the next incoming WebSocket frame (returns false on fatal error/close).
-			if (!ProcessIncomingFrame())
+			// Auto-reconnect disabled.
+			if (!bReceivedServerClose)
 			{
-				break;
+				// TCP drop without a server Close frame: notify the game thread.
+				NotifyError(TEXT("SMLWebSocket: Connection lost"));
 			}
+			break;
 		}
+
+		// Fire NotifyError for unexpected TCP drops so the game thread is aware.
+		if (!bReceivedServerClose)
+		{
+			NotifyError(TEXT("SMLWebSocket: Connection lost – reconnecting"));
+		}
+
+		// Schedule the next reconnect attempt.
+		++AttemptNumber;
 	}
 
 	State.Store(ESMLWebSocketRunnableState::Closed);
@@ -233,6 +317,22 @@ void FSMLWebSocketRunnable::Stop()
 void FSMLWebSocketRunnable::Exit()
 {
 	DestroySsl();
+}
+
+void FSMLWebSocketRunnable::CleanupConnection()
+{
+	// Destroy SSL objects before the socket so any pending records are dropped cleanly.
+	DestroySsl();
+
+	if (Socket)
+	{
+		ISocketSubsystem* SocketSS = ISocketSubsystem::Get(NAME_None);
+		if (SocketSS)
+		{
+			SocketSS->DestroySocket(Socket);
+		}
+		Socket = nullptr;
+	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -260,6 +360,8 @@ void FSMLWebSocketRunnable::EnqueueBinary(const TArray<uint8>& Data)
 
 void FSMLWebSocketRunnable::EnqueueClose(int32 Code, const FString& Reason)
 {
+	// Mark as user-initiated so the reconnect loop does not restart after the close.
+	bUserInitiatedClose = true;
 	FSMLWebSocketCloseRequest Req;
 	Req.Code   = Code;
 	Req.Reason = Reason;
@@ -810,12 +912,14 @@ bool FSMLWebSocketRunnable::SendWsFrame(uint8 Opcode, const uint8* Data, int32 D
 
 bool FSMLWebSocketRunnable::ProcessIncomingFrame()
 {
-	// Read the 2-byte frame header
+	// Read the 2-byte frame header.
+	// NetRecvExact returns false only on bStopRequested or a fatal TCP/SSL error
+	// (it handles temporary timeouts internally by retrying). Either way, returning
+	// false here is correct: the outer loop should stop or reconnect.
 	uint8 Header[2];
 	if (!NetRecvExact(Header, 2))
 	{
-		// Timeout or connection closed
-		return !bStopRequested;
+		return false;
 	}
 
 	const bool bFin       = (Header[0] & 0x80) != 0;
@@ -958,8 +1062,11 @@ bool FSMLWebSocketRunnable::ProcessIncomingFrame()
 		// Echo the close frame back (RFC 6455 §5.5.1)
 		SendWsFrame(WsOpcode::Close, Payload.GetData(), Payload.Num());
 		bConnected = false;
+		// Flag that the server initiated the close so Run() knows NotifyClosed
+		// was already dispatched and does not fire NotifyError on top of it.
+		bReceivedServerClose = true;
 		NotifyClosed(Code, Reason);
-		return false; // exit main loop
+		return false; // exit inner loop; Run() will decide whether to reconnect
 	}
 
 	default:
@@ -1071,6 +1178,18 @@ void FSMLWebSocketRunnable::NotifyError(const FString& Error)
 		if (USMLWebSocketClient* Ptr = WeakOwner.Get())
 		{
 			Ptr->Internal_OnError(Error);
+		}
+	});
+}
+
+void FSMLWebSocketRunnable::NotifyReconnecting(int32 AttemptNumber, float DelaySeconds)
+{
+	TWeakObjectPtr<USMLWebSocketClient> WeakOwner = Owner;
+	AsyncTask(ENamedThreads::GameThread, [WeakOwner, AttemptNumber, DelaySeconds]()
+	{
+		if (USMLWebSocketClient* Ptr = WeakOwner.Get())
+		{
+			Ptr->Internal_OnReconnecting(AttemptNumber, DelaySeconds);
 		}
 	});
 }
