@@ -2,6 +2,7 @@
 // Custom WebSocket Implementation - UE5 Native WebSocket Wrapper
 
 #include "CustomWebSocket.h"
+#include "IWebSocket.h"
 #include "WebSocketsModule.h"
 #include "Misc/Base64.h"
 

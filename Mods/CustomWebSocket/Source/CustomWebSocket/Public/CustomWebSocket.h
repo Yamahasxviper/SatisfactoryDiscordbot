@@ -4,7 +4,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "IWebSocket.h"
+
+// Forward-declare IWebSocket so this public header does not pull in the
+// WebSockets module's include paths on downstream consumers, preventing the
+// LNK1181 error when UnrealEditor-WebSockets.lib is absent in the dev kit.
+class IWebSocket;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCustomWebSocket, Log, All);
 

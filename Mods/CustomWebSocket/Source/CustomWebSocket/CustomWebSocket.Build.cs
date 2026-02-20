@@ -13,8 +13,14 @@ public class CustomWebSocket : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
-			"Engine",
-			"WebSockets"      // UE native WebSocket module (handles TLS/SSL on all platforms)
+			"Engine"
+		});
+
+		// WebSockets is only needed internally; keeping it private avoids
+		// forcing downstream dependents (e.g. DiscordBot) to link against
+		// UnrealEditor-WebSockets.lib, which may not be present in the dev kit.
+		PrivateDependencyModuleNames.AddRange(new string[] {
+			"WebSockets"
 		});
 	}
 }
