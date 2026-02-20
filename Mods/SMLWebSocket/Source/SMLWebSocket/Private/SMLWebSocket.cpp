@@ -59,22 +59,37 @@ static FString ComputeWebSocketAccept(const FString& Key)
 	return Result;
 }
 
-/** Parse a ws:// URL into (Host, Port, Path). Returns false on failure. */
+/** Parse a ws:// or wss:// URL into (Host, Port, Path). Returns false on failure. */
 static bool ParseWebSocketUrl(const FString& Url,
 	FString& OutHost, int32& OutPort, FString& OutPath)
 {
-	// Expected format: ws://host[:port][/path]
-	if (!Url.StartsWith(TEXT("ws://"), ESearchCase::IgnoreCase))
+	// Determine scheme and strip prefix.
+	// wss:// connections use plain TCP here; TLS must be handled by an
+	// external terminating proxy in front of the server endpoint.
+	bool bIsSecure = false;
+	FString Rest;
+
+	if (Url.StartsWith(TEXT("wss://"), ESearchCase::IgnoreCase))
+	{
+		bIsSecure = true;
+		Rest = Url.Mid(6); // strip "wss://"
+		UE_LOG(LogSMLWebSocket, Log,
+			TEXT("wss:// URL detected. This implementation uses a plain TCP socket. "
+			     "Ensure a TLS-terminating proxy forwards to the target endpoint."));
+	}
+	else if (Url.StartsWith(TEXT("ws://"), ESearchCase::IgnoreCase))
+	{
+		Rest = Url.Mid(5); // strip "ws://"
+	}
+	else
 	{
 		UE_LOG(LogSMLWebSocket, Error,
-			TEXT("URL scheme must be 'ws://' (got: %s). "
-			     "For TLS use a terminating proxy and connect via ws://."), *Url);
+			TEXT("URL scheme must be 'ws://' or 'wss://' (got: %s). "
+			     "For TLS use a terminating proxy and connect via wss://."), *Url);
 		return false;
 	}
 
-	FString Rest = Url.Mid(5); // strip "ws://"
-
-	// Separate path
+	// Separate path (and query string)
 	int32 SlashIdx;
 	if (Rest.FindChar(TEXT('/'), SlashIdx))
 	{
@@ -83,7 +98,17 @@ static bool ParseWebSocketUrl(const FString& Url,
 	}
 	else
 	{
-		OutPath = TEXT("/");
+		// Check for query string without path
+		int32 QueryIdx;
+		if (Rest.FindChar(TEXT('?'), QueryIdx))
+		{
+			OutPath = TEXT("/") + Rest.Mid(QueryIdx);
+			Rest    = Rest.Left(QueryIdx);
+		}
+		else
+		{
+			OutPath = TEXT("/");
+		}
 	}
 
 	// Separate port
@@ -101,7 +126,7 @@ static bool ParseWebSocketUrl(const FString& Url,
 	else
 	{
 		OutHost = Rest;
-		OutPort = 80; // default ws:// port
+		OutPort = bIsSecure ? 443 : 80; // default port per scheme
 	}
 
 	if (OutHost.IsEmpty())

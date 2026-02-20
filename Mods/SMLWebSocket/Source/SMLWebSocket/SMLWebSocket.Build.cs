@@ -19,6 +19,8 @@ public class SMLWebSocket : ModuleRules
 			// Low-level TCP socket access (replaces the missing WebSockets module)
 			"Sockets",
 			"Networking",
+			// JSON serialisation used by the Discord Gateway protocol handler
+			"Json",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
