@@ -61,5 +61,5 @@ private:
 	void OnWebSocketConnectionError_Internal(const FString& Error);
 	void OnWebSocketClosed_Internal(int32 StatusCode, const FString& Reason, bool bWasClean);
 	void OnWebSocketMessage_Internal(const FString& Message);
-	void OnWebSocketBinaryMessage_Internal(const TArray<uint8>& Data);
+	void OnWebSocketBinaryMessage_Internal(const void* Data, SIZE_T Size, bool bIsLastFragment);
 };

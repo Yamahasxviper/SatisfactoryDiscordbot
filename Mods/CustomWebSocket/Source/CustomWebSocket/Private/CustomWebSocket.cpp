@@ -146,9 +146,10 @@ void FCustomWebSocket::OnWebSocketMessage_Internal(const FString& Message)
 	OnMessage.ExecuteIfBound(Message, true);
 }
 
-void FCustomWebSocket::OnWebSocketBinaryMessage_Internal(const TArray<uint8>& Data)
+void FCustomWebSocket::OnWebSocketBinaryMessage_Internal(const void* Data, SIZE_T Size, bool bIsLastFragment)
 {
 	// Discord Gateway uses JSON text messages; binary messages are unexpected
-	FString Base64Data = FBase64::Encode(Data);
+	TArray<uint8> ByteArray(static_cast<const uint8*>(Data), Size);
+	FString Base64Data = FBase64::Encode(ByteArray);
 	OnMessage.ExecuteIfBound(Base64Data, false);
 }
