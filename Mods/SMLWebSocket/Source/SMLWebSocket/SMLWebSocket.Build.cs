@@ -21,12 +21,16 @@ public class SMLWebSocket : ModuleRules
 			"Networking",
 			// JSON serialisation used by the Discord Gateway protocol handler
 			"Json",
+			// SML GameInstanceModule base class used for auto-start support
+			"SML",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			// For SHA-1 (SecureHash.h) and Base64 (Base64.h) used in the WebSocket handshake
 			"Core",
+			// IPluginManager used to locate the plugin config directory
+			"Projects",
 		});
 	}
 }
