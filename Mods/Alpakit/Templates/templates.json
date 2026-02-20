@@ -10,6 +10,17 @@
             "name": "C++ & Blueprint",
             "description": "Create a mod that contains both C++ and Blueprint code.",
             "path": "CPPAndBlueprintBlank"
+        },
+        {
+            "name": "Discord (WebSocket)",
+            "description": "Create a mod with Discord bot integration using the SMLWebSocket plugin for game-to-Discord communication over WebSockets.",
+            "path": "DiscordWebSocket",
+            "dependencies": [
+                {
+                    "name": "SMLWebSocket",
+                    "version": "1.0.0"
+                }
+            ]
         }
     ]
 }
