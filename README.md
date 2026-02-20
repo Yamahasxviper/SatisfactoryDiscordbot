@@ -41,6 +41,10 @@ See [Mods/DiscordBot/README.md](Mods/DiscordBot/README.md) for setup instruction
 
 **Troubleshooting**: If you see "CustomWebSocket plugin not found" error, see [Mods/DiscordBot/Docs/Troubleshooting/MISSING_CUSTOMWEBSOCKET.md](Mods/DiscordBot/Docs/Troubleshooting/MISSING_CUSTOMWEBSOCKET.md)
 
+## Mod Dependencies
+
+The mods in this repository have dependencies on other mods. See [MOD_DEPENDENCIES.md](MOD_DEPENDENCIES.md) for a full list of dependencies and instructions on how to find and set up any additional mods required.
+
 ## Documentation
 
 Learn how to set up and use this repo on the [modding documentation](https://docs.ficsit.app/).

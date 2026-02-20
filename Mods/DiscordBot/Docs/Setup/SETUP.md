@@ -6,7 +6,22 @@ This guide will help you set up and use the Discord Bot mod for Satisfactory.
 
 ## Prerequisites
 
-1. **Discord Bot Account**
+1. **Required Dependency Mods**
+
+   The DiscordBot mod depends on the following mods. Both are included in this repository under `Mods/`, so no additional downloads are needed when building from source:
+
+   | Mod Reference | Display Name | Location in Repo |
+   |---|---|---|
+   | `SML` | Satisfactory Mod Loader | `Mods/SML/` |
+   | `CustomWebSocket` | Custom WebSocket | `Mods/CustomWebSocket/` |
+
+   You can verify these dependencies by looking at the `"Plugins"` section in [`Mods/DiscordBot/DiscordBot.uplugin`](../../DiscordBot.uplugin). If you ever need to find these mods externally, use their mod references on [ficsit.app](https://ficsit.app) — for example: [https://ficsit.app/mod/SML](https://ficsit.app/mod/SML) and [https://ficsit.app/mod/CustomWebSocket](https://ficsit.app/mod/CustomWebSocket).
+
+   > **Note:** A mod's display name does not always match its mod reference. Always use the mod reference (the `"Name"` field in the `.uplugin` file) when looking up a mod on ficsit.app.
+
+   See [MOD_DEPENDENCIES.md](../../../../../MOD_DEPENDENCIES.md) in the repository root for full dependency details.
+
+2. **Discord Bot Account**
    - Go to [Discord Developer Portal](https://discord.com/developers/applications)
    - Create a new application
    - Navigate to the "Bot" section
