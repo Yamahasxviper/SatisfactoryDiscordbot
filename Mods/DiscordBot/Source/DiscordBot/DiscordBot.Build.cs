@@ -17,6 +17,7 @@ public class DiscordBot : ModuleRules
 			"Core", "CoreUObject",
 			"Engine",
 			"DeveloperSettings",
+			"HTTP",
 			"PhysicsCore",
 			"InputCore",
 			//"OnlineSubsystem", "OnlineSubsystemUtils", "OnlineSubsystemNull",

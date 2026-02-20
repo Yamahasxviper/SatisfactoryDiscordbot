@@ -5,7 +5,7 @@
 	"SemVersion": "1.0.0",
 	"GameVersion": ">=416835",
 	"FriendlyName": "Discord Bot",
-	"Description": "A Satisfactory mod that integrates with Discord via WebSockets, enabling game-to-Discord communication.",
+	"Description": "A Satisfactory mod that bridges in-game chat with a Discord channel. Player messages are forwarded to Discord and Discord messages appear in-game in real time (HTTP polling). Configure BotToken, ChannelId, and InGameDisplayName in DiscordBot.ini.",
 	"Category": "Modding",
 	"CreatedBy": "SML Team",
 	"CreatedByURL": "https://github.com/satisfactorymodding/SatisfactoryModLoader",
