@@ -32,6 +32,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSMLWebSocketClosed, int32, Statu
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSMLWebSocketMessageReceived, const FString&, Message);
 
 /**
+ * Fired just before an automatic reconnect attempt begins.
+ * @param AttemptNumber  1-based reconnect attempt index.
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSMLWebSocketReconnecting, int32, AttemptNumber);
+
+/**
  * Fired when any complete message (text or binary) is received from the server.
  * @param Data      Raw bytes of the payload.
  * @param NumBytes  Number of valid bytes in Data.
@@ -99,6 +105,35 @@ public:
 	void ConnectWithHeaders(const FString& Url, const TMap<FString, FString>& Headers);
 
 	// -----------------------------------------------------------------------
+	// Reconnect settings
+	// -----------------------------------------------------------------------
+
+	/**
+	 * When true, automatically retry the connection after a failure or
+	 * unexpected disconnect.  This ensures internet access at server startup
+	 * is not required at the exact moment Connect() is called.
+	 * Defaults to true.
+	 */
+	UPROPERTY(BlueprintReadWrite, Category = "SML|WebSocket")
+	bool bAutoReconnect;
+
+	/**
+	 * Delay in seconds before the first reconnect attempt.
+	 * Subsequent attempts use exponential back-off, capped at 60 seconds.
+	 * Defaults to 2.0.
+	 */
+	UPROPERTY(BlueprintReadWrite, Category = "SML|WebSocket")
+	float ReconnectInitialDelaySeconds;
+
+	/**
+	 * Maximum number of reconnect attempts after the initial connection
+	 * attempt.  0 means unlimited (keep retrying forever).
+	 * Defaults to 0.
+	 */
+	UPROPERTY(BlueprintReadWrite, Category = "SML|WebSocket")
+	int32 MaxReconnectAttempts;
+
+	// -----------------------------------------------------------------------
 	// Send API
 	// -----------------------------------------------------------------------
 
@@ -159,6 +194,13 @@ public:
 	/** Fired on the game thread when any message (text or binary) is received. */
 	UPROPERTY(BlueprintAssignable, Category = "SML|WebSocket")
 	FOnSMLWebSocketRawMessageReceived OnRawMessageReceived;
+
+	/**
+	 * Fired on the game thread just before each automatic reconnect attempt.
+	 * Use this to log reconnect activity or update UI.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "SML|WebSocket")
+	FOnSMLWebSocketReconnecting OnReconnecting;
 
 private:
 	friend class FSMLWebSocketWorker;
