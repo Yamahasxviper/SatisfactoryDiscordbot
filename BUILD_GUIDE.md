@@ -52,7 +52,7 @@ To package the plugins and mods for distribution:
 
 Packaged plugins will be available in:
 - `Saved/ArchivedPlugins/SML/*.zip`
-- `Saved/ArchivedMods/CustomWebSocket/*.zip`
+- `Saved/ArchivedPlugins/CustomWebSocket/*.zip`
 - `Saved/ArchivedPlugins/DiscordBot/*.zip`
 
 ## What Gets Compiled
