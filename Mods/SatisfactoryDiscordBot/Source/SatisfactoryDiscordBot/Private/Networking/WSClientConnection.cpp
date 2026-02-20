@@ -74,10 +74,19 @@ bool FWSClientConnection::InitSSL(ssl_ctx_st* Context)
 
 	if (!ReadBIO || !WriteBIO)
 	{
-		SSL_free(SslHandle); // also frees any partially-assigned BIO
+		// Free any BIO that was allocated before the failure.
+		if (ReadBIO)
+		{
+			BIO_free(ReadBIO);
+			ReadBIO = nullptr;
+		}
+		if (WriteBIO)
+		{
+			BIO_free(WriteBIO);
+			WriteBIO = nullptr;
+		}
+		SSL_free(SslHandle);
 		SslHandle = nullptr;
-		ReadBIO   = nullptr;
-		WriteBIO  = nullptr;
 		UE_LOG(LogWSClientConnection, Error,
 			TEXT("[%s] BIO_new failed"), *RemoteAddress);
 		return false;
