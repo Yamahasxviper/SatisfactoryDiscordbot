@@ -16,11 +16,15 @@ public class CustomWebSocket : ModuleRules
 			"Engine"
 		});
 
-		// WebSockets is only needed internally; keeping it private avoids
-		// forcing downstream dependents (e.g. DiscordBot) to link against
-		// UnrealEditor-WebSockets.lib, which may not be present in the dev kit.
-		PrivateDependencyModuleNames.AddRange(new string[] {
-			"WebSockets"
-		});
+		// WebSockets headers (IWebSocket.h, WebSocketsModule.h) are needed for
+		// compilation only. We do NOT link against UnrealEditor-WebSockets.lib
+		// because it may be absent in the Satisfactory dev kit (LNK1181).
+		// All WebSockets API calls go through virtual dispatch:
+		//   - FWebSocketsModule::Get() is an inline function (no lib needed)
+		//   - FWebSocketsModule::CreateWebSocket() is pure virtual
+		//   - All IWebSocket methods are pure virtual
+		// The module is loaded at runtime via FModuleManager in CustomWebSocket.cpp.
+		PrivateIncludePathModuleNames.Add("WebSockets");
+		DynamicallyLoadedModuleNames.Add("WebSockets");
 	}
 }
