@@ -372,10 +372,6 @@
 			"Enabled": true
 		},
 		{
-			"Name": "SMLWebSocket",
-			"Enabled": true
-		},
-		{
 			"Name": "WinDualShock",
 			"Enabled": true,
 			"SupportedTargetPlatforms": [
