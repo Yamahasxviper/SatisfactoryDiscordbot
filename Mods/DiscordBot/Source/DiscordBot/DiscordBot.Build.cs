@@ -60,10 +60,6 @@ public class DiscordBot : ModuleRules
 			PublicDependencyModuleNames.AddRange(new string[] {/*"OnlineBlueprintSupport",*/ "AnimGraph"});
 		}
 		PublicDependencyModuleNames.AddRange(new string[] {"FactoryGame", "SML"});
-
-		// SMLWebSocket provides a custom WebSocket client for Discord bot communication
-		// when the standard Unreal Engine WebSockets module is unavailable.
-		PublicDependencyModuleNames.AddRange(new string[] {"SMLWebSocket"});
 		
 		PublicIncludePaths.AddRange(new string[] {
 			// ... add public include paths required here ...
