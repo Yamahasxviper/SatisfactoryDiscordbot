@@ -6,12 +6,18 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 
+THIRD_PARTY_INCLUDES_START
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+THIRD_PARTY_INCLUDES_END
+
 DEFINE_LOG_CATEGORY_STATIC(LogWSServerThread, Log, All);
 
 // ---------------------------------------------------------------------------
 
-FWSServerThread::FWSServerThread(int32 InPort)
+FWSServerThread::FWSServerThread(int32 InPort, const FWSTLSConfig& InTLSConfig)
 	: Port(InPort)
+	, TLSConfig(InTLSConfig)
 {
 }
 
@@ -23,6 +29,12 @@ FWSServerThread::~FWSServerThread()
 	{
 		SocketSubsystem->DestroySocket(ListenSocket);
 		ListenSocket = nullptr;
+	}
+
+	if (SslContext)
+	{
+		SSL_CTX_free(SslContext);
+		SslContext = nullptr;
 	}
 }
 
@@ -37,6 +49,58 @@ bool FWSServerThread::Init()
 	{
 		UE_LOG(LogWSServerThread, Error, TEXT("Could not get socket subsystem"));
 		return false;
+	}
+
+	// ----------------------------------------------------------------
+	// Optional TLS context setup
+	// ----------------------------------------------------------------
+	if (TLSConfig.bUseTLS)
+	{
+		if (TLSConfig.CertificatePath.IsEmpty() || TLSConfig.PrivateKeyPath.IsEmpty())
+		{
+			UE_LOG(LogWSServerThread, Error,
+				TEXT("TLS is enabled but CertificatePath or PrivateKeyPath is empty"));
+			return false;
+		}
+
+		SslContext = SSL_CTX_new(TLS_server_method());
+		if (!SslContext)
+		{
+			UE_LOG(LogWSServerThread, Error, TEXT("SSL_CTX_new failed"));
+			return false;
+		}
+
+		const auto CertAnsi = StringCast<ANSICHAR>(*TLSConfig.CertificatePath);
+		const auto KeyAnsi  = StringCast<ANSICHAR>(*TLSConfig.PrivateKeyPath);
+
+		if (SSL_CTX_use_certificate_file(SslContext, CertAnsi.Get(), SSL_FILETYPE_PEM) != 1)
+		{
+			UE_LOG(LogWSServerThread, Error,
+				TEXT("Failed to load TLS certificate: %s"), *TLSConfig.CertificatePath);
+			SSL_CTX_free(SslContext);
+			SslContext = nullptr;
+			return false;
+		}
+
+		if (SSL_CTX_use_PrivateKey_file(SslContext, KeyAnsi.Get(), SSL_FILETYPE_PEM) != 1)
+		{
+			UE_LOG(LogWSServerThread, Error,
+				TEXT("Failed to load TLS private key: %s"), *TLSConfig.PrivateKeyPath);
+			SSL_CTX_free(SslContext);
+			SslContext = nullptr;
+			return false;
+		}
+
+		if (SSL_CTX_check_private_key(SslContext) != 1)
+		{
+			UE_LOG(LogWSServerThread, Error,
+				TEXT("TLS certificate and private key do not match"));
+			SSL_CTX_free(SslContext);
+			SslContext = nullptr;
+			return false;
+		}
+
+		UE_LOG(LogWSServerThread, Log, TEXT("TLS context created successfully"));
 	}
 
 	// Create a TCP listen socket.
@@ -61,6 +125,7 @@ bool FWSServerThread::Init()
 			TEXT("Failed to bind WebSocket listen socket to port %d"), Port);
 		SocketSubsystem->DestroySocket(ListenSocket);
 		ListenSocket = nullptr;
+		if (SslContext) { SSL_CTX_free(SslContext); SslContext = nullptr; }
 		return false;
 	}
 
@@ -70,6 +135,7 @@ bool FWSServerThread::Init()
 			TEXT("Failed to listen on WebSocket port %d"), Port);
 		SocketSubsystem->DestroySocket(ListenSocket);
 		ListenSocket = nullptr;
+		if (SslContext) { SSL_CTX_free(SslContext); SslContext = nullptr; }
 		return false;
 	}
 
@@ -101,7 +167,7 @@ uint32 FWSServerThread::Run()
 						TEXT("Accepted TCP connection from %s"), *RemoteAddr);
 
 					auto Conn = MakeShared<FWSClientConnection>(
-						ClientSocket, SocketSubsystem, RemoteAddr);
+						ClientSocket, SocketSubsystem, RemoteAddr, SslContext);
 
 					if (Conn->PerformHandshake())
 					{
@@ -150,6 +216,12 @@ uint32 FWSServerThread::Run()
 	{
 		SocketSubsystem->DestroySocket(ListenSocket);
 		ListenSocket = nullptr;
+	}
+
+	if (SslContext)
+	{
+		SSL_CTX_free(SslContext);
+		SslContext = nullptr;
 	}
 
 	UE_LOG(LogWSServerThread, Log, TEXT("WebSocket server thread stopped"));

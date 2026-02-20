@@ -45,6 +45,27 @@ public:
 		meta = (ClampMin = "1", ClampMax = "65535"))
 	int32 WebSocketPort{8765};
 
+	/**
+	 * Set to true to enable TLS (wss://) encryption on the WebSocket server.
+	 * Requires TLSCertificatePath and TLSPrivateKeyPath to be filled in.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discord Bot|WebSocket|TLS")
+	bool bUseTLS{false};
+
+	/**
+	 * Absolute path to the PEM-encoded TLS certificate file on the server host.
+	 * Only used when bUseTLS is true.  Example: /etc/ssl/certs/myserver.crt
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discord Bot|WebSocket|TLS")
+	FString TLSCertificatePath;
+
+	/**
+	 * Absolute path to the PEM-encoded TLS private key file on the server host.
+	 * Only used when bUseTLS is true.  Example: /etc/ssl/private/myserver.key
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Discord Bot|WebSocket|TLS")
+	FString TLSPrivateKeyPath;
+
 	// -------------------------------------------------------------------------
 	// Runtime state
 	// -------------------------------------------------------------------------

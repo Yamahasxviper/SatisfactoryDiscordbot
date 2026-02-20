@@ -22,6 +22,11 @@ void UDiscordBotWorldModule::DispatchLifecycleEvent(ELifecyclePhase Phase)
 		// Create the server UObject owned by this module.
 		WebSocketServer = NewObject<UCustomWebSocketServer>(this);
 
+		// Apply TLS configuration (set in Blueprint Class Defaults) before starting.
+		WebSocketServer->bUseTLS           = bUseTLS;
+		WebSocketServer->TLSCertificatePath = TLSCertificatePath;
+		WebSocketServer->TLSPrivateKeyPath  = TLSPrivateKeyPath;
+
 		if (WebSocketServer->StartListening(WebSocketPort))
 		{
 			UE_LOG(LogSatisfactoryDiscordBot, Log,

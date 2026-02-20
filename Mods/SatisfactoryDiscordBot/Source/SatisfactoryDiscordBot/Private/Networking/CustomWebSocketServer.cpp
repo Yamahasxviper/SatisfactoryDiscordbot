@@ -26,7 +26,12 @@ bool UCustomWebSocketServer::StartListening(int32 Port)
 		return false;
 	}
 
-	ServerRunnable = MakeUnique<FWSServerThread>(Port);
+	FWSTLSConfig TLSConfig;
+	TLSConfig.bUseTLS          = bUseTLS;
+	TLSConfig.CertificatePath  = TLSCertificatePath;
+	TLSConfig.PrivateKeyPath   = TLSPrivateKeyPath;
+
+	ServerRunnable = MakeUnique<FWSServerThread>(Port, TLSConfig);
 	ServerThread   = FRunnableThread::Create(
 		ServerRunnable.Get(),
 		TEXT("SatisfactoryDiscordBot_WSServer"),

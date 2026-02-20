@@ -7,7 +7,109 @@
 #include "Misc/SecureHash.h"   // FSHA1
 #include "Misc/Base64.h"       // FBase64
 
+THIRD_PARTY_INCLUDES_START
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+THIRD_PARTY_INCLUDES_END
+
 DEFINE_LOG_CATEGORY_STATIC(LogWSClientConnection, Log, All);
+
+// ---------------------------------------------------------------------------
+// Non-blocking custom OpenSSL BIO that wraps an FSocket.
+//
+// Using a custom BIO instead of SSL_set_fd() keeps the implementation
+// platform-independent (no need to extract the native socket file descriptor).
+//
+// The BIO's read function returns WANT_READ when no TCP data is currently
+// pending, giving the same non-blocking semantics as the plain-TCP path.
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	struct FSocketBIOState
+	{
+		FSocket* Socket{nullptr};
+	};
+
+	static int SocketBIO_Write(BIO* b, const char* Buf, int Len)
+	{
+		FSocketBIOState* State = static_cast<FSocketBIOState*>(BIO_get_data(b));
+		if (!State || !State->Socket) return -1;
+
+		BIO_clear_retry_flags(b);
+		int32 Sent = 0;
+		if (!State->Socket->Send(reinterpret_cast<const uint8*>(Buf), Len, Sent) || Sent <= 0)
+			return -1;
+		return Sent;
+	}
+
+	static int SocketBIO_Read(BIO* b, char* Buf, int Len)
+	{
+		FSocketBIOState* State = static_cast<FSocketBIOState*>(BIO_get_data(b));
+		if (!State || !State->Socket) return -1;
+
+		BIO_clear_retry_flags(b);
+
+		// Non-blocking: only read when TCP data is actually available.
+		uint32 Pending = 0;
+		if (!State->Socket->HasPendingData(Pending) || Pending == 0)
+		{
+			BIO_set_retry_read(b);
+			return -1;
+		}
+
+		const int32 ReadLen = static_cast<int32>(FMath::Min(Pending, static_cast<uint32>(Len)));
+		int32 BytesRead = 0;
+		if (!State->Socket->Recv(reinterpret_cast<uint8*>(Buf), ReadLen, BytesRead, ESocketReceiveFlags::None)
+			|| BytesRead <= 0)
+		{
+			return -1;
+		}
+		return BytesRead;
+	}
+
+	static long SocketBIO_Ctrl(BIO* /*b*/, int Cmd, long /*Num*/, void* /*Ptr*/)
+	{
+		if (Cmd == BIO_CTRL_FLUSH) return 1;
+		return 0;
+	}
+
+	static int SocketBIO_Create(BIO* b)
+	{
+		BIO_set_init(b, 1);
+		return 1;
+	}
+
+	static int SocketBIO_Destroy(BIO* b)
+	{
+		delete static_cast<FSocketBIOState*>(BIO_get_data(b));
+		BIO_set_data(b, nullptr);
+		return 1;
+	}
+
+	static BIO_METHOD* GetSocketBIOMethod()
+	{
+		// Constructed once; never freed (lifetime == process lifetime).
+		static BIO_METHOD* Method = nullptr;
+		if (!Method)
+		{
+			Method = BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, "UESocket");
+			BIO_meth_set_write(Method, SocketBIO_Write);
+			BIO_meth_set_read(Method, SocketBIO_Read);
+			BIO_meth_set_ctrl(Method, SocketBIO_Ctrl);
+			BIO_meth_set_create(Method, SocketBIO_Create);
+			BIO_meth_set_destroy(Method, SocketBIO_Destroy);
+		}
+		return Method;
+	}
+
+	static BIO* NewSocketBIO(FSocket* InSocket)
+	{
+		BIO* bio = BIO_new(GetSocketBIOMethod());
+		BIO_set_data(bio, new FSocketBIOState{InSocket});
+		return bio;
+	}
+} // anonymous namespace
 
 // ---------------------------------------------------------------------------
 // Construction / Destruction
@@ -16,15 +118,24 @@ DEFINE_LOG_CATEGORY_STATIC(LogWSClientConnection, Log, All);
 FWSClientConnection::FWSClientConnection(
 	FSocket*          InSocket,
 	ISocketSubsystem* InSocketSubsystem,
-	const FString&    InRemoteAddress)
+	const FString&    InRemoteAddress,
+	ssl_ctx_st*       InSslContext)
 	: Socket(InSocket)
 	, SocketSubsystem(InSocketSubsystem)
 	, RemoteAddress(InRemoteAddress)
+	, PendingSslContext(InSslContext)
 {
 }
 
 FWSClientConnection::~FWSClientConnection()
 {
+	if (SslInstance)
+	{
+		SSL_shutdown(SslInstance);
+		SSL_free(SslInstance); // also frees the BIO set via SSL_set_bio
+		SslInstance = nullptr;
+	}
+
 	if (Socket)
 	{
 		Socket->Close();
@@ -34,11 +145,99 @@ FWSClientConnection::~FWSClientConnection()
 }
 
 // ---------------------------------------------------------------------------
+// TLS helpers
+// ---------------------------------------------------------------------------
+
+bool FWSClientConnection::InitTLS(ssl_ctx_st* InSslContext)
+{
+	SslInstance = SSL_new(InSslContext);
+	if (!SslInstance)
+	{
+		UE_LOG(LogWSClientConnection, Warning,
+			TEXT("[%s] SSL_new failed"), *RemoteAddress);
+		return false;
+	}
+
+	BIO* bio = NewSocketBIO(Socket);
+	SSL_set_bio(SslInstance, bio, bio); // SSL_free will free the BIO
+
+	// Perform the TLS server handshake, retrying on WANT_READ (non-blocking BIO).
+	constexpr double TimeoutSecs = 5.0;
+	const double StartTime = FPlatformTime::Seconds();
+
+	int Result;
+	do
+	{
+		if (FPlatformTime::Seconds() - StartTime > TimeoutSecs)
+		{
+			UE_LOG(LogWSClientConnection, Warning,
+				TEXT("[%s] TLS handshake timed out"), *RemoteAddress);
+			SSL_free(SslInstance);
+			SslInstance = nullptr;
+			return false;
+		}
+
+		Result = SSL_accept(SslInstance);
+		if (Result == 1) break; // Handshake complete.
+
+		const int Err = SSL_get_error(SslInstance, Result);
+		if (Err == SSL_ERROR_WANT_READ)
+		{
+			// Wait a short time for the client to send the next TLS record.
+			Socket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromMilliseconds(10));
+			continue;
+		}
+
+		UE_LOG(LogWSClientConnection, Warning,
+			TEXT("[%s] TLS handshake failed (SSL_get_error=%d)"), *RemoteAddress, Err);
+		SSL_free(SslInstance);
+		SslInstance = nullptr;
+		return false;
+	}
+	while (Result != 1);
+
+	UE_LOG(LogWSClientConnection, Log,
+		TEXT("[%s] TLS handshake complete"), *RemoteAddress);
+	return true;
+}
+
+bool FWSClientConnection::RecvData(uint8* Buf, int32 MaxLen, int32& OutBytesRead)
+{
+	if (SslInstance)
+	{
+		const int r = SSL_read(SslInstance, Buf, MaxLen);
+		if (r > 0)
+		{
+			OutBytesRead = r;
+			return true;
+		}
+		// SSL_ERROR_WANT_READ → caller should retry; any other error → failure.
+		return false;
+	}
+
+	OutBytesRead = 0;
+	return Socket->Recv(Buf, MaxLen, OutBytesRead, ESocketReceiveFlags::None) && OutBytesRead > 0;
+}
+
+// ---------------------------------------------------------------------------
 // Handshake
 // ---------------------------------------------------------------------------
 
 bool FWSClientConnection::PerformHandshake()
 {
+	// If a TLS context was provided, complete the TLS handshake first so that
+	// the subsequent HTTP Upgrade exchange runs over an encrypted channel.
+	if (PendingSslContext)
+	{
+		if (!InitTLS(PendingSslContext))
+		{
+			UE_LOG(LogWSClientConnection, Warning,
+				TEXT("[%s] TLS initialisation failed; dropping connection"), *RemoteAddress);
+			return false;
+		}
+		PendingSslContext = nullptr; // no longer needed
+	}
+
 	FString ClientKey;
 	if (!ReadHandshakeRequest(ClientKey))
 	{
@@ -91,8 +290,19 @@ bool FWSClientConnection::ReadHandshakeRequest(FString& OutKey)
 		}
 
 		int32 BytesRead = 0;
-		if (!Socket->Recv(Buf, sizeof(Buf), BytesRead, ESocketReceiveFlags::None) || BytesRead <= 0)
+		if (!RecvData(Buf, sizeof(Buf), BytesRead))
 		{
+			// For TLS, SSL_read may return WANT_READ even after Wait() returns
+			// true if the available TCP bytes do not yet form a complete TLS record.
+			// Treat it as "need more data" and loop rather than as a hard failure.
+			if (SslInstance)
+			{
+				const int SslErr = SSL_get_error(SslInstance, -1);
+				if (SslErr == SSL_ERROR_WANT_READ)
+				{
+					continue;
+				}
+			}
 			return false;
 		}
 
@@ -189,31 +399,65 @@ void FWSClientConnection::ReadPendingData()
 		return;
 	}
 
-	// Non-blocking: check for available data using HasPendingData (ioctl FIONREAD).
 	uint8 Buf[4096];
-	uint32 PendingBytes = 0;
 
-	while (Socket->HasPendingData(PendingBytes) && PendingBytes > 0)
+	if (SslInstance)
 	{
-		const int32 ReadSize = static_cast<int32>(
-			FMath::Min(PendingBytes, static_cast<uint32>(sizeof(Buf))));
-
-		int32 BytesRead = 0;
-		if (!Socket->Recv(Buf, ReadSize, BytesRead, ESocketReceiveFlags::None)
-		    || BytesRead <= 0)
+		// TLS path: use SSL_read.  The custom BIO makes SSL_read non-blocking
+		// by returning SSL_ERROR_WANT_READ when no TCP data is pending.
+		int r;
+		do
 		{
-			// TCP connection dropped.
-			bConnected.Store(false);
+			r = SSL_read(SslInstance, Buf, sizeof(Buf));
+			if (r > 0)
+			{
+				ReceiveBuffer.Append(Buf, r);
+			}
+			else
+			{
+				const int Err = SSL_get_error(SslInstance, r);
+				if (Err != SSL_ERROR_WANT_READ && Err != SSL_ERROR_ZERO_RETURN)
+				{
+					// Real TLS error – treat as abnormal closure.
+					bConnected.Store(false);
 
-			FWSMessage CloseMsg;
-			CloseMsg.bIsClosed      = true;
-			CloseMsg.CloseStatusCode = 1006; // Abnormal closure
-			CloseMsg.CloseReason    = TEXT("Connection lost");
-			IncomingMessageQueue.Enqueue(MoveTemp(CloseMsg));
-			return;
+					FWSMessage CloseMsg;
+					CloseMsg.bIsClosed       = true;
+					CloseMsg.CloseStatusCode = 1006;
+					CloseMsg.CloseReason     = TEXT("TLS connection error");
+					IncomingMessageQueue.Enqueue(MoveTemp(CloseMsg));
+				}
+				break;
+			}
 		}
+		while (r > 0 || SSL_pending(SslInstance) > 0);
+	}
+	else
+	{
+		// Plain TCP path (original implementation).
+		uint32 PendingBytes = 0;
+		while (Socket->HasPendingData(PendingBytes) && PendingBytes > 0)
+		{
+			const int32 ReadSize = static_cast<int32>(
+				FMath::Min(PendingBytes, static_cast<uint32>(sizeof(Buf))));
 
-		ReceiveBuffer.Append(Buf, BytesRead);
+			int32 BytesRead = 0;
+			if (!Socket->Recv(Buf, ReadSize, BytesRead, ESocketReceiveFlags::None)
+			    || BytesRead <= 0)
+			{
+				// TCP connection dropped.
+				bConnected.Store(false);
+
+				FWSMessage CloseMsg;
+				CloseMsg.bIsClosed      = true;
+				CloseMsg.CloseStatusCode = 1006; // Abnormal closure
+				CloseMsg.CloseReason    = TEXT("Connection lost");
+				IncomingMessageQueue.Enqueue(MoveTemp(CloseMsg));
+				return;
+			}
+
+			ReceiveBuffer.Append(Buf, BytesRead);
+		}
 	}
 
 	// Try to parse as many complete frames as possible.
@@ -498,6 +742,20 @@ bool FWSClientConnection::SendFrame(uint8 Opcode, const uint8* Payload, int32 Pa
 
 bool FWSClientConnection::SendRawBlocking(const uint8* Data, int32 DataLen)
 {
+	if (SslInstance)
+	{
+		int32 TotalSent = 0;
+		while (TotalSent < DataLen)
+		{
+			const int r = SSL_write(SslInstance,
+				reinterpret_cast<const char*>(Data + TotalSent),
+				DataLen - TotalSent);
+			if (r <= 0) return false;
+			TotalSent += r;
+		}
+		return true;
+	}
+
 	int32 TotalSent = 0;
 	while (TotalSent < DataLen)
 	{

@@ -56,6 +56,9 @@ public:
 	 *
 	 * @param Port   TCP port number (e.g. 8765).  Must be > 0 and < 65536.
 	 * @return       True if the server socket was created and listening started.
+	 *
+	 * TLS note: set bUseTLS, TLSCertificatePath, and TLSPrivateKeyPath before
+	 * calling this function to start a secure (wss://) server.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Discord Bot|WebSocket")
 	bool StartListening(int32 Port);
@@ -70,6 +73,31 @@ public:
 	/** Returns true if the server is currently listening for connections. */
 	UFUNCTION(BlueprintPure, Category = "Discord Bot|WebSocket")
 	bool IsListening() const;
+
+	// -------------------------------------------------------------------------
+	// TLS configuration (set before calling StartListening)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Set to true to enable TLS (wss://) on the WebSocket server.
+	 * Requires TLSCertificatePath and TLSPrivateKeyPath to be set.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Discord Bot|WebSocket|TLS")
+	bool bUseTLS{false};
+
+	/**
+	 * Absolute path to the PEM-encoded TLS certificate file.
+	 * Only used when bUseTLS is true.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Discord Bot|WebSocket|TLS")
+	FString TLSCertificatePath;
+
+	/**
+	 * Absolute path to the PEM-encoded TLS private key file.
+	 * Only used when bUseTLS is true.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Discord Bot|WebSocket|TLS")
+	FString TLSPrivateKeyPath;
 
 	// -------------------------------------------------------------------------
 	// Delegates

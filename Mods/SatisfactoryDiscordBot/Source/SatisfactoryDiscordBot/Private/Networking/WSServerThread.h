@@ -10,6 +10,25 @@ class FWSClientConnection;
 class FSocket;
 class ISocketSubsystem;
 
+// Forward-declare OpenSSL types so the header does not pull in OpenSSL headers.
+struct ssl_ctx_st;
+
+// ---------------------------------------------------------------------------
+// TLS configuration bundle passed to FWSServerThread.
+// ---------------------------------------------------------------------------
+
+struct FWSTLSConfig
+{
+	/** Set to true to enable TLS on incoming WebSocket connections. */
+	bool bUseTLS{false};
+
+	/** Absolute path to the PEM-encoded certificate file. */
+	FString CertificatePath;
+
+	/** Absolute path to the PEM-encoded private key file. */
+	FString PrivateKeyPath;
+};
+
 /**
  * Background thread that accepts incoming TCP connections and polls each active
  * WebSocket connection for new data.
@@ -23,7 +42,7 @@ class ISocketSubsystem;
 class FWSServerThread : public FRunnable
 {
 public:
-	explicit FWSServerThread(int32 InPort);
+	explicit FWSServerThread(int32 InPort, const FWSTLSConfig& InTLSConfig = {});
 	virtual ~FWSServerThread() override;
 
 	// FRunnable interface
@@ -47,6 +66,10 @@ private:
 	ISocketSubsystem* SocketSubsystem{nullptr};
 
 	TAtomic<bool> bShouldRun{false};
+
+	// TLS
+	FWSTLSConfig   TLSConfig;
+	ssl_ctx_st*    SslContext{nullptr};
 
 	/** Connections owned by the server thread (accept + read). */
 	TArray<TSharedPtr<FWSClientConnection>> ActiveConnections;

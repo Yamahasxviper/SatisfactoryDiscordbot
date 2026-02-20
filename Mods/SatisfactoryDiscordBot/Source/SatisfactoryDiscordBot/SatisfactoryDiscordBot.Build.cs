@@ -25,5 +25,12 @@ public class SatisfactoryDiscordBot : ModuleRules
 			"FactoryGame",
 			"SML",
 		});
+
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			// OpenSSL and its UE wrapper for optional TLS support on the WebSocket server.
+			"OpenSSL",
+			"SSL",
+		});
 	}
 }

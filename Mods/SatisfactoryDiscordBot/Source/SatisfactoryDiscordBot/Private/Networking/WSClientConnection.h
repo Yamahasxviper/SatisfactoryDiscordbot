@@ -9,6 +9,10 @@
 class FSocket;
 class ISocketSubsystem;
 
+// Forward-declare OpenSSL types so the header does not pull in OpenSSL headers.
+struct ssl_st;
+struct ssl_ctx_st;
+
 /** A single received WebSocket message (text, binary, or close notification). */
 struct FWSMessage
 {
@@ -42,7 +46,8 @@ struct FWSMessage
 class FWSClientConnection : public TSharedFromThis<FWSClientConnection>
 {
 public:
-	FWSClientConnection(FSocket* InSocket, ISocketSubsystem* InSocketSubsystem, const FString& InRemoteAddress);
+	FWSClientConnection(FSocket* InSocket, ISocketSubsystem* InSocketSubsystem, const FString& InRemoteAddress,
+		ssl_ctx_st* InSslContext = nullptr);
 	~FWSClientConnection();
 
 	// -------------------------------------------------------------------------
@@ -103,6 +108,23 @@ private:
 	static FString ComputeAcceptKey(const FString& WebSocketKey);
 
 	// -------------------------------------------------------------------------
+	// TLS helpers
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Performs the TLS handshake using the provided SSL context.
+	 * Must be called on the server thread before PerformHandshake().
+	 * Returns true on success; on failure SslInstance is left null.
+	 */
+	bool InitTLS(ssl_ctx_st* InSslContext);
+
+	/**
+	 * Abstracted byte-level receive: uses SSL_read when TLS is active,
+	 * falls back to Socket->Recv otherwise.
+	 */
+	bool RecvData(uint8* Buf, int32 MaxLen, int32& OutBytesRead);
+
+	// -------------------------------------------------------------------------
 	// Frame parsing
 	// -------------------------------------------------------------------------
 
@@ -132,6 +154,12 @@ private:
 	FSocket*          Socket;
 	ISocketSubsystem* SocketSubsystem;
 	FString           RemoteAddress;
+
+	/** SSL context supplied at construction time; nullptr when TLS is disabled. */
+	ssl_ctx_st* PendingSslContext{nullptr};
+
+	/** Live SSL object for this connection; nullptr when TLS is not active. */
+	ssl_st* SslInstance{nullptr};
 
 	/** Set to false when the TCP connection is lost or when a close frame is exchanged. */
 	TAtomic<bool> bConnected{false};
