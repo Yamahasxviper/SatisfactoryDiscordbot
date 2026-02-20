@@ -7,6 +7,13 @@
 #include "Misc/SecureHash.h"   // FSHA1
 #include "Misc/Base64.h"       // FBase64
 
+// OpenSSL headers – only compiled on platforms that ship OpenSSL.
+// The `OpenSSL` UBT module (listed in Build.cs) sets up the include paths.
+#if PLATFORM_SUPPORTS_OPENSSL
+#include "openssl/ssl.h"
+#include "openssl/err.h"
+#endif
+
 DEFINE_LOG_CATEGORY_STATIC(LogWSClientConnection, Log, All);
 
 // ---------------------------------------------------------------------------
@@ -25,6 +32,18 @@ FWSClientConnection::FWSClientConnection(
 
 FWSClientConnection::~FWSClientConnection()
 {
+#if PLATFORM_SUPPORTS_OPENSSL
+	// SSL_free also releases ReadBIO and WriteBIO (they were transferred to the
+	// SSL object via SSL_set_bio, which takes ownership).
+	if (SslHandle)
+	{
+		SSL_free(SslHandle);
+		SslHandle = nullptr;
+		ReadBIO   = nullptr;
+		WriteBIO  = nullptr;
+	}
+#endif
+
 	if (Socket)
 	{
 		Socket->Close();
@@ -34,11 +53,238 @@ FWSClientConnection::~FWSClientConnection()
 }
 
 // ---------------------------------------------------------------------------
+// SSL / TLS initialisation (called from server thread before handshake)
+// ---------------------------------------------------------------------------
+
+bool FWSClientConnection::InitSSL(ssl_ctx_st* Context)
+{
+#if PLATFORM_SUPPORTS_OPENSSL
+	SslHandle = SSL_new(Context);
+	if (!SslHandle)
+	{
+		UE_LOG(LogWSClientConnection, Error,
+			TEXT("[%s] SSL_new failed"), *RemoteAddress);
+		return false;
+	}
+
+	// Create a pair of in-memory BIOs so we control all I/O through UE's
+	// FSocket, avoiding any need for a native socket file descriptor.
+	ReadBIO  = BIO_new(BIO_s_mem());
+	WriteBIO = BIO_new(BIO_s_mem());
+
+	if (!ReadBIO || !WriteBIO)
+	{
+		// Free any BIO that was allocated before the failure.
+		if (ReadBIO)
+		{
+			BIO_free(ReadBIO);
+			ReadBIO = nullptr;
+		}
+		if (WriteBIO)
+		{
+			BIO_free(WriteBIO);
+			WriteBIO = nullptr;
+		}
+		SSL_free(SslHandle);
+		SslHandle = nullptr;
+		UE_LOG(LogWSClientConnection, Error,
+			TEXT("[%s] BIO_new failed"), *RemoteAddress);
+		return false;
+	}
+
+	// SSL_set_bio transfers ownership of both BIOs to the SSL object.
+	SSL_set_bio(SslHandle, ReadBIO, WriteBIO);
+	SSL_set_accept_state(SslHandle); // server mode
+
+	bUseSSL = true;
+	return true;
+#else
+	UE_LOG(LogWSClientConnection, Warning,
+		TEXT("[%s] SSL not supported on this platform"), *RemoteAddress);
+	return false;
+#endif
+}
+
+// ---------------------------------------------------------------------------
+// SSL helpers
+// ---------------------------------------------------------------------------
+
+bool FWSClientConnection::FlushWriteBIO()
+{
+#if PLATFORM_SUPPORTS_OPENSSL
+	uint8 EncOut[4096];
+	int   Pending;
+	while ((Pending = BIO_read(WriteBIO, EncOut, sizeof(EncOut))) > 0)
+	{
+		int32 TotalSent = 0;
+		while (TotalSent < Pending)
+		{
+			int32 BytesSent = 0;
+			if (!Socket->Send(EncOut + TotalSent, Pending - TotalSent, BytesSent)
+			    || BytesSent <= 0)
+			{
+				return false;
+			}
+			TotalSent += BytesSent;
+		}
+	}
+#endif
+	return true;
+}
+
+bool FWSClientConnection::PerformSSLHandshake()
+{
+#if PLATFORM_SUPPORTS_OPENSSL
+	constexpr double TlsTimeoutSecs = 10.0;
+	const double StartTime = FPlatformTime::Seconds();
+
+	while (true)
+	{
+		if (FPlatformTime::Seconds() - StartTime > TlsTimeoutSecs)
+		{
+			UE_LOG(LogWSClientConnection, Warning,
+				TEXT("[%s] TLS handshake timed out after %.0f s"),
+				*RemoteAddress, TlsTimeoutSecs);
+			return false;
+		}
+
+		const int Result = SSL_accept(SslHandle);
+
+		// Flush any handshake records OpenSSL produced regardless of outcome.
+		if (!FlushWriteBIO())
+		{
+			return false;
+		}
+
+		if (Result == 1)
+		{
+			// TLS handshake complete.
+			UE_LOG(LogWSClientConnection, Log,
+				TEXT("[%s] TLS handshake complete"), *RemoteAddress);
+			return true;
+		}
+
+		const int Err = SSL_get_error(SslHandle, Result);
+		if (Err == SSL_ERROR_WANT_READ)
+		{
+			// OpenSSL needs more data from the client.
+			if (!Socket->Wait(ESocketWaitConditions::WaitForRead,
+			                  FTimespan::FromMilliseconds(100)))
+			{
+				continue; // timeout, try again
+			}
+
+			uint8 RawBuf[4096];
+			int32 BytesRead = 0;
+			if (!Socket->Recv(RawBuf, sizeof(RawBuf), BytesRead,
+			                  ESocketReceiveFlags::None)
+			    || BytesRead <= 0)
+			{
+				UE_LOG(LogWSClientConnection, Warning,
+					TEXT("[%s] Socket closed during TLS handshake"),
+					*RemoteAddress);
+				return false;
+			}
+
+			BIO_write(ReadBIO, RawBuf, BytesRead);
+		}
+		else
+		{
+			UE_LOG(LogWSClientConnection, Warning,
+				TEXT("[%s] TLS handshake failed (SSL error %d)"),
+				*RemoteAddress, Err);
+			return false;
+		}
+	}
+#else
+	return true; // No-op on platforms without OpenSSL.
+#endif
+}
+
+int32 FWSClientConnection::WaitAndReadBytes(
+	uint8*          Buf,
+	int32           MaxLen,
+	const FTimespan& WaitTime)
+{
+#if PLATFORM_SUPPORTS_OPENSSL
+	if (bUseSSL)
+	{
+		// First, try to get decrypted data that is already pending in OpenSSL's
+		// internal buffer (possible after a previous partial TLS record).
+		{
+			const int Result = SSL_read(SslHandle, Buf, MaxLen);
+			if (Result > 0)
+			{
+				return Result;
+			}
+			const int Err = SSL_get_error(SslHandle, Result);
+			if (Err != SSL_ERROR_WANT_READ)
+			{
+				return -1; // Real error.
+			}
+		}
+
+		// Need more encrypted data from the network.
+		if (!Socket->Wait(ESocketWaitConditions::WaitForRead, WaitTime))
+		{
+			return 0; // Timeout; no data yet.
+		}
+
+		uint8 RawBuf[4096];
+		int32 RawRead = 0;
+		if (!Socket->Recv(RawBuf, sizeof(RawBuf), RawRead,
+		                  ESocketReceiveFlags::None)
+		    || RawRead <= 0)
+		{
+			return -1; // Connection closed.
+		}
+
+		BIO_write(ReadBIO, RawBuf, RawRead);
+
+		// Retry after feeding new data.
+		const int Result = SSL_read(SslHandle, Buf, MaxLen);
+		if (Result > 0)
+		{
+			return Result;
+		}
+		const int Err = SSL_get_error(SslHandle, Result);
+		return (Err == SSL_ERROR_WANT_READ) ? 0 : -1;
+	}
+#endif
+
+	// Plain TCP path.
+	if (!Socket->Wait(ESocketWaitConditions::WaitForRead, WaitTime))
+	{
+		return 0;
+	}
+
+	int32 BytesRead = 0;
+	if (!Socket->Recv(Buf, MaxLen, BytesRead, ESocketReceiveFlags::None)
+	    || BytesRead <= 0)
+	{
+		return -1;
+	}
+
+	return BytesRead;
+}
+
+// ---------------------------------------------------------------------------
 // Handshake
 // ---------------------------------------------------------------------------
 
 bool FWSClientConnection::PerformHandshake()
 {
+	// When TLS is enabled, complete the TLS layer first.
+	if (bUseSSL)
+	{
+		if (!PerformSSLHandshake())
+		{
+			UE_LOG(LogWSClientConnection, Warning,
+				TEXT("[%s] TLS handshake failed; dropping connection"), *RemoteAddress);
+			return false;
+		}
+	}
+
 	FString ClientKey;
 	if (!ReadHandshakeRequest(ClientKey))
 	{
@@ -64,8 +310,8 @@ bool FWSClientConnection::PerformHandshake()
 bool FWSClientConnection::ReadHandshakeRequest(FString& OutKey)
 {
 	// Read raw bytes until we see the end-of-headers marker (\r\n\r\n).
-	// The socket is in its default (blocking) state here; we use Wait with a
-	// timeout to avoid hanging forever if the client is misbehaving.
+	// WaitAndReadBytes() abstracts over both plain TCP and TLS so this function
+	// works unchanged for both ws:// and wss://.
 
 	TArray<uint8> RequestData;
 	constexpr int32 MaxRequestBytes = 8192;
@@ -84,16 +330,17 @@ bool FWSClientConnection::ReadHandshakeRequest(FString& OutKey)
 			return false;
 		}
 
-		// Wait up to 100 ms for readable data.
-		if (!Socket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromMilliseconds(100)))
+		const int32 BytesRead =
+			WaitAndReadBytes(Buf, sizeof(Buf), FTimespan::FromMilliseconds(100));
+
+		if (BytesRead < 0)
 		{
-			continue;
+			return false; // Connection error.
 		}
 
-		int32 BytesRead = 0;
-		if (!Socket->Recv(Buf, sizeof(Buf), BytesRead, ESocketReceiveFlags::None) || BytesRead <= 0)
+		if (BytesRead == 0)
 		{
-			return false;
+			continue; // No data yet; try again.
 		}
 
 		RequestData.Append(Buf, BytesRead);
@@ -188,6 +435,70 @@ void FWSClientConnection::ReadPendingData()
 	{
 		return;
 	}
+
+#if PLATFORM_SUPPORTS_OPENSSL
+	if (bUseSSL)
+	{
+		// ----------------------------------------------------------------
+		// SSL path
+		// All SSL_read / SSL_write calls are serialised by SendMutex to
+		// prevent concurrent access from the game thread (which may call
+		// SendText / SendBinary at any time).  The frame-parsing loop runs
+		// OUTSIDE the lock so that ProcessFrame can re-acquire SendMutex
+		// when it needs to send a Pong reply.
+		// ----------------------------------------------------------------
+		{
+			FScopeLock Lock(&SendMutex);
+
+			// 1. Drain any available encrypted bytes from the socket into ReadBIO.
+			uint8 RawBuf[4096];
+			uint32 PendingBytes = 0;
+			while (Socket->HasPendingData(PendingBytes) && PendingBytes > 0)
+			{
+				const int32 ReadSize = static_cast<int32>(
+					FMath::Min(PendingBytes, static_cast<uint32>(sizeof(RawBuf))));
+
+				int32 BytesRead = 0;
+				if (!Socket->Recv(RawBuf, ReadSize, BytesRead,
+				                  ESocketReceiveFlags::None)
+				    || BytesRead <= 0)
+				{
+					bConnected.Store(false);
+					FWSMessage CloseMsg;
+					CloseMsg.bIsClosed       = true;
+					CloseMsg.CloseStatusCode = 1006;
+					CloseMsg.CloseReason     = TEXT("Connection lost");
+					IncomingMessageQueue.Enqueue(MoveTemp(CloseMsg));
+					return;
+				}
+
+				BIO_write(ReadBIO, RawBuf, BytesRead);
+			}
+
+			// 2. Decrypt available plaintext into ReceiveBuffer.
+			uint8 Plaintext[4096];
+			int   Result;
+			while ((Result = SSL_read(SslHandle, Plaintext, sizeof(Plaintext))) > 0)
+			{
+				ReceiveBuffer.Append(Plaintext, Result);
+			}
+
+			// 3. Flush any TLS records SSL_read may have produced (e.g. alerts,
+			//    TLS 1.3 session tickets).
+			FlushWriteBIO();
+
+		} // SendMutex released here.
+
+		// Parse frames outside the lock so that Pong / Close replies can
+		// acquire SendMutex safely.
+		while (TryParseFrame()) {}
+		return;
+	}
+#endif
+
+	// ----------------------------------------------------------------
+	// Plain TCP path (original implementation)
+	// ----------------------------------------------------------------
 
 	// Non-blocking: check for available data using HasPendingData (ioctl FIONREAD).
 	uint8 Buf[4096];
@@ -498,6 +809,25 @@ bool FWSClientConnection::SendFrame(uint8 Opcode, const uint8* Payload, int32 Pa
 
 bool FWSClientConnection::SendRawBlocking(const uint8* Data, int32 DataLen)
 {
+#if PLATFORM_SUPPORTS_OPENSSL
+	if (bUseSSL)
+	{
+		// SendMutex is held by our caller (SendFrame) for post-handshake sends,
+		// or not held during the HTTP handshake (single-threaded at that point).
+		// Either way, SSL state is protected appropriately.
+
+		const int Written = SSL_write(SslHandle, Data, DataLen);
+		if (Written != DataLen)
+		{
+			return false;
+		}
+
+		// Flush the encrypted output from WriteBIO to the raw socket.
+		return FlushWriteBIO();
+	}
+#endif
+
+	// Plain TCP path.
 	int32 TotalSent = 0;
 	while (TotalSent < DataLen)
 	{

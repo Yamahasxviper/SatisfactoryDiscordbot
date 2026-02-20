@@ -11,6 +11,9 @@
 class FWSServerThread;
 class FRunnableThread;
 
+// Forward declaration – avoids propagating OpenSSL headers.
+struct ssl_ctx_st;
+
 // ---------------------------------------------------------------------------
 // Delegates
 // ---------------------------------------------------------------------------
@@ -61,6 +64,25 @@ public:
 	bool StartListening(int32 Port);
 
 	/**
+	 * Start listening for incoming *secure* WebSocket (wss://) connections.
+	 *
+	 * The server performs a standard TLS handshake (using OpenSSL bundled with
+	 * Unreal Engine) on every accepted connection before the WebSocket upgrade.
+	 * This means no dependency on the Unreal WebSockets module or any
+	 * Satisfactory-specific custom-engine feature.
+	 *
+	 * @param Port             TCP port number (e.g. 8766).
+	 * @param CertificatePath  Absolute path to a PEM-encoded certificate file
+	 *                         (may include a full chain).
+	 * @param PrivateKeyPath   Absolute path to a PEM-encoded private key file.
+	 * @return                 True if the SSL context was loaded and the server
+	 *                         started listening.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Discord Bot|WebSocket")
+	bool StartListeningSSL(int32 Port, const FString& CertificatePath,
+	                        const FString& PrivateKeyPath);
+
+	/**
 	 * Stop listening and close all active connections gracefully.
 	 * Safe to call even if the server is not currently listening.
 	 */
@@ -96,6 +118,14 @@ private:
 	/** Shuts down the background thread and cleans up resources. */
 	void ShutdownInternal();
 
+	/**
+	 * Shared implementation used by StartListening and StartListeningSSL.
+	 * @param Port         TCP port to bind.
+	 * @param InSslContext Optional OpenSSL context for wss://.  Ownership stays
+	 *                     with UCustomWebSocketServer (freed in ShutdownInternal).
+	 */
+	bool StartListeningInternal(int32 Port, ssl_ctx_st* InSslContext);
+
 	// -------------------------------------------------------------------------
 	// Members
 	// -------------------------------------------------------------------------
@@ -112,4 +142,11 @@ private:
 
 	/** Handle returned by FTSTicker so we can remove the tick delegate on shutdown. */
 	FTSTicker::FDelegateHandle TickHandle;
+
+	/**
+	 * OpenSSL SSL_CTX created by StartListeningSSL.  Null when the server is
+	 * operating in plain ws:// mode.  Freed in ShutdownInternal after the
+	 * server thread (and therefore all SSL objects referencing it) has exited.
+	 */
+	ssl_ctx_st* SslContext{nullptr};
 };

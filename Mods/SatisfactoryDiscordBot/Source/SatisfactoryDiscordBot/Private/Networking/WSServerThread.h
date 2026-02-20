@@ -10,6 +10,9 @@ class FWSClientConnection;
 class FSocket;
 class ISocketSubsystem;
 
+// Forward declaration – avoids propagating OpenSSL headers.
+struct ssl_ctx_st;
+
 /**
  * Background thread that accepts incoming TCP connections and polls each active
  * WebSocket connection for new data.
@@ -19,11 +22,21 @@ class ISocketSubsystem;
  *
  * New connections are placed in a lock-free queue so the game-thread ticker
  * (UCustomWebSocketServer) can pick them up safely.
+ *
+ * When an ssl_ctx_st* context is supplied via the constructor, each accepted
+ * connection is wrapped in TLS before the WebSocket handshake so the server
+ * operates as a wss:// endpoint.
  */
 class FWSServerThread : public FRunnable
 {
 public:
-	explicit FWSServerThread(int32 InPort);
+	/**
+	 * @param InPort        TCP port to listen on.
+	 * @param InSslContext  Optional OpenSSL SSL_CTX for WSS.  Pass nullptr for
+	 *                      plain ws://.  The caller retains ownership; the
+	 *                      context must remain valid until this thread exits.
+	 */
+	explicit FWSServerThread(int32 InPort, ssl_ctx_st* InSslContext = nullptr);
 	virtual ~FWSServerThread() override;
 
 	// FRunnable interface
@@ -45,6 +58,9 @@ private:
 	int32             Port;
 	FSocket*          ListenSocket{nullptr};
 	ISocketSubsystem* SocketSubsystem{nullptr};
+
+	/** When non-null, newly accepted connections are wrapped in TLS. */
+	ssl_ctx_st*       SslContext{nullptr};
 
 	TAtomic<bool> bShouldRun{false};
 

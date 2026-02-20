@@ -9,6 +9,15 @@
 class FSocket;
 class ISocketSubsystem;
 
+// ---------------------------------------------------------------------------
+// Forward declarations for OpenSSL types.
+// The actual OpenSSL headers are only included in the .cpp file so that they
+// don't leak into the rest of the module.
+// ---------------------------------------------------------------------------
+struct ssl_st;
+struct ssl_ctx_st;
+struct bio_st;
+
 /** A single received WebSocket message (text, binary, or close notification). */
 struct FWSMessage
 {
@@ -48,6 +57,16 @@ public:
 	// -------------------------------------------------------------------------
 	// Server-thread API
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Optionally enables TLS on this connection using the supplied SSL_CTX.
+	 * Must be called BEFORE PerformHandshake().  When not called the
+	 * connection operates over plain TCP (ws://).
+	 *
+	 * @param Context  An OpenSSL SSL_CTX configured for the server side.
+	 * @return         True if the SSL state was set up successfully.
+	 */
+	bool InitSSL(ssl_ctx_st* Context);
 
 	/** Performs the HTTP → WebSocket upgrade handshake. Returns true on success. */
 	bool PerformHandshake();
@@ -103,6 +122,29 @@ private:
 	static FString ComputeAcceptKey(const FString& WebSocketKey);
 
 	// -------------------------------------------------------------------------
+	// SSL helpers (no-ops when PLATFORM_SUPPORTS_OPENSSL is 0)
+	// -------------------------------------------------------------------------
+
+	/** Drives the TLS server-side handshake using the memory BIO pair. */
+	bool PerformSSLHandshake();
+
+	/**
+	 * Reads bytes from the connection in an SSL-aware manner.
+	 *   > 0  – bytes read into Buf.
+	 *     0  – no data yet (timeout or SSL needs more network data).
+	 *    -1  – connection error / closed.
+	 */
+	int32 WaitAndReadBytes(uint8* Buf, int32 MaxLen, const FTimespan& WaitTime);
+
+	/**
+	 * Drains WriteBIO (encrypted bytes produced by OpenSSL) and sends them to
+	 * the raw socket.  Must be called whenever SSL_write or SSL_accept/SSL_read
+	 * may have generated output.
+	 * Returns false if the socket send failed.
+	 */
+	bool FlushWriteBIO();
+
+	// -------------------------------------------------------------------------
 	// Frame parsing
 	// -------------------------------------------------------------------------
 
@@ -150,6 +192,25 @@ private:
 	 */
 	TQueue<FWSMessage, EQueueMode::Mpsc> IncomingMessageQueue;
 
-	/** Protects all socket writes so game thread and server thread do not interleave frames. */
+	/**
+	 * Protects all socket writes (SendFrame calls) and – when TLS is active –
+	 * the SSL_read / SSL_write calls so they are never concurrent.
+	 */
 	FCriticalSection SendMutex;
+
+	// -------------------------------------------------------------------------
+	// SSL / TLS state (null / false when plain TCP is used)
+	// -------------------------------------------------------------------------
+
+	/** OpenSSL SSL object; non-null only when TLS is enabled via InitSSL(). */
+	ssl_st* SslHandle{nullptr};
+
+	/** Memory BIO that the server thread writes encrypted network data into. */
+	bio_st* ReadBIO{nullptr};
+
+	/** Memory BIO that OpenSSL writes encrypted output into for the server to send. */
+	bio_st* WriteBIO{nullptr};
+
+	/** True once InitSSL() has successfully set up the TLS layer. */
+	bool bUseSSL{false};
 };

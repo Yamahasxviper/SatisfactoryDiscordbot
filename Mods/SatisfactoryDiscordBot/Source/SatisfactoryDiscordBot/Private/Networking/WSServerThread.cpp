@@ -10,8 +10,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogWSServerThread, Log, All);
 
 // ---------------------------------------------------------------------------
 
-FWSServerThread::FWSServerThread(int32 InPort)
+FWSServerThread::FWSServerThread(int32 InPort, ssl_ctx_st* InSslContext)
 	: Port(InPort)
+	, SslContext(InSslContext)
 {
 }
 
@@ -103,7 +104,14 @@ uint32 FWSServerThread::Run()
 					auto Conn = MakeShared<FWSClientConnection>(
 						ClientSocket, SocketSubsystem, RemoteAddr);
 
-					if (Conn->PerformHandshake())
+					// When a TLS context is set, wrap the connection in SSL
+					// before running the WebSocket handshake.
+					if (SslContext && !Conn->InitSSL(SslContext))
+					{
+						UE_LOG(LogWSServerThread, Warning,
+							TEXT("SSL init failed for %s; dropping"), *RemoteAddr);
+					}
+					else if (Conn->PerformHandshake())
 					{
 						ActiveConnections.Add(Conn);
 						NewConnectionQueue.Enqueue(Conn);

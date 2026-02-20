@@ -25,5 +25,12 @@ public class SatisfactoryDiscordBot : ModuleRules
 			"FactoryGame",
 			"SML",
 		});
+
+		// OpenSSL (bundled with Unreal Engine) – provides TLS/SSL for WSS support.
+		// Kept private so that OpenSSL symbols do not leak into dependent modules.
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"OpenSSL",
+		});
 	}
 }
