@@ -19,8 +19,6 @@ public class SMLWebSocket : ModuleRules
 			// Low-level TCP socket access (replaces the missing WebSockets module)
 			"Sockets",
 			"Networking",
-			// JSON serialisation used by the Discord Gateway protocol handler
-			"Json",
 			// SML GameInstanceModule base class used for auto-start support
 			"SML",
 		});
@@ -29,8 +27,6 @@ public class SMLWebSocket : ModuleRules
 		{
 			// For SHA-1 (SecureHash.h) and Base64 (Base64.h) used in the WebSocket handshake
 			"Core",
-			// IPluginManager used to locate the plugin config directory
-			"Projects",
 		});
 	}
 }
