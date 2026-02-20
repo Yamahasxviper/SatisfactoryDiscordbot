@@ -175,8 +175,10 @@ void ADiscordGatewayClientCustom::ConnectWebSocket()
         WebSocket->OnError.BindUObject(this, &ADiscordGatewayClientCustom::OnWebSocketError);
     }
     
-    // Append WebSocket query parameters
-    FString FullURL = GatewayURL + TEXT("/?v=10&encoding=json");
+    // Use the resume URL when we have an existing session to resume;
+    // fall back to the main gateway URL for fresh connections.
+    FString BaseURL = (!SessionId.IsEmpty() && !ResumeGatewayURL.IsEmpty()) ? ResumeGatewayURL : GatewayURL;
+    FString FullURL = BaseURL + TEXT("/?v=10&encoding=json");
     
     UE_LOG(LogDiscordGatewayCustom, Log, TEXT("========================================"));
     UE_LOG(LogDiscordGatewayCustom, Log, TEXT("Discord Bot: Attempting to connect to Discord Gateway"));
