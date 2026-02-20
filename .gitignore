@@ -30,6 +30,7 @@ Mods/**/Metadata/Crypto.json
 !Mods/SML/
 !Mods/SMLEditor/
 !Mods/ExampleMod/
+!Mods/SMLWebSocket/
 
 # Mods binaries
 Mods/**/Binaries/*
@@ -623,3 +624,4 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/unrealengine,visualstudio,rider,visualstudiocode
+_codeql_detected_source_root
