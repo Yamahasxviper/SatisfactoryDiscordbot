@@ -5,6 +5,7 @@
 #include "SMLWebSocketModule.h"
 
 #include "Async/Async.h"
+#include "HAL/PlatformProcess.h"
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
 #include "Misc/Base64.h"
@@ -170,11 +171,72 @@ public:
 
 	virtual uint32 Run() override
 	{
+		int32 ReconnectCount = 0; // number of reconnect attempts made so far
+
+		while (!Owner->bStopping)
+		{
+			// ----------------------------------------------------------------
+			// Reconnect delay (skipped on the very first attempt)
+			// ----------------------------------------------------------------
+			if (ReconnectCount > 0)
+			{
+				// Exponential back-off: delay = initial * 2^(attempt-1), capped at 60 s.
+				const float Delay = FMath::Min(
+					Owner->ReconnectInitialDelaySeconds * FMath::Pow(2.f, float(ReconnectCount - 1)),
+					60.f);
+
+				UE_LOG(LogSMLWebSocket, Log,
+					TEXT("SMLWebSocket: reconnect attempt %d in %.1f seconds..."),
+					ReconnectCount, Delay);
+
+				DispatchToGameThread(
+					[WeakOwner = TWeakObjectPtr<USMLWebSocket>(Owner), ReconnectCount]()
+				{
+					if (USMLWebSocket* O = WeakOwner.Get())
+					{
+						O->OnReconnecting.Broadcast(ReconnectCount);
+					}
+				});
+
+				// Sleep in 100 ms slices so bStopping is honoured quickly.
+				float Elapsed = 0.f;
+				while (Elapsed < Delay && !Owner->bStopping)
+				{
+					FPlatformProcess::Sleep(0.1f);
+					Elapsed += 0.1f;
+				}
+
+				if (Owner->bStopping) break;
+			}
+
+			// ----------------------------------------------------------------
+			// Single connection attempt
+			// ----------------------------------------------------------------
+			RunOnce();
+
+			if (Owner->bStopping) break;
+			if (!Owner->bAutoReconnect) break;
+			if (Owner->MaxReconnectAttempts > 0 && ReconnectCount >= Owner->MaxReconnectAttempts) break;
+
+			++ReconnectCount;
+		}
+
+		return 0;
+	}
+
+private:
+	/**
+	 * Perform one complete connect → handshake → read-loop cycle.
+	 * Errors are dispatched to the game thread via DispatchError().
+	 * On return, the socket is always cleaned up.
+	 */
+	void RunOnce()
+	{
 		ISocketSubsystem* SS = ISocketSubsystem::Get(NAME_None);
 		if (!SS)
 		{
 			DispatchError(TEXT("ISocketSubsystem not available"));
-			return 1;
+			return;
 		}
 
 		// -------------------------------------------------------------------
@@ -188,7 +250,7 @@ public:
 			DispatchError(FString::Printf(
 				TEXT("DNS resolution failed for '%s': error %d"),
 				*Host, (int32)AddrResult.ReturnCode));
-			return 1;
+			return;
 		}
 
 		TSharedRef<FInternetAddr> Addr = AddrResult.Results[0].Address;
@@ -202,7 +264,7 @@ public:
 		if (!Sock)
 		{
 			DispatchError(TEXT("Failed to create TCP socket"));
-			return 1;
+			return;
 		}
 
 		if (!Sock->Connect(*Addr))
@@ -210,7 +272,7 @@ public:
 			SS->DestroySocket(Sock);
 			DispatchError(FString::Printf(
 				TEXT("TCP connect to %s:%d failed"), *Host, Port));
-			return 1;
+			return;
 		}
 
 		// Hand the live socket to the owner so SendFrame() can use it.
@@ -228,7 +290,7 @@ public:
 			Sock->Close();
 			SS->DestroySocket(Sock);
 			Owner->Socket = nullptr;
-			return 1;
+			return;
 		}
 
 		// Handshake succeeded – notify the game thread.
@@ -259,11 +321,8 @@ public:
 		}
 		Sock->Close();
 		SS->DestroySocket(Sock);
-
-		return 0;
 	}
 
-private:
 	// -----------------------------------------------------------------------
 	// Handshake
 	// -----------------------------------------------------------------------
@@ -629,7 +688,10 @@ private:
 // ===========================================================================
 
 USMLWebSocket::USMLWebSocket()
-	: Socket(nullptr)
+	: bAutoReconnect(true)
+	, ReconnectInitialDelaySeconds(2.f)
+	, MaxReconnectAttempts(0)
+	, Socket(nullptr)
 	, Worker(nullptr)
 	, WorkerThread(nullptr)
 	, bStopping(false)
