@@ -8,6 +8,8 @@ public class DiscordBot : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Cpp20;
+		DefaultBuildSettings = BuildSettingsVersion.Latest;
+		bLegacyPublicIncludePaths = false;
 
 		// FactoryGame transitive dependencies
 		PublicDependencyModuleNames.AddRange(new string[] {
@@ -26,17 +28,17 @@ public class DiscordBot : ModuleRules
 		// SML and FactoryGame
 		PublicDependencyModuleNames.AddRange(new string[] { "FactoryGame", "SML" });
 
-		// Networking — all three layers are included so the mod can use
-		// whichever networking path is available at runtime:
-		//   • Sockets  — UE platform-agnostic TCP/UDP socket API
-		//   • SSL      — UE TLS wrapper (ISSLSocket / ISSLModule)
-		//   • OpenSSL  — direct OpenSSL calls used by the custom WebSocket client
-		PrivateDependencyModuleNames.AddRange(new string[]
+		// Networking — promoted to Public so any mod that depends on DiscordBot
+		// can also include and use UE socket / TLS APIs without re-declaring them.
+		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Sockets",   // UE socket abstraction (FSocket / ISocketSubsystem)
 			"SSL",       // UE TLS wrapper (ISSLModule / ISSLSocket)
-			"OpenSSL",   // Raw OpenSSL — used by FDiscordWebSocketClient directly
 		});
+
+		// OpenSSL is kept Private: only FDiscordWebSocketClient uses it directly.
+		// Other mods should go through the higher-level UDiscordBotWebSocket API.
+		PrivateDependencyModuleNames.Add("OpenSSL");
 
 		// WinSock2 for raw TCP on Windows (used by the custom WebSocket client)
 		if (Target.Platform == UnrealTargetPlatform.Win64)
