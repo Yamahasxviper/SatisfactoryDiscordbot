@@ -19,12 +19,11 @@ public class SatisfactoryDiscordBot : ModuleRules
 			// Raw TCP socket access – used by the custom WebSocket implementation
 			// because the CSS custom engine does not ship the WebSockets module.
 			"Sockets",
-		});
-
-		PrivateDependencyModuleNames.AddRange(new string[]
-		{
-			"SML",
+			// Header stubs required by the Coffee Stain Studios custom UE build.
+			"DummyHeaders",
+			// Satisfactory game and mod-loader APIs.
 			"FactoryGame",
+			"SML",
 		});
 	}
 }
