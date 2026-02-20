@@ -19,6 +19,9 @@ public class SMLWebSocket : ModuleRules
 			// Low-level TCP socket access (replaces the missing WebSockets module)
 			"Sockets",
 			"Networking",
+			// TLS/wss:// support: SSL (UE wrapper) + OpenSSL (headers + libraries)
+			"SSL",
+			"OpenSSL",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

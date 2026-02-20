@@ -14,6 +14,11 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 
+// OpenSSL headers (available via the "OpenSSL" UE module dependency)
+#include "openssl/ssl.h"
+#include "openssl/err.h"
+#include "openssl/x509v3.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogSMLWebSocket, Log, All);
 
 // ---------------------------------------------------------------------------
@@ -41,7 +46,103 @@ namespace EWSOpcode
 }
 
 // ---------------------------------------------------------------------------
-// Internal helpers
+// OpenSSL helper: collect pending error strings
+// ---------------------------------------------------------------------------
+
+static FString GetSslErrors()
+{
+	FString Out;
+	unsigned long Err;
+	while ((Err = ERR_get_error()) != 0)
+	{
+		char Buf[256];
+		ERR_error_string_n(Err, Buf, sizeof(Buf));
+		if (!Out.IsEmpty()) Out += TEXT("; ");
+		Out += UTF8_TO_TCHAR(Buf);
+	}
+	return Out.IsEmpty() ? TEXT("(no SSL error detail)") : Out;
+}
+
+// ---------------------------------------------------------------------------
+// Custom OpenSSL BIO backed by FSocket
+//
+// OpenSSL's BIO (Basic I/O) abstraction lets us plug in any I/O source.  By
+// creating a BIO that delegates to FSocket we avoid needing the raw platform
+// socket handle (SOCKET / fd) and keep UE's socket ownership rules intact.
+// ---------------------------------------------------------------------------
+
+static int SMLSocketBioWrite(BIO* Bio, const char* Buf, int Num)
+{
+	FSocket* Sock = static_cast<FSocket*>(BIO_get_data(Bio));
+	BIO_clear_retry_flags(Bio);
+	if (!Sock || !Buf || Num <= 0) return -1;
+
+	int32 BytesSent = 0;
+	if (!Sock->Send(reinterpret_cast<const uint8*>(Buf), Num, BytesSent))
+	{
+		return -1;
+	}
+	return BytesSent > 0 ? BytesSent : -1;
+}
+
+static int SMLSocketBioRead(BIO* Bio, char* Buf, int Num)
+{
+	FSocket* Sock = static_cast<FSocket*>(BIO_get_data(Bio));
+	BIO_clear_retry_flags(Bio);
+	if (!Sock || !Buf || Num <= 0) return -1;
+
+	int32 BytesRead = 0;
+	if (!Sock->Recv(reinterpret_cast<uint8*>(Buf), Num, BytesRead))
+	{
+		return -1; // socket error or closed
+	}
+	if (BytesRead == 0)
+	{
+		// No data yet – tell OpenSSL to retry rather than treating it as EOF.
+		BIO_set_retry_read(Bio);
+		return -1;
+	}
+	return BytesRead;
+}
+
+static long SMLSocketBioCtrl(BIO* /*Bio*/, int Cmd, long /*Num*/, void* /*Ptr*/)
+{
+	// Only BIO_CTRL_FLUSH is meaningful; everything else can return 0.
+	return Cmd == BIO_CTRL_FLUSH ? 1L : 0L;
+}
+
+static int SMLSocketBioCreate(BIO* Bio)
+{
+	BIO_set_init(Bio, 1);
+	return 1;
+}
+
+static int SMLSocketBioDestroy(BIO* Bio)
+{
+	BIO_set_data(Bio, nullptr);
+	BIO_set_init(Bio, 0);
+	return 1;
+}
+
+/** Returns the singleton BIO_METHOD for FSocket-backed BIOs (created once). */
+static BIO_METHOD* GetSMLSocketBioMethod()
+{
+	// Deliberately leaked on shutdown; this matches how OpenSSL itself handles
+	// built-in BIO methods.
+	static BIO_METHOD* Method = nullptr;
+	if (!Method)
+	{
+		Method = BIO_meth_new(BIO_TYPE_SOURCE_SINK | BIO_get_new_index(), "SMLSocket");
+		check(Method);
+		BIO_meth_set_write(Method, SMLSocketBioWrite);
+		BIO_meth_set_read(Method, SMLSocketBioRead);
+		BIO_meth_set_ctrl(Method, SMLSocketBioCtrl);
+		BIO_meth_set_create(Method, SMLSocketBioCreate);
+		BIO_meth_set_destroy(Method, SMLSocketBioDestroy);
+	}
+	return Method;
+}
+
 // ---------------------------------------------------------------------------
 
 /** Compute the Sec-WebSocket-Accept header value for the given nonce key. */
@@ -60,33 +161,26 @@ static FString ComputeWebSocketAccept(const FString& Key)
 	return Result;
 }
 
-/** Parse a ws:// or wss:// URL into (Host, Port, Path). Returns false on failure. */
+/** Parse a ws:// or wss:// URL into (Host, Port, Path, IsSecure). Returns false on failure. */
 static bool ParseWebSocketUrl(const FString& Url,
-	FString& OutHost, int32& OutPort, FString& OutPath)
+	FString& OutHost, int32& OutPort, FString& OutPath, bool& OutIsSecure)
 {
-	// Determine scheme and strip prefix.
-	// wss:// connections use plain TCP here; TLS must be handled by an
-	// external terminating proxy in front of the server endpoint.
-	bool bIsSecure = false;
 	FString Rest;
 
 	if (Url.StartsWith(TEXT("wss://"), ESearchCase::IgnoreCase))
 	{
-		bIsSecure = true;
+		OutIsSecure = true;
 		Rest = Url.Mid(6); // strip "wss://"
-		UE_LOG(LogSMLWebSocket, Log,
-			TEXT("wss:// URL detected. This implementation uses a plain TCP socket. "
-			     "Ensure a TLS-terminating proxy forwards to the target endpoint."));
 	}
 	else if (Url.StartsWith(TEXT("ws://"), ESearchCase::IgnoreCase))
 	{
+		OutIsSecure = false;
 		Rest = Url.Mid(5); // strip "ws://"
 	}
 	else
 	{
 		UE_LOG(LogSMLWebSocket, Error,
-			TEXT("URL scheme must be 'ws://' or 'wss://' (got: %s). "
-			     "For TLS use a terminating proxy and connect via wss://."), *Url);
+			TEXT("URL scheme must be 'ws://' or 'wss://' (got: %s)."), *Url);
 		return false;
 	}
 
@@ -127,7 +221,7 @@ static bool ParseWebSocketUrl(const FString& Url,
 	else
 	{
 		OutHost = Rest;
-		OutPort = bIsSecure ? 443 : 80; // default port per scheme
+		OutPort = OutIsSecure ? 443 : 80; // default port per scheme
 	}
 
 	if (OutHost.IsEmpty())
@@ -157,12 +251,13 @@ class FSMLWebSocketWorker final : public FRunnable
 public:
 	FSMLWebSocketWorker(USMLWebSocket* InOwner,
 		FString InHost, int32 InPort, FString InPath,
-		TMap<FString, FString> InHeaders)
+		TMap<FString, FString> InHeaders, bool InIsSecure)
 		: Owner(InOwner)
 		, Host(MoveTemp(InHost))
 		, Port(InPort)
 		, Path(MoveTemp(InPath))
 		, ExtraHeaders(MoveTemp(InHeaders))
+		, bIsSecure(InIsSecure)
 	{}
 
 	virtual bool Init() override { return true; }
@@ -282,10 +377,24 @@ private:
 		}
 
 		// -------------------------------------------------------------------
-		// 3. WebSocket upgrade handshake
+		// 3. TLS handshake (wss:// only)
+		// -------------------------------------------------------------------
+		if (bIsSecure && !SetupTls(Sock))
+		{
+			// SetupTls already dispatched an error event.
+			FScopeLock Lock(&Owner->SendLock);
+			Sock->Close();
+			SS->DestroySocket(Sock);
+			Owner->Socket = nullptr;
+			return;
+		}
+
+		// -------------------------------------------------------------------
+		// 4. WebSocket upgrade handshake
 		// -------------------------------------------------------------------
 		if (!PerformHandshake(Sock))
 		{
+			TearDownTls();
 			FScopeLock Lock(&Owner->SendLock);
 			Sock->Close();
 			SS->DestroySocket(Sock);
@@ -304,14 +413,15 @@ private:
 		});
 
 		// -------------------------------------------------------------------
-		// 4. Frame read loop
+		// 5. Frame read loop
 		// -------------------------------------------------------------------
 		ReadLoop(Sock);
 
 		// -------------------------------------------------------------------
-		// 5. Cleanup
+		// 6. Cleanup
 		// -------------------------------------------------------------------
 		Owner->bConnected = false;
+		TearDownTls();
 		{
 			FScopeLock Lock(&Owner->SendLock);
 			if (Owner->Socket == Sock)
@@ -321,6 +431,179 @@ private:
 		}
 		Sock->Close();
 		SS->DestroySocket(Sock);
+	}
+
+	// -----------------------------------------------------------------------
+	// TLS setup / teardown
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Wrap an already-connected FSocket in TLS.
+	 * Called from RunOnce() AFTER TCP connect, BEFORE the WebSocket handshake.
+	 * On success, Owner->Ssl and Owner->SslCtx are set.
+	 * On failure, an error event is dispatched and false is returned.
+	 */
+	bool SetupTls(FSocket* Sock)
+	{
+		// ---- Create SSL context ----
+		SSL_CTX* Ctx = SSL_CTX_new(TLS_client_method());
+		if (!Ctx)
+		{
+			DispatchError(FString::Printf(
+				TEXT("TLS: SSL_CTX_new failed: %s"), *GetSslErrors()));
+			return false;
+		}
+
+		// Require TLS 1.2 or higher (1.0 / 1.1 are deprecated)
+		SSL_CTX_set_min_proto_version(Ctx, TLS1_2_VERSION);
+
+		// Certificate verification
+		if (Owner->bVerifyTlsCertificate)
+		{
+			SSL_CTX_set_verify(Ctx, SSL_VERIFY_PEER, nullptr);
+			// Use the OS default trust store (works on Linux; Windows requires
+			// WinCrypt which the game's OpenSSL build may handle automatically)
+			SSL_CTX_set_default_verify_paths(Ctx);
+		}
+		else
+		{
+			UE_LOG(LogSMLWebSocket, Warning,
+				TEXT("TLS: bVerifyTlsCertificate is false – "
+				     "server certificate will NOT be verified (insecure)"));
+			SSL_CTX_set_verify(Ctx, SSL_VERIFY_NONE, nullptr);
+		}
+
+		// ---- Create SSL object ----
+		SSL* NewSsl = SSL_new(Ctx);
+		if (!NewSsl)
+		{
+			SSL_CTX_free(Ctx);
+			DispatchError(FString::Printf(
+				TEXT("TLS: SSL_new failed: %s"), *GetSslErrors()));
+			return false;
+		}
+
+		// ---- SNI: include the server hostname in the TLS ClientHello ----
+		const FTCHARToUTF8 HostUtf8(*Host);
+		SSL_set_tlsext_host_name(NewSsl, HostUtf8.Get());
+
+		// ---- Hostname verification (checks CN / SAN fields in the cert) ----
+		if (Owner->bVerifyTlsCertificate)
+		{
+			SSL_set_hostflags(NewSsl, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+			SSL_set1_host(NewSsl, HostUtf8.Get());
+		}
+
+		// ---- Attach a BIO that reads/writes through FSocket ----
+		BIO* Bio = BIO_new(GetSMLSocketBioMethod());
+		if (!Bio)
+		{
+			SSL_free(NewSsl);
+			SSL_CTX_free(Ctx);
+			DispatchError(TEXT("TLS: BIO_new failed"));
+			return false;
+		}
+		BIO_set_data(Bio, Sock); // store FSocket* so the BIO callbacks can use it
+		SSL_set_bio(NewSsl, Bio, Bio); // SSL takes ownership of Bio
+
+		// ---- Perform TLS handshake (blocks until done) ----
+		const int Result = SSL_connect(NewSsl);
+		if (Result != 1)
+		{
+			const int ErrCode = SSL_get_error(NewSsl, Result);
+			DispatchError(FString::Printf(
+				TEXT("TLS handshake with %s failed (SSL_error=%d): %s"),
+				*Host, ErrCode, *GetSslErrors()));
+			SSL_free(NewSsl); // also frees Bio
+			SSL_CTX_free(Ctx);
+			return false;
+		}
+
+		UE_LOG(LogSMLWebSocket, Log,
+			TEXT("TLS handshake with %s succeeded (cipher: %s)"),
+			*Host, UTF8_TO_TCHAR(SSL_get_cipher(NewSsl)));
+
+		// Store for use in SendFrame() and RecvExact().
+		// SendLock serialises access from the main thread.
+		{
+			FScopeLock Lock(&Owner->SendLock);
+			Owner->Ssl    = NewSsl;
+			Owner->SslCtx = Ctx;
+		}
+		return true;
+	}
+
+	/**
+	 * Free the SSL/SSL_CTX objects stored on the owner.
+	 * Safe to call multiple times.  MUST be called from the worker thread
+	 * BEFORE the socket is destroyed (the BIO holds a raw FSocket pointer).
+	 */
+	void TearDownTls()
+	{
+		ssl_st*     OldSsl = nullptr;
+		ssl_ctx_st* OldCtx = nullptr;
+		{
+			FScopeLock Lock(&Owner->SendLock);
+			OldSsl        = Owner->Ssl;
+			OldCtx        = Owner->SslCtx;
+			Owner->Ssl    = nullptr;
+			Owner->SslCtx = nullptr;
+		}
+		if (OldSsl) SSL_free(OldSsl);  // also frees the BIO
+		if (OldCtx) SSL_CTX_free(OldCtx);
+	}
+
+	// -----------------------------------------------------------------------
+	// TLS-aware I/O helpers
+	//   WorkerSend / WorkerRecv abstract over plain-TCP vs TLS so the
+	//   PerformHandshake and RecvExact functions don't need to branch.
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Send all Num bytes through the socket (or SSL layer).
+	 * Returns false on any error.
+	 */
+	bool WorkerSend(FSocket* Sock, const uint8* Data, int32 Num)
+	{
+		if (bIsSecure)
+		{
+			// SSL_write is serialised by the caller holding SendLock implicitly
+			// because this function is only called from PerformHandshake which
+			// runs before the read-loop (i.e., before any concurrent SendFrame calls).
+			ssl_st* Ssl = Owner->Ssl;
+			if (!Ssl) return false;
+			return SSL_write(Ssl, Data, Num) == Num;
+		}
+		int32 BytesSent = 0;
+		return Sock->Send(Data, Num, BytesSent) && BytesSent == Num;
+	}
+
+	/**
+	 * Receive up to MaxNum bytes.  Returns the number of bytes read, or ≤0 on error.
+	 * For TLS: wraps SSL_read; for plain TCP: wraps FSocket::Recv.
+	 */
+	int32 WorkerRecv(FSocket* Sock, uint8* Buf, int32 MaxNum)
+	{
+		if (bIsSecure)
+		{
+			ssl_st* Ssl = Owner->Ssl;
+			if (!Ssl) return -1;
+			const int N = SSL_read(Ssl, Buf, MaxNum);
+			if (N <= 0)
+			{
+				const int Err = SSL_get_error(Ssl, N);
+				// SSL_ERROR_WANT_READ/WRITE mean "no data yet – retry"
+				if (Err == SSL_ERROR_WANT_READ || Err == SSL_ERROR_WANT_WRITE)
+				{
+					return 0;
+				}
+				return -1; // genuine error or connection closed
+			}
+			return N;
+		}
+		int32 BytesRead = 0;
+		if (!Sock->Recv(Buf, MaxNum, BytesRead)) return -1;
+		return BytesRead;
 	}
 
 	// -----------------------------------------------------------------------
@@ -355,13 +638,11 @@ private:
 		}
 		Request += TEXT("\r\n");
 
-		// Send the HTTP request.
+		// Send the HTTP request (via TLS if secure).
 		FTCHARToUTF8 RequestUTF8(*Request);
-		int32 BytesSent = 0;
-		if (!Sock->Send(
+		if (!WorkerSend(Sock,
 			reinterpret_cast<const uint8*>(RequestUTF8.Get()),
-			RequestUTF8.Length(), BytesSent)
-			|| BytesSent != RequestUTF8.Length())
+			RequestUTF8.Length()))
 		{
 			DispatchError(TEXT("Failed to send WebSocket handshake request"));
 			return false;
@@ -376,25 +657,32 @@ private:
 
 		while (TotalRead < 4096 && !Owner->bStopping)
 		{
-			int32 Read = 0;
-			Sock->Recv(ResponseBuf.GetData() + TotalRead,
-				4096 - TotalRead, Read);
+			const int32 Read = WorkerRecv(Sock,
+				ResponseBuf.GetData() + TotalRead, 4096 - TotalRead);
 
-			if (Read > 0)
+			if (Read < 0)
 			{
-				TotalRead += Read;
-				// Look for the blank line that ends HTTP headers ("\r\n\r\n").
-				for (int32 i = 0; i + 3 < TotalRead; ++i)
-				{
-					if (ResponseBuf[i]   == '\r' && ResponseBuf[i+1] == '\n' &&
-					    ResponseBuf[i+2] == '\r' && ResponseBuf[i+3] == '\n')
-					{
-						bFound = true;
-						break;
-					}
-				}
-				if (bFound) break;
+				DispatchError(TEXT("Connection closed while reading WebSocket handshake response"));
+				return false;
 			}
+			if (Read == 0)
+			{
+				FPlatformProcess::Sleep(0.001f); // no data yet – yield and retry
+				continue;
+			}
+
+			TotalRead += Read;
+			// Look for the blank line that ends HTTP headers ("\r\n\r\n").
+			for (int32 i = 0; i + 3 < TotalRead; ++i)
+			{
+				if (ResponseBuf[i]   == '\r' && ResponseBuf[i+1] == '\n' &&
+				    ResponseBuf[i+2] == '\r' && ResponseBuf[i+3] == '\n')
+				{
+					bFound = true;
+					break;
+				}
+			}
+			if (bFound) break;
 		}
 
 		if (!bFound)
@@ -404,7 +692,6 @@ private:
 		}
 
 		// Convert to a string for easy parsing.
-		// Null-terminate the buffer first so conversion is safe.
 		ResponseBuf[TotalRead] = 0;
 		FString Response = FString(UTF8_TO_TCHAR(
 			reinterpret_cast<const ANSICHAR*>(ResponseBuf.GetData())));
@@ -604,9 +891,8 @@ private:
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Receive exactly NumBytes bytes from the socket, retrying as needed.
-	 * Returns false if the socket is closed, errors, or bStopping is set.
-	 * Relies on Socket->Close() from the main thread to interrupt blocking Recv().
+	 * Receive exactly NumBytes bytes from the socket (or SSL layer), retrying as needed.
+	 * Returns false if the connection is closed, errors, or bStopping is set.
 	 */
 	bool RecvExact(FSocket* Sock, uint8* Buffer, int32 NumBytes)
 	{
@@ -615,11 +901,15 @@ private:
 		{
 			if (Owner->bStopping) return false;
 
-			int32 Read = 0;
-			if (!Sock->Recv(Buffer + BytesRead, NumBytes - BytesRead, Read) || Read == 0)
+			const int32 Read = WorkerRecv(Sock, Buffer + BytesRead, NumBytes - BytesRead);
+			if (Read < 0)
 			{
-				// Socket was closed (by us or the remote), or a genuine recv error.
-				return false;
+				return false; // socket closed or error
+			}
+			if (Read == 0)
+			{
+				FPlatformProcess::Sleep(0.001f); // no data yet – yield briefly
+				continue;
 			}
 			BytesRead += Read;
 		}
@@ -681,6 +971,7 @@ private:
 	int32                  Port;
 	FString                Path;
 	TMap<FString, FString> ExtraHeaders;
+	bool                   bIsSecure; // true for wss://, false for ws://
 };
 
 // ===========================================================================
@@ -691,7 +982,10 @@ USMLWebSocket::USMLWebSocket()
 	: bAutoReconnect(true)
 	, ReconnectInitialDelaySeconds(2.f)
 	, MaxReconnectAttempts(0)
+	, bVerifyTlsCertificate(true)
 	, Socket(nullptr)
+	, Ssl(nullptr)
+	, SslCtx(nullptr)
 	, Worker(nullptr)
 	, WorkerThread(nullptr)
 	, bStopping(false)
@@ -727,8 +1021,9 @@ void USMLWebSocket::ConnectWithHeaders(const FString& Url,
 	}
 
 	FString Host, Path;
-	int32   Port = 80;
-	if (!ParseWebSocketUrl(Url, Host, Port, Path))
+	int32   Port     = 80;
+	bool    bIsSecure = false;
+	if (!ParseWebSocketUrl(Url, Host, Port, Path, bIsSecure))
 	{
 		OnConnectionError.Broadcast(
 			FString::Printf(TEXT("Invalid WebSocket URL: %s"), *Url));
@@ -738,7 +1033,8 @@ void USMLWebSocket::ConnectWithHeaders(const FString& Url,
 	bStopping  = false;
 	bConnected = false;
 
-	Worker = new FSMLWebSocketWorker(this, MoveTemp(Host), Port, MoveTemp(Path), Headers);
+	Worker = new FSMLWebSocketWorker(this, MoveTemp(Host), Port,
+		MoveTemp(Path), Headers, bIsSecure);
 	WorkerThread = FRunnableThread::Create(Worker, TEXT("SMLWebSocket"), 0,
 		TPri_Normal);
 
@@ -872,6 +1168,21 @@ bool USMLWebSocket::SendFrame(uint8 Opcode, const uint8* Payload, uint64 Payload
 		Frame.Add(Payload[i] ^ MaskKey[i & 3]);
 	}
 
+	// ---- Send through TLS or plain TCP ----
+	if (Ssl)
+	{
+		// SSL_write sends all bytes or returns <=0 on error (unlike TCP send).
+		const int Written = SSL_write(Ssl, Frame.GetData(), Frame.Num());
+		if (Written != Frame.Num())
+		{
+			UE_LOG(LogSMLWebSocket, Error,
+				TEXT("SSL_write failed (wrote %d of %d bytes)"),
+				Written, Frame.Num());
+			return false;
+		}
+		return true;
+	}
+
 	int32 BytesSent = 0;
 	const bool bOk = Socket->Send(Frame.GetData(), Frame.Num(), BytesSent);
 	if (!bOk || BytesSent != Frame.Num())
@@ -911,6 +1222,16 @@ void USMLWebSocket::TearDown()
 	{
 		delete Worker;
 		Worker = nullptr;
+	}
+
+	// Free SSL objects AFTER the worker thread has exited so there is no
+	// risk of SSL_read/SSL_write racing with SSL_free.
+	// The worker's TearDownTls() will have already nulled these if it ran
+	// the normal exit path; these guards handle the Kill() case.
+	{
+		FScopeLock Lock(&SendLock);
+		if (Ssl)    { SSL_free(Ssl);    Ssl    = nullptr; }
+		if (SslCtx) { SSL_CTX_free(SslCtx); SslCtx = nullptr; }
 	}
 
 	// Destroy the socket after the worker thread has exited.

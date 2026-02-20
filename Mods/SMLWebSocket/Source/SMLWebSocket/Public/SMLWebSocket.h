@@ -8,6 +8,11 @@
 #include "HAL/ThreadSafeBool.h"
 #include "SMLWebSocket.generated.h"
 
+// Forward-declare OpenSSL types so we avoid pulling openssl headers into every
+// translation unit that includes this header.
+struct ssl_st;
+struct ssl_ctx_st;
+
 class FSocket;
 class FRunnableThread;
 
@@ -63,15 +68,16 @@ class FSMLWebSocketWorker;
  * Implemented on top of Unreal's low-level TCP socket API (ISocketSubsystem / FSocket)
  * and performs the RFC 6455 WebSocket upgrade handshake manually.
  *
- * Supports:  ws://  (plain TCP)
- * Use a TLS-terminating proxy if you need  wss://  connectivity.
+ * Supports:
+ *   ws://   – plain TCP (no encryption)
+ *   wss://  – TLS (using OpenSSL; certificate verification enabled by default)
  *
  * Usage (C++):
  * @code
  *   USMLWebSocket* WS = NewObject<USMLWebSocket>(this);
  *   WS->OnConnected.AddDynamic(this, &UMyClass::HandleConnected);
  *   WS->OnMessageReceived.AddDynamic(this, &UMyClass::HandleMessage);
- *   WS->Connect(TEXT("ws://localhost:8765/gateway"));
+ *   WS->Connect(TEXT("wss://gateway.example.com/ws"));
  * @endcode
  */
 UCLASS(BlueprintType, Blueprintable)
@@ -90,7 +96,9 @@ public:
 
 	/**
 	 * Initiate a WebSocket connection.
-	 * The URL must use the  ws://  scheme (e.g. "ws://localhost:8765/path").
+	 * The URL must use the  ws://  or  wss://  scheme.
+	 *   ws://   – plain unencrypted TCP (e.g. "ws://localhost:8765/path")
+	 *   wss://  – TLS-encrypted connection (e.g. "wss://gateway.example.com/ws")
 	 * Connection is established asynchronously; listen to OnConnected /
 	 * OnConnectionError for the result.
 	 */
@@ -132,6 +140,15 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, Category = "SML|WebSocket")
 	int32 MaxReconnectAttempts;
+
+	/**
+	 * When true (default), the server's TLS certificate is verified against the
+	 * system's trusted CA store for  wss://  connections.  Set to false only for
+	 * development/testing with self-signed certificates – never in production.
+	 * Has no effect for plain  ws://  connections.
+	 */
+	UPROPERTY(BlueprintReadWrite, Category = "SML|WebSocket")
+	bool bVerifyTlsCertificate;
 
 	// -----------------------------------------------------------------------
 	// Send API
@@ -208,6 +225,12 @@ private:
 	// The underlying TCP socket. Owned by this object; accessed only inside
 	// SendFrame() (which is also called from the worker thread).
 	FSocket* Socket;
+
+	// OpenSSL state for wss:// connections.  Both are null for ws:// connections.
+	// Ssl is freed by TearDown() after the worker thread has exited.
+	// Accesses to Ssl inside SendFrame() are serialised by SendLock.
+	ssl_st*     Ssl;
+	ssl_ctx_st* SslCtx;
 
 	// Worker that runs the connect+handshake+read loop on a background thread.
 	FSMLWebSocketWorker* Worker;
