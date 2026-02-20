@@ -60,6 +60,7 @@ public:
 private:
 	TSharedPtr<IWebSocket> WebSocketImpl;
 	bool bIsConnected;
+	bool bIsConnecting;
 
 	void OnWebSocketConnected_Internal();
 	void OnWebSocketConnectionError_Internal(const FString& Error);

@@ -10,6 +10,7 @@ DEFINE_LOG_CATEGORY(LogCustomWebSocket);
 
 FCustomWebSocket::FCustomWebSocket()
 	: bIsConnected(false)
+	, bIsConnecting(false)
 {
 }
 
@@ -20,10 +21,22 @@ FCustomWebSocket::~FCustomWebSocket()
 
 bool FCustomWebSocket::Connect(const FString& URL)
 {
-	if (bIsConnected || WebSocketImpl.IsValid())
+	if (bIsConnected || bIsConnecting)
 	{
 		UE_LOG(LogCustomWebSocket, Warning, TEXT("Already connected or connecting"));
 		return false;
+	}
+
+	// Clean up a stale (closed or failed) WebSocket impl from a previous connection
+	// so we can create a fresh one for the reconnect.
+	if (WebSocketImpl.IsValid())
+	{
+		WebSocketImpl->OnConnected().RemoveAll(this);
+		WebSocketImpl->OnConnectionError().RemoveAll(this);
+		WebSocketImpl->OnClosed().RemoveAll(this);
+		WebSocketImpl->OnMessage().RemoveAll(this);
+		WebSocketImpl->OnBinaryMessage().RemoveAll(this);
+		WebSocketImpl = nullptr;
 	}
 
 	if (!FModuleManager::Get().IsModuleLoaded(TEXT("WebSockets")))
@@ -48,12 +61,14 @@ bool FCustomWebSocket::Connect(const FString& URL)
 	WebSocketImpl->OnBinaryMessage().AddRaw(this, &FCustomWebSocket::OnWebSocketBinaryMessage_Internal);
 
 	UE_LOG(LogCustomWebSocket, Log, TEXT("Connecting to: %s"), *URL);
+	bIsConnecting = true;
 	WebSocketImpl->Connect();
 	return true;
 }
 
 void FCustomWebSocket::Disconnect(int32 StatusCode, const FString& Reason)
 {
+	bIsConnecting = false;
 	if (WebSocketImpl.IsValid())
 	{
 		WebSocketImpl->OnConnected().RemoveAll(this);
@@ -118,6 +133,7 @@ void FCustomWebSocket::Tick(float DeltaTime)
 
 void FCustomWebSocket::OnWebSocketConnected_Internal()
 {
+	bIsConnecting = false;
 	bIsConnected = true;
 	UE_LOG(LogCustomWebSocket, Log, TEXT("========================================"));
 	UE_LOG(LogCustomWebSocket, Log, TEXT("CustomWebSocket: Successfully connected!"));
@@ -128,6 +144,7 @@ void FCustomWebSocket::OnWebSocketConnected_Internal()
 
 void FCustomWebSocket::OnWebSocketConnectionError_Internal(const FString& Error)
 {
+	bIsConnecting = false;
 	bIsConnected = false;
 	UE_LOG(LogCustomWebSocket, Error, TEXT("WebSocket connection error: %s"), *Error);
 	OnConnected.ExecuteIfBound(false);
