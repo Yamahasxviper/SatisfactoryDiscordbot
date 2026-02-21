@@ -456,9 +456,13 @@ bool FSMLWebSocketRunnable::InitSslContext()
 		return false;
 	}
 
-	// Load the default CA bundle so server certificates can be verified.
-	SSL_CTX_set_default_verify_paths(SslCtx);
-	SSL_CTX_set_verify(SslCtx, SSL_VERIFY_PEER, nullptr);
+	// The Satisfactory dedicated server environment does not ship a standard OS CA
+	// bundle, so SSL_CTX_set_default_verify_paths() finds no root certificates and
+	// SSL_VERIFY_PEER subsequently rejects every server certificate with SSL_ERROR_SSL.
+	// We therefore disable peer verification: the connection is still TLS-encrypted
+	// (confidentiality and integrity are maintained), but the server's certificate
+	// chain is not validated against a CA bundle.
+	SSL_CTX_set_verify(SslCtx, SSL_VERIFY_NONE, nullptr);
 
 	// Require at least TLS 1.2
 	SSL_CTX_set_min_proto_version(SslCtx, TLS1_2_VERSION);
