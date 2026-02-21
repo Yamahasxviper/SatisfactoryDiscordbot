@@ -1,0 +1,38 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"SemVersion": "1.0.0",
+	"GameVersion": ">=416835",
+	"FriendlyName": "Discord Bot",
+	"Description": "Integrates a Discord bot into Satisfactory using the Discord Gateway API. Supports Presence Intent, Server Members Intent, and Message Content Intent.",
+	"Category": "Modding",
+	"CreatedBy": "SML Team",
+	"CreatedByURL": "https://github.com/satisfactorymodding/SatisfactoryModLoader",
+	"DocsURL": "https://docs.ficsit.app",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "DiscordBot",
+			"Type": "Runtime",
+			"LoadingPhase": "PostDefault"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "SML",
+			"Enabled": true,
+			"SemVersion": "^3.11.3"
+		},
+		{
+			"Name": "WebSockets",
+			"Enabled": true,
+			"BasePlugin": true
+		}
+	]
+}
