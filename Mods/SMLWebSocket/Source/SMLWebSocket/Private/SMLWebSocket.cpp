@@ -4,9 +4,15 @@
 #include "Modules/ModuleManager.h"
 
 // OpenSSL global init/cleanup
+// UI is defined as a namespace by Unreal/Slate headers, but OpenSSL's ossl_typ.h
+// typedefs 'UI' as a struct type, causing C2365 redefinition errors on MSVC.
+// Push/pop the macro around the OpenSSL includes to avoid the conflict.
+#pragma push_macro("UI")
+#undef UI
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/crypto.h"
+#pragma pop_macro("UI")
 
 void FSMLWebSocketModule::StartupModule()
 {
