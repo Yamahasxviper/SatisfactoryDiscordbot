@@ -1,0 +1,33 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"SemVersion": "1.0.0",
+	"GameVersion": ">=416835",
+	"FriendlyName": "Discord Bot",
+	"Description": "Integrates a Discord bot into Satisfactory via HTTP REST polling. Covers Presence Intent, Server Members Intent, and Message Content Intent without requiring the WebSocket module.",
+	"Category": "Modding",
+	"CreatedBy": "Yamahasxviper",
+	"CreatedByURL": "https://github.com/Yamahasxviper/SatisfactoryDiscordbot",
+	"DocsURL": "https://docs.ficsit.app",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "DiscordBot",
+			"Type": "Runtime",
+			"LoadingPhase": "PostDefault"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "SML",
+			"Enabled": true,
+			"SemVersion": "^3.11.3"
+		}
+	]
+}
