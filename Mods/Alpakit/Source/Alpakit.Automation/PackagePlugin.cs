@@ -287,9 +287,10 @@ public class PackagePlugin : BuildCookRun
 
 		var pluginRelativePath = GetPluginPathRelativeToStageRoot(ProjectParams);
 
-		foreach (var configFile in DirectoryReference.EnumerateFiles(pluginConfigDir))
+		foreach (var configFile in DirectoryReference.EnumerateFiles(pluginConfigDir, "*", System.IO.SearchOption.AllDirectories))
 		{
-			var stagedPath = new StagedFileReference(CombinePaths(pluginRelativePath, "Config", configFile.GetFileName()));
+			var relativePath = configFile.MakeRelativeTo(pluginConfigDir);
+			var stagedPath = new StagedFileReference(CombinePaths(pluginRelativePath, "Config", relativePath));
 			SC.StageFile(StagedFileType.NonUFS, configFile, stagedPath);
 		}
 	}
