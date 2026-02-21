@@ -11,8 +11,7 @@
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Engine/GameInstance.h"
-#include "Engine/World.h"
-#include "TimerManager.h"
+#include "Containers/Ticker.h"
 
 // Discord Gateway endpoint (v10, JSON encoding)
 static const FString DiscordGatewayUrl = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
@@ -86,10 +85,11 @@ void UDiscordBridgeSubsystem::Connect()
 
 void UDiscordBridgeSubsystem::Disconnect()
 {
-	// Stop heartbeat timer.
-	if (UWorld* World = GetWorld())
+	// Stop heartbeat ticker.
+	if (HeartbeatTickerHandle.IsValid())
 	{
-		World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+		HeartbeatTickerHandle.Reset();
 	}
 
 	// Post the server-offline notification message while still connected.
@@ -135,9 +135,10 @@ void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString&
 	       StatusCode, *Reason);
 
 	// Cancel heartbeat; it will be restarted on the next successful connection.
-	if (UWorld* World = GetWorld())
+	if (HeartbeatTickerHandle.IsValid())
 	{
-		World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+		HeartbeatTickerHandle.Reset();
 	}
 
 	const bool bWasReady = bGatewayReady;
@@ -154,9 +155,10 @@ void UDiscordBridgeSubsystem::OnWebSocketError(const FString& ErrorMessage)
 {
 	UE_LOG(LogTemp, Error, TEXT("DiscordBridge: WebSocket error: %s"), *ErrorMessage);
 
-	if (UWorld* World = GetWorld())
+	if (HeartbeatTickerHandle.IsValid())
 	{
-		World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+		HeartbeatTickerHandle.Reset();
 	}
 
 	if (bGatewayReady)
@@ -173,9 +175,10 @@ void UDiscordBridgeSubsystem::OnWebSocketReconnecting(int32 AttemptNumber, float
 	       AttemptNumber, DelaySeconds);
 
 	// Reset Gateway state; we'll re-identify once the WebSocket reconnects.
-	if (UWorld* World = GetWorld())
+	if (HeartbeatTickerHandle.IsValid())
 	{
-		World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+		HeartbeatTickerHandle.Reset();
 	}
 	bGatewayReady = false;
 }
@@ -265,17 +268,17 @@ void UDiscordBridgeSubsystem::HandleHello(const TSharedPtr<FJsonObject>& DataObj
 	       TEXT("DiscordBridge: Hello received. Heartbeat interval: %.2f s"),
 	       HeartbeatIntervalSeconds);
 
-	// Start the heartbeat timer.
-	if (UWorld* World = GetWorld())
+	// Start the heartbeat ticker.
+	// FTSTicker is used instead of FTimerManager so the heartbeat works even
+	// before the UWorld is available (e.g. on dedicated server startup before
+	// the persistent level finishes loading).
+	if (HeartbeatTickerHandle.IsValid())
 	{
-		World->GetTimerManager().SetTimer(
-			HeartbeatTimerHandle,
-			this,
-			&UDiscordBridgeSubsystem::HeartbeatTick,
-			HeartbeatIntervalSeconds,
-			/*bLoop=*/true,
-			/*FirstDelay=*/HeartbeatIntervalSeconds);
+		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	}
+	HeartbeatTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateUObject(this, &UDiscordBridgeSubsystem::HeartbeatTick),
+		HeartbeatIntervalSeconds);
 
 	// Send Identify so Discord authenticates us.
 	SendIdentify();
@@ -318,8 +321,18 @@ void UDiscordBridgeSubsystem::HandleInvalidSession(bool bResumable)
 	       bResumable ? TEXT("true") : TEXT("false"));
 
 	// Per Discord spec, wait 1–5 seconds before re-identifying.
-	FPlatformProcess::SleepNoStats(2.0f);
-	SendIdentify();
+	// Defer via a one-shot ticker so we don't block the game thread.
+	TWeakObjectPtr<UDiscordBridgeSubsystem> WeakThis(this);
+	FTSTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateLambda([WeakThis](float) -> bool
+		{
+			if (UDiscordBridgeSubsystem* Sub = WeakThis.Get())
+			{
+				Sub->SendIdentify();
+			}
+			return false; // fire once then remove
+		}),
+		2.0f);
 }
 
 void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj)
@@ -544,12 +557,13 @@ void UDiscordBridgeSubsystem::SendGatewayPayload(const TSharedPtr<FJsonObject>& 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Heartbeat timer
+// Heartbeat ticker
 // ─────────────────────────────────────────────────────────────────────────────
 
-void UDiscordBridgeSubsystem::HeartbeatTick()
+bool UDiscordBridgeSubsystem::HeartbeatTick(float /*DeltaTime*/)
 {
 	SendHeartbeat();
+	return true; // keep ticking
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -225,12 +225,17 @@ private:
 	/** Serialise a JSON object and send it as a text WebSocket frame. */
 	void SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload);
 
-	// ── Heartbeat timer ───────────────────────────────────────────────────────
+	// ── Heartbeat ticker ──────────────────────────────────────────────────────
 
-	/** Timer callback – fires SendHeartbeat() at the interval Discord requested. */
-	void HeartbeatTick();
+	/**
+	 * Ticker callback – fires SendHeartbeat() at the interval Discord requested.
+	 * Returns true to keep ticking, false to stop.
+	 * Uses FTSTicker so it works even before a UWorld is available (e.g. on
+	 * dedicated server startup before the persistent level has been loaded).
+	 */
+	bool HeartbeatTick(float DeltaTime);
 
-	FTimerHandle HeartbeatTimerHandle;
+	FDelegateHandle HeartbeatTickerHandle;
 	float HeartbeatIntervalSeconds{0.0f};
 
 	// ── Internal state ────────────────────────────────────────────────────────
