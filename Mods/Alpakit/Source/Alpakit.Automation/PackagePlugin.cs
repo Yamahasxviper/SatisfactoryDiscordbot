@@ -100,6 +100,7 @@ public class PackagePlugin : BuildCookRun
 			
 			// Alpakit shared configuration
 			ClientCookedTargets: GetClientTargetsToCook(),
+			ServerCookedTargets: new ParamList<string>("FactoryServer"),
 			Cook: true,
 			AdditionalCookerOptions: "-AllowUncookedAssetReferences",
 			DLCIncludeEngineContent: false,
