@@ -74,6 +74,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 				Config.bIgnoreBotMessages   = GetBoolFieldOrDefault  (JsonObject, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
 				Config.ServerOnlineMessage  = GetStringFieldOrDefault(JsonObject, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 				Config.ServerOfflineMessage = GetStringFieldOrDefault(JsonObject, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+				Config.LogCommandPrefix     = GetStringFieldOrDefault(JsonObject, TEXT("LogCommandPrefix"),     Config.LogCommandPrefix);
+
+				double LogLineCountDouble = static_cast<double>(Config.LogLineCount);
+				if (JsonObject->TryGetNumberField(TEXT("LogLineCount"), LogLineCountDouble))
+				{
+					Config.LogLineCount = FMath::Clamp(static_cast<int32>(LogLineCountDouble), 1, 500);
+				}
 
 				UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Loaded config from %s"), *FilePath);
 			}
@@ -111,6 +118,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		JsonObject->SetBoolField  (TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
 		JsonObject->SetStringField(TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		JsonObject->SetStringField(TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+		JsonObject->SetStringField(TEXT("LogCommandPrefix"),     Config.LogCommandPrefix);
+		JsonObject->SetNumberField(TEXT("LogLineCount"),         Config.LogLineCount);
 
 		FString JsonContent;
 		const TSharedRef<TJsonWriter<>> Writer =

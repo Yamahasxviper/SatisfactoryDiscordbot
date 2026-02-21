@@ -215,6 +215,9 @@ private:
 	/** t=MESSAGE_CREATE: A new message was posted in a channel. */
 	void HandleMessageCreate(const TSharedPtr<FJsonObject>& DataObj);
 
+	/** Handle the !logs command: read the server log and post recent lines to Discord. */
+	void HandleLogsCommand(const FString& ChannelId);
+
 	/** Send the Identify payload (op=2) to authenticate the bot. */
 	void SendIdentify();
 
@@ -223,6 +226,9 @@ private:
 
 	/** Send a plain text message to the configured Discord channel via the REST API. */
 	void SendStatusMessageToDiscord(const FString& Message);
+
+	/** POST a plain text message to any Discord channel via the REST API. */
+	void PostTextToChannel(const FString& TargetChannelId, const FString& Message);
 
 	/** Serialise a JSON object and send it as a text WebSocket frame. */
 	void SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload);

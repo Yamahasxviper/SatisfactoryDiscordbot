@@ -60,6 +60,23 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/** Posted to Discord when the server shuts down. Leave empty to disable. */
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
+	// ── Log viewer command ────────────────────────────────────────────────────
+
+	/**
+	 * Discord command prefix that triggers the server log viewer.
+	 * When a user types this exact text in the bridged channel the bot replies
+	 * with the last LogLineCount lines of the Unreal Engine server log.
+	 * Leave empty to disable the command.
+	 */
+	FString LogCommandPrefix{ TEXT("!logs") };
+
+	/**
+	 * Number of log lines returned by the !logs command.
+	 * The output is split into multiple Discord messages if needed to stay
+	 * within the 2 000-character message limit.
+	 */
+	int32 LogLineCount{ 50 };
+
 	/**
 	 * Loads configuration from <ProjectDir>/Configs/DiscordBridge.cfg.
 	 * If the file does not exist it is created with default values and those

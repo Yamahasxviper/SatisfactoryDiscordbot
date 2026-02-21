@@ -9,6 +9,10 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformFileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 // Discord Gateway endpoint (v10, JSON encoding)
 static const FString DiscordGatewayUrl = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
@@ -391,10 +395,99 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 		return; // Embeds-only or attachment-only messages; skip.
 	}
 
+	// Handle the configurable log-viewer command.
+	if (!Config.LogCommandPrefix.IsEmpty() && Content.TrimStartAndEnd() == Config.LogCommandPrefix)
+	{
+		HandleLogsCommand(ChannelId);
+		return;
+	}
+
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: [%s] %s"), *Username, *Content);
 
 	OnDiscordMessageReceived.Broadcast(Username, Content);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Log viewer command
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::HandleLogsCommand(const FString& TargetChannelId)
+{
+	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Handling !logs command."));
+
+	// Locate the server log file: <ProjectDir>/Saved/Logs/FactoryGame.log
+	const FString LogFilePath = FPaths::ProjectLogDir() / TEXT("FactoryGame.log");
+
+	FString LogContent;
+	if (!FFileHelper::LoadFileToString(LogContent, *LogFilePath))
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: Could not read log file at '%s'."), *LogFilePath);
+		PostTextToChannel(
+			TargetChannelId,
+			FString::Printf(TEXT(":warning: Could not read log file at `%s`."), *LogFilePath));
+		return;
+	}
+
+	// Split into individual lines and take the last LogLineCount lines.
+	TArray<FString> Lines;
+	LogContent.ParseIntoArrayLines(Lines, /*bCullEmpty=*/false);
+
+	const int32 TotalLines  = Lines.Num();
+	const int32 LinesToTake = FMath::Min(Config.LogLineCount, TotalLines);
+	const int32 StartIndex  = TotalLines - LinesToTake;
+
+	FString Excerpt;
+	for (int32 i = StartIndex; i < TotalLines; ++i)
+	{
+		Excerpt += Lines[i];
+		Excerpt += TEXT("\n");
+	}
+
+	if (Excerpt.IsEmpty())
+	{
+		PostTextToChannel(TargetChannelId, TEXT(":information_source: The server log is empty."));
+		return;
+	}
+
+	// Discord message content limit is 2 000 characters.
+	// We wrap the output in a code block (8 chars of overhead for "```\n" + "\n```")
+	// and split into chunks so every message fits within the limit.
+	static constexpr int32 DiscordMaxChars   = 2000;
+	static constexpr int32 CodeBlockOverhead = 8; // "```\n" (4) + "\n```" (4)
+	const int32            ChunkSize         = DiscordMaxChars - CodeBlockOverhead;
+
+	// Post a header so the user knows the response is starting.
+	PostTextToChannel(TargetChannelId,
+		FString::Printf(TEXT(":scroll: **Last %d lines of FactoryGame.log** (total %d lines):"),
+		                LinesToTake, TotalLines));
+
+	// Stream the excerpt in chunks wrapped in code blocks.
+	int32 Offset = 0;
+	while (Offset < Excerpt.Len())
+	{
+		// Try to break on a newline boundary so lines are not split mid-line.
+		int32 Length = FMath::Min(ChunkSize, Excerpt.Len() - Offset);
+
+		if (Offset + Length < Excerpt.Len())
+		{
+			// Walk back to the last newline within the chunk.
+			int32 LastNewline = Excerpt.Find(TEXT("\n"), ESearchCase::IgnoreCase,
+			                                 ESearchDir::FromEnd,
+			                                 Offset + Length);
+			if (LastNewline > Offset)
+			{
+				Length = LastNewline - Offset + 1; // include the newline itself
+			}
+		}
+
+		const FString Chunk = Excerpt.Mid(Offset, Length);
+		PostTextToChannel(TargetChannelId,
+			FString::Printf(TEXT("```\n%s\n```"), *Chunk));
+
+		Offset += Length;
+	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -470,6 +563,16 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 	{
 		return;
 	}
+	PostTextToChannel(Config.ChannelId, Message);
+}
+
+void UDiscordBridgeSubsystem::PostTextToChannel(const FString& TargetChannelId,
+                                                 const FString& Message)
+{
+	if (Config.BotToken.IsEmpty() || TargetChannelId.IsEmpty())
+	{
+		return;
+	}
 
 	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetStringField(TEXT("content"), Message);
@@ -479,7 +582,7 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
 
 	const FString Url = FString::Printf(
-		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
+		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *TargetChannelId);
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
 		FHttpModule::Get().CreateRequest();
@@ -498,7 +601,7 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 			if (!bConnected || !Resp.IsValid())
 			{
 				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: HTTP request failed for status message '%s'."),
+				       TEXT("DiscordBridge: HTTP request failed (message truncated to 80 chars): '%.80s'."),
 				       *Message);
 				return;
 			}
@@ -556,46 +659,5 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *PlayerName);
 	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
 
-	// Build the JSON body: {"content": "…"}
-	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
-	Body->SetStringField(TEXT("content"), FormattedContent);
-
-	FString BodyString;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
-	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
-
-	// POST to the Discord REST API.
-	const FString Url = FString::Printf(
-		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
-
-	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
-		FHttpModule::Get().CreateRequest();
-
-	Request->SetURL(Url);
-	Request->SetVerb(TEXT("POST"));
-	Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
-	Request->SetHeader(TEXT("Authorization"),
-	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
-	Request->SetContentAsString(BodyString);
-
-	Request->OnProcessRequestComplete().BindWeakLambda(
-		this,
-		[PlayerName](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
-		{
-			if (!bConnected || !Resp.IsValid())
-			{
-				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: HTTP request failed for player '%s'."),
-				       *PlayerName);
-				return;
-			}
-			if (Resp->GetResponseCode() < 200 || Resp->GetResponseCode() >= 300)
-			{
-				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: Discord REST API returned %d: %s"),
-				       Resp->GetResponseCode(), *Resp->GetContentAsString());
-			}
-		});
-
-	Request->ProcessRequest();
+	PostTextToChannel(Config.ChannelId, FormattedContent);
 }
