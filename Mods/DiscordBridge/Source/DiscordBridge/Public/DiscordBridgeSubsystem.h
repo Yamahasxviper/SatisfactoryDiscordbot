@@ -232,7 +232,7 @@ private:
 	/** Timer callback – fires SendHeartbeat() at the interval Discord requested. */
 	bool HeartbeatTick(float DeltaTime);
 
-	FDelegateHandle HeartbeatTickerHandle;
+	FTSTicker::FDelegateHandle HeartbeatTickerHandle;
 	float HeartbeatIntervalSeconds{0.0f};
 
 	// ── Internal state ────────────────────────────────────────────────────────
