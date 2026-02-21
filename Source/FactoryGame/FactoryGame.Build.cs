@@ -167,15 +167,13 @@ public class FactoryGame : ModuleRules
 			"ImageWriteQueue",
 			"LevelSequence",
 			"ApplicationCore",
-			"OpenSSL", 
+			"OpenSSL",
+			"SSL",
 			"ModularGameplay",
 			"OnlineServicesInterface",
 			"FactoryPreEarlyLoadingScreen", 
 			"PreLoadScreen",
-			"OnlineServicesInterface",
 			"Niagara",
-			"OpenSSL", 
-			"SSL", 
 			"Gauntlet"
 		});
 
