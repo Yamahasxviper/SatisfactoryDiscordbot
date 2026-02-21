@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using AutomationTool;
@@ -24,6 +25,7 @@ public class PackagePlugin : BuildCookRun
 		projectParams.ModifyDeploymentContextCallback = (ProjectParams, SC) =>
 		{
 			ModifyModules(ProjectParams, SC);
+			StagePluginNonUSFDirectories(ProjectParams, SC);
 		};
 		
 		try
@@ -274,6 +276,51 @@ public class PackagePlugin : BuildCookRun
 				var outputFilePath = SC.GetStagedFileLocation(manifest.Path);
 				moduleManifestFile.Write(intermediateModuleFilePath);
 				SC.StageFile(StagedFileType.NonUFS, intermediateModuleFilePath, outputFilePath);
+			}
+		}
+	}
+
+	private static void StagePluginNonUSFDirectories(ProjectParams ProjectParams, DeploymentContext SC)
+	{
+		var pluginSettingsPath = FileReference.Combine(ProjectParams.DLCFile.Directory, "Config", "PluginSettings.ini");
+		var pluginRelativeStagePath = GetPluginPathRelativeToStageRoot(ProjectParams);
+
+		foreach (var dirName in GetAdditionalNonUSFDirectories(pluginSettingsPath))
+		{
+			var sourceDir = DirectoryReference.Combine(ProjectParams.DLCFile.Directory, dirName);
+			if (!DirectoryReference.Exists(sourceDir))
+				continue;
+
+			foreach (var filePath in Directory.EnumerateFiles(sourceDir.FullName, "*", SearchOption.AllDirectories))
+			{
+				var file = new FileReference(filePath);
+				var relativeFilePath = file.MakeRelativeTo(ProjectParams.DLCFile.Directory).Replace('\\', '/');
+				var stagedFilePath = new StagedFileReference(CombinePaths(pluginRelativeStagePath, relativeFilePath));
+				SC.StageFile(StagedFileType.NonUFS, file, stagedFilePath);
+			}
+		}
+	}
+
+	private static IEnumerable<string> GetAdditionalNonUSFDirectories(FileReference pluginSettingsPath)
+	{
+		if (!FileReference.Exists(pluginSettingsPath))
+			yield break;
+
+		bool inStageSettings = false;
+		foreach (var line in File.ReadAllLines(pluginSettingsPath.FullName))
+		{
+			var trimmed = line.Trim();
+			if (trimmed == "[StageSettings]")
+			{
+				inStageSettings = true;
+			}
+			else if (trimmed.StartsWith("["))
+			{
+				inStageSettings = false;
+			}
+			else if (inStageSettings && trimmed.StartsWith("+AdditionalNonUSFDirectories="))
+			{
+				yield return trimmed.Substring("+AdditionalNonUSFDirectories=".Length).Trim();
 			}
 		}
 	}
