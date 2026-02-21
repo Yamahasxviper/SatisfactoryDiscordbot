@@ -12,8 +12,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBot, Log, All);
 
-static const FString DISCORD_GATEWAY_URL  = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
-static const FString DISCORD_API_VERSION  = TEXT("10");
+static const FString DISCORD_GATEWAY_URL = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
 
 // ---- Helpers ---------------------------------------------------------------
 
@@ -122,11 +121,11 @@ void UDiscordGatewayClient::OnWebSocketMessage(const FString& Message)
 
     const int32 Op = Payload->GetIntegerField(TEXT("op"));
 
-    // Update sequence number if present
-    if (!Payload->HasTypedField<EJson::Null>(TEXT("s")) &&
-        Payload->HasField(TEXT("s")))
+    // Update sequence number if present (the "s" field is null for non-Dispatch ops)
+    double SeqNum = 0.0;
+    if (Payload->TryGetNumberField(TEXT("s"), SeqNum))
     {
-        LastSequenceNumber = static_cast<int32>(Payload->GetNumberField(TEXT("s")));
+        LastSequenceNumber = static_cast<int32>(SeqNum);
     }
 
     switch (Op)
