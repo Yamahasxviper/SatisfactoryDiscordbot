@@ -139,7 +139,7 @@ FSMLWebSocketRunnable::~FSMLWebSocketRunnable()
 
 bool FSMLWebSocketRunnable::Init()
 {
-	State.Store(ESMLWebSocketRunnableState::ResolvingHost);
+	State.store(ESMLWebSocketRunnableState::ResolvingHost);
 	return true;
 }
 
@@ -188,7 +188,7 @@ uint32 FSMLWebSocketRunnable::Run()
 		FragmentBuffer.Empty();
 
 		// ── 1. Resolve host and connect TCP socket ────────────────────────────
-		State.Store(ESMLWebSocketRunnableState::Connecting);
+		State.store(ESMLWebSocketRunnableState::Connecting);
 		if (!ResolveAndConnect(ParsedHost, ParsedPort))
 		{
 			NotifyError(FString::Printf(TEXT("SMLWebSocket: Failed to connect to %s:%d"), *ParsedHost, ParsedPort));
@@ -201,7 +201,7 @@ uint32 FSMLWebSocketRunnable::Run()
 		// ── 2. Optional TLS handshake ─────────────────────────────────────────
 		if (bUseSsl)
 		{
-			State.Store(ESMLWebSocketRunnableState::SslHandshake);
+			State.store(ESMLWebSocketRunnableState::SslHandshake);
 			if (!PerformSslHandshake(ParsedHost))
 			{
 				NotifyError(TEXT("SMLWebSocket: SSL handshake failed"));
@@ -213,7 +213,7 @@ uint32 FSMLWebSocketRunnable::Run()
 		}
 
 		// ── 3. Send HTTP upgrade request ──────────────────────────────────────
-		State.Store(ESMLWebSocketRunnableState::SendingHttpUpgrade);
+		State.store(ESMLWebSocketRunnableState::SendingHttpUpgrade);
 		const FString ClientKey = GenerateWebSocketKey();
 		const FString AcceptKey = ComputeAcceptKey(ClientKey);
 
@@ -227,7 +227,7 @@ uint32 FSMLWebSocketRunnable::Run()
 		if (bStopRequested || bUserInitiatedClose) break;
 
 		// ── 4. Read and validate HTTP 101 response ────────────────────────────
-		State.Store(ESMLWebSocketRunnableState::ReadingHttpUpgradeResponse);
+		State.store(ESMLWebSocketRunnableState::ReadingHttpUpgradeResponse);
 		if (!ReadHttpUpgradeResponse(AcceptKey))
 		{
 			NotifyError(TEXT("SMLWebSocket: WebSocket upgrade handshake rejected by server"));
@@ -242,7 +242,7 @@ uint32 FSMLWebSocketRunnable::Run()
 		AttemptNumber = 0;
 		CurrentDelay  = ReconnectCfg.ReconnectInitialDelay;
 
-		State.Store(ESMLWebSocketRunnableState::Connected);
+		State.store(ESMLWebSocketRunnableState::Connected);
 		bConnected = true;
 		NotifyConnected();
 
@@ -252,7 +252,7 @@ uint32 FSMLWebSocketRunnable::Run()
 			FSMLWebSocketCloseRequest CloseReq;
 			if (CloseRequests.Dequeue(CloseReq))
 			{
-				State.Store(ESMLWebSocketRunnableState::Closing);
+				State.store(ESMLWebSocketRunnableState::Closing);
 				bConnected = false;
 
 				// Build and send close frame payload (2-byte code + UTF-8 reason).
@@ -326,7 +326,7 @@ uint32 FSMLWebSocketRunnable::Run()
 		++AttemptNumber;
 	}
 
-	State.Store(ESMLWebSocketRunnableState::Closed);
+	State.store(ESMLWebSocketRunnableState::Closed);
 	bConnected = false;
 	return 0;
 }
@@ -582,7 +582,7 @@ bool FSMLWebSocketRunnable::FeedSslReadBio()
 
 	uint8 Tmp[16384];
 	int32 BytesRead = 0;
-	if (!Socket->Recv(Tmp, sizeof(Tmp), BytesRead) || BytesRead <= 0)
+	if (!Socket->Recv(Tmp, static_cast<int32>(sizeof(Tmp)), BytesRead) || BytesRead <= 0)
 	{
 		return false;
 	}
@@ -619,7 +619,7 @@ int32 FSMLWebSocketRunnable::SslRead(uint8* Buffer, int32 BufferSize)
 			// Feed the available TCP data into the SSL read BIO.
 			uint8 Tmp[16384];
 			int32 BytesRead = 0;
-			if (!Socket->Recv(Tmp, sizeof(Tmp), BytesRead) || BytesRead <= 0)
+			if (!Socket->Recv(Tmp, static_cast<int32>(sizeof(Tmp)), BytesRead) || BytesRead <= 0)
 			{
 				return -1; // hard TCP error
 			}
@@ -892,7 +892,7 @@ bool FSMLWebSocketRunnable::SendWsFrame(uint8 Opcode, const uint8* Data, int32 D
 
 	// Generate 4-byte masking key
 	uint8 MaskKey[4];
-	RAND_bytes(MaskKey, sizeof(MaskKey));
+	RAND_bytes(MaskKey, static_cast<int>(sizeof(MaskKey)));
 
 	// Byte 1+: payload length with mask bit set
 	if (DataSize <= 125)
@@ -1121,8 +1121,8 @@ void FSMLWebSocketRunnable::FlushOutboundQueue()
 FString FSMLWebSocketRunnable::GenerateWebSocketKey()
 {
 	uint8 RawKey[16];
-	RAND_bytes(RawKey, sizeof(RawKey));
-	return FBase64::Encode(RawKey, sizeof(RawKey));
+	RAND_bytes(RawKey, static_cast<int>(sizeof(RawKey)));
+	return FBase64::Encode(RawKey, static_cast<int32>(sizeof(RawKey)));
 }
 
 FString FSMLWebSocketRunnable::ComputeAcceptKey(const FString& ClientKey)

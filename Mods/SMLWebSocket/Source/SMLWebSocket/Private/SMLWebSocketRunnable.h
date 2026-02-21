@@ -6,7 +6,7 @@
 #include "HAL/RunnableThread.h"
 #include "Containers/Queue.h"
 #include "Templates/SharedPointer.h"
-#include "Templates/Atomic.h"
+#include <atomic>
 
 // Forward-declare OpenSSL types so consumers don't need to include openssl headers.
 struct ssl_ctx_st;
@@ -209,7 +209,7 @@ private:
 	bio_st*     WriteBio{nullptr}; // SSL → network
 
 	// Shared state between game thread and I/O thread
-	TAtomic<ESMLWebSocketRunnableState> State{ESMLWebSocketRunnableState::Idle};
+	std::atomic<ESMLWebSocketRunnableState> State{ESMLWebSocketRunnableState::Idle};
 	FThreadSafeBool bStopRequested{false};
 	FThreadSafeBool bConnected{false};
 
