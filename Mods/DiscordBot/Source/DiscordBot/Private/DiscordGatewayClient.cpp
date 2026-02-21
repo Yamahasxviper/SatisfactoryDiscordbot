@@ -1,7 +1,6 @@
 #include "DiscordGatewayClient.h"
 
 #include "HttpModule.h"
-#include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
