@@ -16,10 +16,11 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
+	"AcceptsAnyRemoteVersion": true,
 	"Modules": [
 		{
 			"Name": "DiscordBridge",
-			"Type": "Runtime",
+			"Type": "ServerOnly",
 			"LoadingPhase": "Default"
 		}
 	],

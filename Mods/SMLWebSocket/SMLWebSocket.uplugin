@@ -16,10 +16,11 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
+	"AcceptsAnyRemoteVersion": true,
 	"Modules": [
 		{
 			"Name": "SMLWebSocket",
-			"Type": "Runtime",
+			"Type": "ServerOnly",
 			"LoadingPhase": "Default"
 		}
 	],
