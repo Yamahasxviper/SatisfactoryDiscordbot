@@ -8,6 +8,11 @@ void UDiscordBotSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
 
+    // Re-read config here so that values from the mod's DefaultDiscordBot.ini
+    // are picked up even if the plugin's config was merged into GConfig after
+    // the CDO was first constructed (the common case for runtime-loaded SML mods).
+    LoadConfig();
+
     GatewayClient = NewObject<UDiscordGatewayClient>(this);
 
     if (bAutoConnect && !BotToken.IsEmpty())
