@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/Ticker.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "SMLWebSocketClient.h"
 #include "DiscordBridgeSubsystem.generated.h"
@@ -228,9 +229,9 @@ private:
 	// ── Heartbeat timer ───────────────────────────────────────────────────────
 
 	/** Timer callback – fires SendHeartbeat() at the interval Discord requested. */
-	void HeartbeatTick();
+	bool HeartbeatTick(float DeltaTime);
 
-	FTimerHandle HeartbeatTimerHandle;
+	FDelegateHandle HeartbeatTickerHandle;
 	float HeartbeatIntervalSeconds{0.0f};
 
 	// ── Internal state ────────────────────────────────────────────────────────
