@@ -6,15 +6,16 @@
 #include "DiscordBotSubsystem.generated.h"
 
 /**
- * GameInstance subsystem that owns the Discord Gateway client.
+ * GameInstance subsystem that owns the Discord HTTP polling client.
  *
  * Access from Blueprints via the "Get Discord Bot Subsystem" node,
  * or in C++ via UGameInstance::GetSubsystem<UDiscordBotSubsystem>().
  *
- * Configuration (Config/DiscordBot.ini):
+ * Configuration (Config/DefaultDiscordBot.ini):
  *   [/Script/DiscordBot.DiscordBotSubsystem]
  *   BotToken=Bot YOUR_TOKEN_HERE
  *   GuildId=YOUR_GUILD_ID
+ *   ChannelId=YOUR_CHANNEL_ID
  *   bAutoConnect=true
  */
 UCLASS(Config = DiscordBot)
@@ -38,6 +39,14 @@ public:
     FString GuildId;
 
     /**
+     * Discord channel ID to poll for new messages.
+     * Find it by right-clicking a channel in Discord (with Developer Mode enabled)
+     * and choosing "Copy Channel ID".
+     */
+    UPROPERTY(Config, BlueprintReadOnly, Category = "Discord|Config")
+    FString ChannelId;
+
+    /**
      * When true the subsystem automatically calls Connect() on Initialize()
      * using the token from the config file.
      */
@@ -47,10 +56,10 @@ public:
     // ---- Runtime -----------------------------------------------------------
 
     /**
-     * Connect to the Discord Gateway.
+     * Connect to the Discord REST API and start polling.
      * If InBotToken is empty, uses the token from the config file.
-     * InIntents defaults to 33026:
-     *   GuildMembers (2) | GuildPresences (256) | MessageContent (32768).
+     * InIntents is accepted for source compatibility but has no effect
+     * in HTTP polling mode (access is controlled by bot permissions).
      */
     UFUNCTION(BlueprintCallable, Category = "Discord|Bot")
     void Connect(const FString& InBotToken = TEXT(""), int32 InIntents = 33026);

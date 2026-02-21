@@ -1,28 +1,20 @@
 #include "DiscordGatewayClient.h"
 
-#include "WebSocketsModule.h"
-#include "IWebSocket.h"
+#include "HttpModule.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
-#include "Serialization/JsonWriter.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiscordBot, Log, All);
 
-static const FString DISCORD_GATEWAY_URL = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
+static const FString DISCORD_API_BASE = TEXT("https://discord.com/api/v10");
 
 // ---- Helpers ---------------------------------------------------------------
-
-static FString SerializeJson(const TSharedRef<FJsonObject>& Obj)
-{
-    FString Out;
-    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Out);
-    FJsonSerializer::Serialize(Obj, Writer);
-    return Out;
-}
 
 static TSharedPtr<FJsonObject> ParseJson(const FString& Raw)
 {
@@ -38,239 +30,226 @@ UDiscordGatewayClient::UDiscordGatewayClient()
 {
 }
 
-void UDiscordGatewayClient::Connect(const FString& InBotToken, int32 InIntents)
+// ---- HTTP helper -----------------------------------------------------------
+
+TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UDiscordGatewayClient::MakeRequest(const FString& Path) const
 {
-    if (WebSocket.IsValid() && WebSocket->IsConnected())
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(DISCORD_API_BASE + Path);
+    Request->SetVerb(TEXT("GET"));
+    Request->SetHeader(TEXT("Authorization"), BotToken);
+    Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    Request->SetHeader(TEXT("User-Agent"), TEXT("satisfactory-discord-bot (https://github.com/satisfactorymodding/SatisfactoryModLoader, 1)"));
+    return Request;
+}
+
+// ---- Connection ------------------------------------------------------------
+
+void UDiscordGatewayClient::Connect(const FString& InBotToken, int32 /*InIntents*/)
+{
+    if (bPolling)
     {
-        UE_LOG(LogDiscordBot, Warning, TEXT("Already connected. Call Disconnect() first."));
+        UE_LOG(LogDiscordBot, Warning, TEXT("Already polling. Call Disconnect() first."));
         return;
     }
 
-    BotToken  = InBotToken;
-    Intents   = InIntents;
-    bIdentified = false;
-    LastSequenceNumber.Reset();
+    BotToken     = InBotToken;
+    LastMessageId = TEXT("");
+    bPolling      = false;
 
-    if (!FModuleManager::Get().IsModuleLoaded(TEXT("WebSockets")))
+    if (BotToken.IsEmpty())
     {
-        FModuleManager::Get().LoadModule(TEXT("WebSockets"));
+        UE_LOG(LogDiscordBot, Error, TEXT("BotToken is empty — cannot connect."));
+        OnConnected.Broadcast(false, TEXT("BotToken is empty"));
+        return;
     }
 
-    WebSocket = FWebSocketsModule::Get().CreateWebSocket(DISCORD_GATEWAY_URL, TEXT(""));
-
-    WebSocket->OnConnected().AddUObject(this, &UDiscordGatewayClient::OnWebSocketConnected);
-    WebSocket->OnConnectionError().AddUObject(this, &UDiscordGatewayClient::OnWebSocketConnectionError);
-    WebSocket->OnClosed().AddUObject(this, &UDiscordGatewayClient::OnWebSocketClosed);
-    WebSocket->OnMessage().AddUObject(this, &UDiscordGatewayClient::OnWebSocketMessage);
-
-    UE_LOG(LogDiscordBot, Log, TEXT("Connecting to Discord Gateway: %s"), *DISCORD_GATEWAY_URL);
-    WebSocket->Connect();
+    // Verify the token and kick off polling on success
+    VerifyToken();
 }
 
 void UDiscordGatewayClient::Disconnect()
 {
     if (UWorld* World = GetWorld())
     {
-        World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
+        World->GetTimerManager().ClearTimer(PollTimerHandle);
     }
+    bPolling = false;
+    UE_LOG(LogDiscordBot, Log, TEXT("Discord HTTP polling stopped."));
+}
 
-    if (WebSocket.IsValid())
+// ---- Token verification ----------------------------------------------------
+
+void UDiscordGatewayClient::VerifyToken()
+{
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeRequest(TEXT("/users/@me"));
+    Request->OnProcessRequestComplete().BindUObject(this, &UDiscordGatewayClient::OnVerifyResponse);
+    Request->ProcessRequest();
+    UE_LOG(LogDiscordBot, Log, TEXT("Verifying Discord bot token via /users/@me ..."));
+}
+
+void UDiscordGatewayClient::OnVerifyResponse(FHttpRequestPtr /*Request*/,
+                                               FHttpResponsePtr  Response,
+                                               bool              bSucceeded)
+{
+    if (!bSucceeded || !Response.IsValid())
     {
-        WebSocket->Close();
-        WebSocket.Reset();
-    }
-
-    bIdentified = false;
-    UE_LOG(LogDiscordBot, Log, TEXT("Disconnected from Discord Gateway."));
-}
-
-// ---- WebSocket callbacks ---------------------------------------------------
-
-void UDiscordGatewayClient::OnWebSocketConnected()
-{
-    UE_LOG(LogDiscordBot, Log, TEXT("WebSocket connected to Discord Gateway."));
-    // The Hello payload with heartbeat_interval will arrive next; handled in OnWebSocketMessage.
-}
-
-void UDiscordGatewayClient::OnWebSocketConnectionError(const FString& Error)
-{
-    UE_LOG(LogDiscordBot, Error, TEXT("WebSocket connection error: %s"), *Error);
-    OnConnected.Broadcast(false, Error);
-}
-
-void UDiscordGatewayClient::OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean)
-{
-    UE_LOG(LogDiscordBot, Log, TEXT("WebSocket closed — code %d, reason: %s, clean: %d"),
-        StatusCode, *Reason, bWasClean ? 1 : 0);
-
-    if (UWorld* World = GetWorld())
-    {
-        World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
-    }
-    bIdentified = false;
-}
-
-void UDiscordGatewayClient::OnWebSocketMessage(const FString& Message)
-{
-    TSharedPtr<FJsonObject> Payload = ParseJson(Message);
-    if (!Payload.IsValid())
-    {
-        UE_LOG(LogDiscordBot, Warning, TEXT("Received non-JSON message from gateway."));
+        const FString Err = TEXT("HTTP request failed (no response)");
+        UE_LOG(LogDiscordBot, Error, TEXT("Token verification failed: %s"), *Err);
+        OnConnected.Broadcast(false, Err);
         return;
     }
 
-    const int32 Op = Payload->GetIntegerField(TEXT("op"));
-
-    // Update sequence number if present (the "s" field is null for non-Dispatch ops)
-    double SeqNum = 0.0;
-    if (Payload->TryGetNumberField(TEXT("s"), SeqNum))
+    const int32 Code = Response->GetResponseCode();
+    if (Code != 200)
     {
-        LastSequenceNumber = static_cast<int32>(SeqNum);
+        const FString Err = FString::Printf(TEXT("Discord returned HTTP %d: %s"), Code, *Response->GetContentAsString());
+        UE_LOG(LogDiscordBot, Error, TEXT("Token verification failed: %s"), *Err);
+        OnConnected.Broadcast(false, Err);
+        return;
     }
 
-    switch (Op)
-    {
-        case EDiscordOpCode::Hello:
-        {
-            const TSharedPtr<FJsonObject> HelloData = Payload->GetObjectField(TEXT("d"));
-            const double HeartbeatIntervalMs = HelloData->GetNumberField(TEXT("heartbeat_interval"));
-            const float  HeartbeatIntervalSec = static_cast<float>(HeartbeatIntervalMs) / 1000.f;
+    const TSharedPtr<FJsonObject> Body = ParseJson(Response->GetContentAsString());
+    const FString Username = Body.IsValid() ? Body->GetStringField(TEXT("username")) : TEXT("unknown");
+    UE_LOG(LogDiscordBot, Log, TEXT("Discord bot verified — logged in as: %s"), *Username);
 
-            UE_LOG(LogDiscordBot, Log, TEXT("Received Hello — heartbeat interval %.2f s"), HeartbeatIntervalSec);
-
-            if (UWorld* World = GetWorld())
-            {
-                World->GetTimerManager().SetTimer(
-                    HeartbeatTimerHandle,
-                    this,
-                    &UDiscordGatewayClient::SendHeartbeat,
-                    HeartbeatIntervalSec,
-                    /*bLoop=*/true,
-                    /*FirstDelay=*/HeartbeatIntervalSec
-                );
-            }
-
-            SendIdentify();
-            break;
-        }
-
-        case EDiscordOpCode::HeartbeatAck:
-            UE_LOG(LogDiscordBot, Verbose, TEXT("Heartbeat ACK received."));
-            break;
-
-        case EDiscordOpCode::Heartbeat:
-            // Discord requested an immediate heartbeat
-            SendHeartbeat();
-            break;
-
-        case EDiscordOpCode::Dispatch:
-        {
-            const FString EventName = Payload->GetStringField(TEXT("t"));
-            const TSharedPtr<FJsonObject> EventData = Payload->GetObjectField(TEXT("d"));
-            HandleDispatch(EventName, EventData);
-            break;
-        }
-
-        default:
-            UE_LOG(LogDiscordBot, Verbose, TEXT("Unhandled gateway op-code %d"), Op);
-            break;
-    }
-}
-
-// ---- Gateway logic ---------------------------------------------------------
-
-void UDiscordGatewayClient::SendHeartbeat()
-{
-    if (!WebSocket.IsValid() || !WebSocket->IsConnected()) return;
-
-    TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
-    Payload->SetNumberField(TEXT("op"), EDiscordOpCode::Heartbeat);
-
-    if (LastSequenceNumber.IsSet())
-    {
-        Payload->SetNumberField(TEXT("d"), LastSequenceNumber.GetValue());
-    }
-    else
-    {
-        Payload->SetField(TEXT("d"), MakeShared<FJsonValueNull>());
-    }
-
-    WebSocket->Send(SerializeJson(Payload));
-    UE_LOG(LogDiscordBot, Verbose, TEXT("Heartbeat sent."));
-}
-
-void UDiscordGatewayClient::SendIdentify()
-{
-    if (!WebSocket.IsValid() || !WebSocket->IsConnected()) return;
-
-    // Build the IDENTIFY payload
-    // Intents value enables the three requested privileged intents:
-    //   GuildMembers  (Server Members Intent) : 1 << 1  =     2
-    //   GuildPresences (Presence Intent)      : 1 << 8  =   256
-    //   MessageContent (Message Content Intent): 1 << 15 = 32768
-    //   Combined                                         = 33026
-
-    TSharedRef<FJsonObject> Properties = MakeShared<FJsonObject>();
-    Properties->SetStringField(TEXT("os"),      TEXT("windows"));
-    Properties->SetStringField(TEXT("browser"), TEXT("satisfactory-discord-bot"));
-    Properties->SetStringField(TEXT("device"),  TEXT("satisfactory-discord-bot"));
-
-    TSharedRef<FJsonObject> IdentifyData = MakeShared<FJsonObject>();
-    IdentifyData->SetStringField(TEXT("token"),   BotToken);
-    IdentifyData->SetNumberField(TEXT("intents"), Intents);
-    IdentifyData->SetObjectField(TEXT("properties"), Properties);
-
-    TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
-    Payload->SetNumberField(TEXT("op"), EDiscordOpCode::Identify);
-    Payload->SetObjectField(TEXT("d"),  IdentifyData);
-
-    WebSocket->Send(SerializeJson(Payload));
-    bIdentified = true;
-
-    UE_LOG(LogDiscordBot, Log,
-        TEXT("IDENTIFY sent — intents: %d (GuildMembers=%d | GuildPresences=%d | MessageContent=%d)"),
-        Intents,
-        static_cast<int32>(EDiscordGatewayIntent::GuildMembers),
-        static_cast<int32>(EDiscordGatewayIntent::GuildPresences),
-        static_cast<int32>(EDiscordGatewayIntent::MessageContent));
-
+    bPolling = true;
     OnConnected.Broadcast(true, TEXT(""));
+
+    // Start the recurring poll timer
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().SetTimer(
+            PollTimerHandle,
+            this,
+            &UDiscordGatewayClient::Poll,
+            PollIntervalSeconds,
+            /*bLoop=*/true,
+            /*FirstDelay=*/0.f
+        );
+    }
 }
 
-void UDiscordGatewayClient::HandleDispatch(const FString& EventName,
-                                            const TSharedPtr<FJsonObject>& Data)
+// ---- Poll cycle ------------------------------------------------------------
+
+void UDiscordGatewayClient::Poll()
 {
-    if (EventName == TEXT("READY"))
+    if (!ChannelId.IsEmpty())
     {
-        UE_LOG(LogDiscordBot, Log, TEXT("Bot is READY."));
+        PollMessages();
     }
-    else if (EventName == TEXT("MESSAGE_CREATE"))
+    if (!GuildId.IsEmpty())
     {
-        // MESSAGE_CREATE is delivered only when MESSAGE_CONTENT intent is active
-        const FString Content = Data.IsValid() ? Data->GetStringField(TEXT("content")) : TEXT("");
-        UE_LOG(LogDiscordBot, Log, TEXT("MESSAGE_CREATE: %s"), *Content);
-        OnMessageReceived.Broadcast(Content);
+        PollMembers();
     }
-    else if (EventName == TEXT("PRESENCE_UPDATE"))
+}
+
+void UDiscordGatewayClient::PollMessages()
+{
+    // GET /channels/{id}/messages?after={last_id}&limit=100
+    // Using ?after= means we only receive messages newer than the last one we saw.
+    FString Path = FString::Printf(TEXT("/channels/%s/messages?limit=100"), *ChannelId);
+    if (!LastMessageId.IsEmpty())
     {
-        // PRESENCE_UPDATE requires GUILD_PRESENCES intent
-        const TSharedPtr<FJsonObject> User = Data.IsValid() ? Data->GetObjectField(TEXT("user")) : nullptr;
-        const FString UserId = (User.IsValid()) ? User->GetStringField(TEXT("id")) : TEXT("");
-        UE_LOG(LogDiscordBot, Log, TEXT("PRESENCE_UPDATE for user: %s"), *UserId);
-        OnPresenceUpdated.Broadcast(UserId);
+        Path += FString::Printf(TEXT("&after=%s"), *LastMessageId);
     }
-    else if (EventName == TEXT("GUILD_MEMBER_UPDATE") ||
-             EventName == TEXT("GUILD_MEMBER_ADD")    ||
-             EventName == TEXT("GUILD_MEMBER_REMOVE"))
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeRequest(Path);
+    Request->OnProcessRequestComplete().BindUObject(this, &UDiscordGatewayClient::OnMessagesResponse);
+    Request->ProcessRequest();
+}
+
+void UDiscordGatewayClient::PollMembers()
+{
+    // GET /guilds/{id}/members?limit=1000
+    // Returns up to 1000 members; for large guilds consider pagination.
+    const FString Path = FString::Printf(TEXT("/guilds/%s/members?limit=1000"), *GuildId);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeRequest(Path);
+    Request->OnProcessRequestComplete().BindUObject(this, &UDiscordGatewayClient::OnMembersResponse);
+    Request->ProcessRequest();
+}
+
+// ---- HTTP response handlers ------------------------------------------------
+
+void UDiscordGatewayClient::OnMessagesResponse(FHttpRequestPtr /*Request*/,
+                                                FHttpResponsePtr  Response,
+                                                bool              bSucceeded)
+{
+    if (!bSucceeded || !Response.IsValid() || Response->GetResponseCode() != 200)
     {
-        // These events require GUILD_MEMBERS intent
-        const TSharedPtr<FJsonObject> User = Data.IsValid() ? Data->GetObjectField(TEXT("user")) : nullptr;
-        const FString UserId = (User.IsValid()) ? User->GetStringField(TEXT("id")) : TEXT("");
-        UE_LOG(LogDiscordBot, Log, TEXT("%s for user: %s"), *EventName, *UserId);
+        UE_LOG(LogDiscordBot, Warning, TEXT("Message poll failed (HTTP %d)"),
+            Response.IsValid() ? Response->GetResponseCode() : 0);
+        return;
+    }
+
+    // The response is a JSON array of message objects, newest-last when using ?after=
+    TArray<TSharedPtr<FJsonValue>> Messages;
+    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+    if (!FJsonSerializer::Deserialize(Reader, Messages))
+    {
+        UE_LOG(LogDiscordBot, Warning, TEXT("Failed to parse messages JSON array."));
+        return;
+    }
+
+    for (const TSharedPtr<FJsonValue>& MsgVal : Messages)
+    {
+        const TSharedPtr<FJsonObject> Msg = MsgVal.IsValid() ? MsgVal->AsObject() : nullptr;
+        if (!Msg.IsValid()) continue;
+
+        // Track the highest message ID so we don't re-deliver
+        const FString MsgId = Msg->GetStringField(TEXT("id"));
+        if (LastMessageId.IsEmpty() || MsgId > LastMessageId)
+        {
+            LastMessageId = MsgId;
+        }
+
+        // Fire delegate (requires Message Content access in the Developer Portal)
+        const FString Content = Msg->GetStringField(TEXT("content"));
+        if (!Content.IsEmpty())
+        {
+            UE_LOG(LogDiscordBot, Log, TEXT("New message [%s]: %s"), *MsgId, *Content);
+            OnMessageReceived.Broadcast(Content);
+        }
+    }
+}
+
+void UDiscordGatewayClient::OnMembersResponse(FHttpRequestPtr /*Request*/,
+                                               FHttpResponsePtr  Response,
+                                               bool              bSucceeded)
+{
+    if (!bSucceeded || !Response.IsValid() || Response->GetResponseCode() != 200)
+    {
+        UE_LOG(LogDiscordBot, Warning, TEXT("Member poll failed (HTTP %d)"),
+            Response.IsValid() ? Response->GetResponseCode() : 0);
+        return;
+    }
+
+    // Response is a JSON array of guild member objects
+    TArray<TSharedPtr<FJsonValue>> Members;
+    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+    if (!FJsonSerializer::Deserialize(Reader, Members))
+    {
+        UE_LOG(LogDiscordBot, Warning, TEXT("Failed to parse members JSON array."));
+        return;
+    }
+
+    for (const TSharedPtr<FJsonValue>& MemberVal : Members)
+    {
+        const TSharedPtr<FJsonObject> Member = MemberVal.IsValid() ? MemberVal->AsObject() : nullptr;
+        if (!Member.IsValid()) continue;
+
+        const TSharedPtr<FJsonObject> User = Member->GetObjectField(TEXT("user"));
+        if (!User.IsValid()) continue;
+
+        const FString UserId = User->GetStringField(TEXT("id"));
+        if (UserId.IsEmpty()) continue;
+
+        // Fire the member delegate (requires Server Members access)
         OnMemberUpdated.Broadcast(UserId);
-    }
-    else
-    {
-        UE_LOG(LogDiscordBot, Verbose, TEXT("Unhandled dispatch event: %s"), *EventName);
+
+        // Best-effort presence: the REST member list does not include live presence,
+        // but the bot can cross-reference by firing OnPresenceUpdated per known member.
+        OnPresenceUpdated.Broadcast(UserId);
     }
 }

@@ -22,7 +22,7 @@ public class DiscordBot : ModuleRules
 
         PrivateDependencyModuleNames.AddRange(new[]
         {
-            "WebSockets",
+            "HTTP",
             "SML",
             "FactoryGame",
         });

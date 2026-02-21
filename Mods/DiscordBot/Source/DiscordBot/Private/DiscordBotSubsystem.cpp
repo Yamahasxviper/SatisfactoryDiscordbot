@@ -42,6 +42,8 @@ void UDiscordBotSubsystem::Connect(const FString& InBotToken, int32 InIntents)
         return;
     }
 
+    GatewayClient->GuildId   = GuildId;
+    GatewayClient->ChannelId = ChannelId;
     GatewayClient->Connect(TokenToUse, InIntents);
 }
 
