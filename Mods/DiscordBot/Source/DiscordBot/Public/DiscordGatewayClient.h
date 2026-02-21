@@ -63,26 +63,39 @@ ENUM_CLASS_FLAGS(EDiscordGatewayIntent);
 /** Kept for source compatibility. Not used at runtime in HTTP polling mode. */
 static constexpr int32 DISCORD_BOT_REQUIRED_INTENTS = 33026;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiscordMessageReceived, const FString&, MessageContent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDiscordMessageReceived, const FString&, MessageContent, const FString&, AuthorId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiscordPresenceUpdated, const FString&, UserId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDiscordPresenceCount, int32, OnlineCount, int32, MemberCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiscordMemberUpdated, const FString&, UserId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDiscordConnected, bool, bSuccess, const FString&, ErrorMessage);
 
 /**
- * Polls the Discord REST API to surface message, member, and presence data.
+ * Polls the Discord REST API to cover all three privileged intents without
+ * requiring the WebSocket module (absent from the 5.3.2-CSS engine).
  *
- * This implementation uses UE's built-in HTTP module (confirmed available in
- * the 5.3.2-CSS engine via FactoryGame's own usage) instead of the WebSocket
- * Gateway, so it works even when the WebSockets module is absent.
+ * Intent coverage via HTTP polling:
  *
- * What is polled:
- *  - Messages  : GET /channels/{ChannelId}/messages?after={last_id}&limit=100
- *  - Members   : GET /guilds/{GuildId}/members?limit=1000
+ *  1. MESSAGE CONTENT INTENT
+ *     GET /channels/{ChannelId}/messages?after={last_id}&limit=100
+ *     → fires OnMessageReceived(Content, AuthorId) for each new message.
+ *     The full message text is returned by the REST API without any extra
+ *     permission beyond the channel read scope.
  *
- * The three privileged intents are obtained by configuring your bot in the
- * Discord Developer Portal (Bot → Privileged Gateway Intents).  No special
- * runtime setting is needed here because REST access is controlled by bot
- * permissions, not intents.
+ *  2. SERVER MEMBERS INTENT
+ *     GET /guilds/{GuildId}/members?limit=1000
+ *     → fires OnMemberUpdated(UserId) for every guild member each poll.
+ *     Requires the GUILD_MEMBERS privileged intent to be enabled in the
+ *     Discord Developer Portal (Bot → Privileged Gateway Intents).
+ *
+ *  3. PRESENCE INTENT
+ *     Two sources, both REST-only:
+ *     a) Per-user:  Any user who posts a message is demonstrably online.
+ *        OnMessageReceived extracts the author and fires
+ *        OnPresenceUpdated(AuthorId) so callers know that user is active.
+ *     b) Aggregate: GET /guilds/{GuildId}?with_counts=true
+ *        returns the server-wide approximate online count.
+ *        → fires OnPresenceCount(OnlineCount, MemberCount) each poll.
+ *        → updates ApproximatePresenceCount and ApproximateMemberCount.
  *
  * C++ usage:
  *   UDiscordGatewayClient* Client = NewObject<UDiscordGatewayClient>(Outer);
@@ -91,8 +104,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDiscordConnected, bool, bSuccess
  *   Client->Connect(TEXT("Bot YOUR_BOT_TOKEN"));
  *
  * Blueprint usage:
- *   Obtain via DiscordBotSubsystem → GetGatewayClient(), then set ChannelId/
- *   GuildId and call Connect.  Or use bAutoConnect with the .ini config.
+ *   Obtain via DiscordBotSubsystem → GetGatewayClient().
+ *   Set ChannelId / GuildId before Connect(), or use the .ini config.
  */
 UCLASS(BlueprintType, Blueprintable)
 class DISCORDBOT_API UDiscordGatewayClient : public UObject
@@ -146,24 +159,60 @@ public:
 
     // ---- Delegates ---------------------------------------------------------
 
-    /** Fired for each new message in ChannelId (requires Message Content access). */
+    /**
+     * MESSAGE CONTENT INTENT — Fired for each new message in ChannelId.
+     * @param MessageContent  The text content of the message.
+     * @param AuthorId        Discord user ID of the message author.
+     *                        The author is also fired through OnPresenceUpdated
+     *                        because sending a message proves the user is online.
+     */
     UPROPERTY(BlueprintAssignable, Category = "Discord|Events")
     FOnDiscordMessageReceived OnMessageReceived;
 
     /**
-     * Fired for each member whose online_status changed since last poll
-     * (best-effort from member list; requires Server Members access).
+     * PRESENCE INTENT (per-user) — Fired for each user who is demonstrably
+     * active.  In HTTP polling mode the signal comes from message authorship:
+     * if a user posted a message they were online at that moment.
+     * @param UserId  Discord user ID of the active user.
      */
     UPROPERTY(BlueprintAssignable, Category = "Discord|Events")
     FOnDiscordPresenceUpdated OnPresenceUpdated;
 
-    /** Fired for each member returned by the guild member list poll. */
+    /**
+     * PRESENCE INTENT (aggregate) — Fired each poll cycle with the server-wide
+     * online count from GET /guilds/{GuildId}?with_counts=true.
+     * @param OnlineCount   Approximate number of online members right now.
+     * @param MemberCount   Approximate total member count for the guild.
+     */
+    UPROPERTY(BlueprintAssignable, Category = "Discord|Events")
+    FOnDiscordPresenceCount OnPresenceCount;
+
+    /** SERVER MEMBERS INTENT — Fired for each guild member returned by the
+     *  member list poll (GET /guilds/{GuildId}/members).
+     * @param UserId  Discord user ID of the guild member.
+     */
     UPROPERTY(BlueprintAssignable, Category = "Discord|Events")
     FOnDiscordMemberUpdated OnMemberUpdated;
 
     /** Fired after the first successful token-verification call to /users/@me. */
     UPROPERTY(BlueprintAssignable, Category = "Discord|Events")
     FOnDiscordConnected OnConnected;
+
+    // ---- Presence read-only properties ------------------------------------
+
+    /**
+     * Last known approximate online member count for the guild.
+     * Updated every poll cycle from GET /guilds/{GuildId}?with_counts=true.
+     */
+    UPROPERTY(BlueprintReadOnly, Category = "Discord|Presence")
+    int32 ApproximatePresenceCount = 0;
+
+    /**
+     * Last known approximate total member count for the guild.
+     * Updated every poll cycle from GET /guilds/{GuildId}?with_counts=true.
+     */
+    UPROPERTY(BlueprintReadOnly, Category = "Discord|Presence")
+    int32 ApproximateMemberCount = 0;
 
 private:
     // ---- HTTP helpers ------------------------------------------------------
@@ -179,9 +228,11 @@ private:
     void Poll();
     void PollMessages();
     void PollMembers();
+    void PollGuildInfo();
 
     void OnMessagesResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded);
     void OnMembersResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded);
+    void OnGuildInfoResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded);
 
     // ---- State -------------------------------------------------------------
     FTimerHandle PollTimerHandle;

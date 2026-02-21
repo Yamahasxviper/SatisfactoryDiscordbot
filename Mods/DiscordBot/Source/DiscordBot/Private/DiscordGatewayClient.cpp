@@ -141,6 +141,7 @@ void UDiscordGatewayClient::Poll()
     if (!GuildId.IsEmpty())
     {
         PollMembers();
+        PollGuildInfo();
     }
 }
 
@@ -167,6 +168,18 @@ void UDiscordGatewayClient::PollMembers()
 
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeRequest(Path);
     Request->OnProcessRequestComplete().BindUObject(this, &UDiscordGatewayClient::OnMembersResponse);
+    Request->ProcessRequest();
+}
+
+void UDiscordGatewayClient::PollGuildInfo()
+{
+    // GET /guilds/{id}?with_counts=true
+    // Returns approximate_presence_count (online) and approximate_member_count.
+    // This is the REST-only source for guild-wide Presence Intent data.
+    const FString Path = FString::Printf(TEXT("/guilds/%s?with_counts=true"), *GuildId);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeRequest(Path);
+    Request->OnProcessRequestComplete().BindUObject(this, &UDiscordGatewayClient::OnGuildInfoResponse);
     Request->ProcessRequest();
 }
 
@@ -204,12 +217,20 @@ void UDiscordGatewayClient::OnMessagesResponse(FHttpRequestPtr /*Request*/,
             LastMessageId = MsgId;
         }
 
-        // Fire delegate (requires Message Content access in the Developer Portal)
+        // PRESENCE INTENT (per-user): the message author is demonstrably online.
+        const TSharedPtr<FJsonObject> Author = Msg->GetObjectField(TEXT("author"));
+        const FString AuthorId = Author.IsValid() ? Author->GetStringField(TEXT("id")) : TEXT("");
+        if (!AuthorId.IsEmpty())
+        {
+            OnPresenceUpdated.Broadcast(AuthorId);
+        }
+
+        // MESSAGE CONTENT INTENT: fire with both content and author ID.
         const FString Content = Msg->GetStringField(TEXT("content"));
         if (!Content.IsEmpty())
         {
-            UE_LOG(LogDiscordBot, Log, TEXT("New message [%s]: %s"), *MsgId, *Content);
-            OnMessageReceived.Broadcast(Content);
+            UE_LOG(LogDiscordBot, Log, TEXT("New message [%s] from %s: %s"), *MsgId, *AuthorId, *Content);
+            OnMessageReceived.Broadcast(Content, AuthorId);
         }
     }
 }
@@ -245,11 +266,40 @@ void UDiscordGatewayClient::OnMembersResponse(FHttpRequestPtr /*Request*/,
         const FString UserId = User->GetStringField(TEXT("id"));
         if (UserId.IsEmpty()) continue;
 
-        // Fire the member delegate (requires Server Members access)
+        // SERVER MEMBERS INTENT: fire for each guild member.
         OnMemberUpdated.Broadcast(UserId);
-
-        // Best-effort presence: the REST member list does not include live presence,
-        // but the bot can cross-reference by firing OnPresenceUpdated per known member.
-        OnPresenceUpdated.Broadcast(UserId);
     }
+}
+
+void UDiscordGatewayClient::OnGuildInfoResponse(FHttpRequestPtr /*Request*/,
+                                                  FHttpResponsePtr  Response,
+                                                  bool              bSucceeded)
+{
+    if (!bSucceeded || !Response.IsValid() || Response->GetResponseCode() != 200)
+    {
+        UE_LOG(LogDiscordBot, Warning, TEXT("Guild info poll failed (HTTP %d)"),
+            Response.IsValid() ? Response->GetResponseCode() : 0);
+        return;
+    }
+
+    const TSharedPtr<FJsonObject> Body = ParseJson(Response->GetContentAsString());
+    if (!Body.IsValid())
+    {
+        UE_LOG(LogDiscordBot, Warning, TEXT("Failed to parse guild info JSON."));
+        return;
+    }
+
+    // PRESENCE INTENT (aggregate): how many members are currently online.
+    double PresenceCountVal = 0.0;
+    double MemberCountVal   = 0.0;
+    Body->TryGetNumberField(TEXT("approximate_presence_count"), PresenceCountVal);
+    Body->TryGetNumberField(TEXT("approximate_member_count"),   MemberCountVal);
+
+    ApproximatePresenceCount = static_cast<int32>(PresenceCountVal);
+    ApproximateMemberCount   = static_cast<int32>(MemberCountVal);
+
+    UE_LOG(LogDiscordBot, Log, TEXT("Guild presence: %d online / %d members"),
+        ApproximatePresenceCount, ApproximateMemberCount);
+
+    OnPresenceCount.Broadcast(ApproximatePresenceCount, ApproximateMemberCount);
 }
