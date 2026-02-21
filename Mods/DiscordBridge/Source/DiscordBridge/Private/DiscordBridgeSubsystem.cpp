@@ -1,7 +1,6 @@
 // Copyright Coffee Stain Studios. All Rights Reserved.
 
 #include "DiscordBridgeSubsystem.h"
-#include "DiscordBridgeConfig.h"
 
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
@@ -32,13 +31,14 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
+	// Load (or auto-create) the JSON config file from Configs/DiscordBridge.cfg.
+	Config = FDiscordBridgeConfig::LoadOrCreate();
 
-	if (Config->BotToken.IsEmpty() || Config->ChannelId.IsEmpty())
+	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning,
 		       TEXT("DiscordBridge: BotToken or ChannelId is not configured. "
-		            "Edit Saved/Config/<Platform>/DiscordBridge.ini to enable the bridge."));
+		            "Edit Configs/DiscordBridge.cfg to enable the bridge."));
 		return;
 	}
 
@@ -90,10 +90,9 @@ void UDiscordBridgeSubsystem::Disconnect()
 	// Post the server-offline notification message while still connected.
 	if (bGatewayReady)
 	{
-		const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
-		if (!Config->ServerOfflineMessage.IsEmpty())
+		if (!Config.ServerOfflineMessage.IsEmpty())
 		{
-			SendStatusMessageToDiscord(Config->ServerOfflineMessage);
+			SendStatusMessageToDiscord(Config.ServerOfflineMessage);
 		}
 	}
 
@@ -332,10 +331,9 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 	SendUpdatePresence(TEXT("online"));
 
 	// Post the server-online notification message, if configured.
-	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
-	if (!Config->ServerOnlineMessage.IsEmpty())
+	if (!Config.ServerOnlineMessage.IsEmpty())
 	{
-		SendStatusMessageToDiscord(Config->ServerOnlineMessage);
+		SendStatusMessageToDiscord(Config.ServerOnlineMessage);
 	}
 
 	OnDiscordConnected.Broadcast();
@@ -344,11 +342,9 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>& DataObj)
 {
 	// Only process messages from the configured channel.
-	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
-
 	FString ChannelId;
 	if (!DataObj->TryGetStringField(TEXT("channel_id"), ChannelId) ||
-	    ChannelId != Config->ChannelId)
+	    ChannelId != Config.ChannelId)
 	{
 		return;
 	}
@@ -362,7 +358,7 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	const TSharedPtr<FJsonObject>& Author = *AuthorPtr;
 
 	// Optionally ignore bot messages (including our own) to prevent echo loops.
-	if (Config->bIgnoreBotMessages)
+	if (Config.bIgnoreBotMessages)
 	{
 		bool bIsBot = false;
 		Author->TryGetBoolField(TEXT("bot"), bIsBot);
@@ -407,8 +403,6 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 
 void UDiscordBridgeSubsystem::SendIdentify()
 {
-	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
-
 	// Build the connection properties object.
 	TSharedPtr<FJsonObject> Props = MakeShared<FJsonObject>();
 	Props->SetStringField(TEXT("os"),      TEXT("windows"));
@@ -417,7 +411,7 @@ void UDiscordBridgeSubsystem::SendIdentify()
 
 	// Build the Identify data object.
 	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
-	Data->SetStringField(TEXT("token"),   Config->BotToken);
+	Data->SetStringField(TEXT("token"),   Config.BotToken);
 	Data->SetNumberField(TEXT("intents"), EDiscordGatewayIntent::All);
 	Data->SetObjectField(TEXT("properties"), Props);
 
@@ -472,9 +466,7 @@ void UDiscordBridgeSubsystem::SendUpdatePresence(const FString& Status)
 
 void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 {
-	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
-
-	if (Config->BotToken.IsEmpty() || Config->ChannelId.IsEmpty())
+	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
 	{
 		return;
 	}
@@ -487,7 +479,7 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
 
 	const FString Url = FString::Printf(
-		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config->ChannelId);
+		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
 		FHttpModule::Get().CreateRequest();
@@ -496,7 +488,7 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 	Request->SetVerb(TEXT("POST"));
 	Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
 	Request->SetHeader(TEXT("Authorization"),
-	                   FString::Printf(TEXT("Bot %s"), *Config->BotToken));
+	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
 	Request->SetContentAsString(BodyString);
 
 	Request->OnProcessRequestComplete().BindWeakLambda(
@@ -552,9 +544,7 @@ bool UDiscordBridgeSubsystem::HeartbeatTick(float /*DeltaTime*/)
 void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName,
                                                         const FString& Message)
 {
-	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
-
-	if (Config->BotToken.IsEmpty() || Config->ChannelId.IsEmpty())
+	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning,
 		       TEXT("DiscordBridge: Cannot send message – BotToken or ChannelId not configured."));
@@ -562,7 +552,7 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	}
 
 	// Apply the configurable format string.
-	FString FormattedContent = Config->GameToDiscordFormat;
+	FString FormattedContent = Config.GameToDiscordFormat;
 	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *PlayerName);
 	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
 
@@ -576,7 +566,7 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 
 	// POST to the Discord REST API.
 	const FString Url = FString::Printf(
-		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config->ChannelId);
+		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
 		FHttpModule::Get().CreateRequest();
@@ -585,7 +575,7 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	Request->SetVerb(TEXT("POST"));
 	Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
 	Request->SetHeader(TEXT("Authorization"),
-	                   FString::Printf(TEXT("Bot %s"), *Config->BotToken));
+	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
 	Request->SetContentAsString(BodyString);
 
 	Request->OnProcessRequestComplete().BindWeakLambda(
