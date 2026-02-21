@@ -103,6 +103,8 @@ class DISCORDBRIDGE_API UDiscordBridgeSubsystem : public UGameInstanceSubsystem
 public:
 	// ── USubsystem ────────────────────────────────────────────────────────────
 
+	/** Restrict this subsystem to dedicated servers only. */
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 

@@ -23,6 +23,14 @@ static const FString DiscordApiBase    = TEXT("https://discord.com/api/v10");
 // USubsystem lifetime
 // ─────────────────────────────────────────────────────────────────────────────
 
+bool UDiscordBridgeSubsystem::ShouldCreateSubsystem(UObject* Outer) const
+{
+	// Only create this subsystem on dedicated servers.
+	// This prevents the bot from running on client or listen-server builds,
+	// meaning players do not need this mod (or SML) installed on their own machine.
+	return IsRunningDedicatedServer();
+}
+
 void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
