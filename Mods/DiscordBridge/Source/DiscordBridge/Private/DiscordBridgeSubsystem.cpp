@@ -201,10 +201,11 @@ void UDiscordBridgeSubsystem::HandleGatewayPayload(const FString& RawJson)
 	case EDiscordGatewayOpcode::Dispatch:
 	{
 		// Update the sequence number first; it is used in heartbeats.
-		int32 Seq = -1;
+		// TryGetNumberField only accepts double& in UE5's FJsonObject API.
+		double Seq = -1.0;
 		if (Root->TryGetNumberField(TEXT("s"), Seq))
 		{
-			LastSequenceNumber = Seq;
+			LastSequenceNumber = static_cast<int32>(Seq);
 		}
 
 		FString EventType;

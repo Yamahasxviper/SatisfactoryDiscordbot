@@ -17,12 +17,18 @@
 // which does not conflict with `namespace UI {}`.  push/pop_macro ensures the
 // macro state is properly saved and restored around the OpenSSL includes so
 // that post-include code that refers to `namespace UI` continues to work.
+//
+// THIRD_PARTY_INCLUDES_START/END suppress MSVC warnings (e.g. C4191, C4996)
+// that are emitted by OpenSSL's own headers and would otherwise be treated as
+// errors under UBT's /WX flag.
+THIRD_PARTY_INCLUDES_START
 #pragma push_macro("UI")
 #define UI UI_OSSLRenamed
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/crypto.h"
 #pragma pop_macro("UI")
+THIRD_PARTY_INCLUDES_END
 
 void FSMLWebSocketModule::StartupModule()
 {
