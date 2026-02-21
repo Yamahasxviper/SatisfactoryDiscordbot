@@ -2,17 +2,22 @@
 
 #pragma once
 
-#include "Engine/DeveloperSettings.h"
-#include "DiscordBridgeConfig.generated.h"
+#include "CoreMinimal.h"
 
 /**
  * Configuration for the Discord Bridge mod.
  *
- * Edit these settings via the Project Settings panel (category "Discord Bridge")
- * or directly in Saved/Config/{Platform}/DiscordBridge.ini.
+ * Values are read from and written to
+ *   <ServerDir>/FactoryGame/Configs/DiscordBridge.cfg   (JSON format)
  *
- * IMPORTANT: The BotToken is a sensitive secret.  Do not share your config file
- * or commit it to version control.
+ * The file is created automatically with defaults on the first server start.
+ * To enable the bot:
+ *   1. Open  FactoryGame/Configs/DiscordBridge.cfg
+ *   2. Set   "BotToken"  – the token from the Discord Developer Portal (Bot → Token).
+ *            Treat this value as a password; do not share it.
+ *   3. Set   "ChannelId" – the snowflake ID of the target text channel.
+ *            Enable Developer Mode in Discord, right-click the channel, "Copy Channel ID".
+ *   4. Restart the server.
  *
  * Discord bot requirements
  * ────────────────────────
@@ -24,86 +29,45 @@
  *  • The bot must be invited to your server with at minimum the
  *    "Send Messages" and "Read Message History" permissions in the target channel.
  */
-UCLASS(Config=DiscordBridge, DefaultConfig, meta=(DisplayName="Discord Bridge"))
-class DISCORDBRIDGE_API UDiscordBridgeConfig : public UDeveloperSettings
+struct DISCORDBRIDGE_API FDiscordBridgeConfig
 {
-	GENERATED_BODY()
-
-public:
-	UDiscordBridgeConfig();
-
-	// UDeveloperSettings overrides
-	virtual FName GetCategoryName() const override { return FName(TEXT("Mods")); }
-	virtual FName GetSectionName()  const override { return FName(TEXT("Discord Bridge")); }
-
 	// ── Connection ────────────────────────────────────────────────────────────
 
-	/**
-	 * Discord bot token.
-	 * Found in the Discord Developer Portal → Your Application → Bot → Token.
-	 * Treat this value as a password.
-	 */
-	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Connection")
+	/** Discord bot token (Bot → Token in the Developer Portal). Treat as a password. */
 	FString BotToken;
 
-	/**
-	 * Snowflake ID of the Discord text channel that will be bridged with the
-	 * Satisfactory in-game chat.  Right-click the channel in Discord (with
-	 * Developer Mode enabled) and choose "Copy Channel ID".
-	 */
-	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Connection")
+	/** Snowflake ID of the Discord text channel to bridge with in-game chat. */
 	FString ChannelId;
 
-	// ── Display names ─────────────────────────────────────────────────────────
+	// ── Message formats ───────────────────────────────────────────────────────
 
-	/**
-	 * Format used when a game-chat message is forwarded to Discord.
-	 * Available placeholders:
-	 *   {PlayerName} – the in-game player name
-	 *   {Message}    – the chat message text
-	 *
-	 * Default: "**{PlayerName}**: {Message}"
-	 */
-	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Display Names")
-	FString GameToDiscordFormat;
+	/** Format for game → Discord messages. Placeholders: {PlayerName}, {Message}. */
+	FString GameToDiscordFormat{ TEXT("**{PlayerName}**: {Message}") };
 
-	/**
-	 * Format used when a Discord message is forwarded to the in-game chat.
-	 * Available placeholders:
-	 *   {Username} – the Discord user's display name / username
-	 *   {Message}  – the Discord message text
-	 *
-	 * Default: "[Discord] {Username}: {Message}"
-	 */
-	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Display Names")
-	FString DiscordToGameFormat;
+	/** Format for Discord → game messages. Placeholders: {Username}, {Message}. */
+	FString DiscordToGameFormat{ TEXT("[Discord] {Username}: {Message}") };
 
 	// ── Behaviour ─────────────────────────────────────────────────────────────
 
-	/**
-	 * When true, messages sent by the bot itself are silently ignored so that
-	 * messages forwarded from the game do not echo back into the game.
-	 */
-	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Behaviour")
-	bool bIgnoreBotMessages{true};
+	/** When true, messages from bot accounts are ignored (prevents echo loops). */
+	bool bIgnoreBotMessages{ true };
 
 	// ── Server status messages ────────────────────────────────────────────────
 
-	/**
-	 * Message posted to the bridged channel when the server comes online.
-	 * Leave empty to disable the notification.
-	 *
-	 * Default: ":green_circle: Server is now **online**!"
-	 */
-	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Server Status")
-	FString ServerOnlineMessage;
+	/** Posted to Discord when the server comes online. Leave empty to disable. */
+	FString ServerOnlineMessage{ TEXT(":green_circle: Server is now **online**!") };
+
+	/** Posted to Discord when the server shuts down. Leave empty to disable. */
+	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
 	/**
-	 * Message posted to the bridged channel when the server is shutting down.
-	 * Leave empty to disable the notification.
-	 *
-	 * Default: ":red_circle: Server is now **offline**."
+	 * Loads configuration from <ProjectDir>/Configs/DiscordBridge.cfg.
+	 * If the file does not exist it is created with default values and those
+	 * defaults are returned.  Any missing keys in an existing file are added
+	 * on the next save.
 	 */
-	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Server Status")
-	FString ServerOfflineMessage;
+	static FDiscordBridgeConfig LoadOrCreate();
+
+	/** Returns the absolute path to the JSON config file. */
+	static FString GetConfigFilePath();
 };

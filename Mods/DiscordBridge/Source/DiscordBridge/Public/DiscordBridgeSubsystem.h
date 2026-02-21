@@ -6,6 +6,7 @@
 #include "Containers/Ticker.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "SMLWebSocketClient.h"
+#include "DiscordBridgeConfig.h"
 #include "DiscordBridgeSubsystem.generated.h"
 
 // ── Delegate declarations ─────────────────────────────────────────────────────
@@ -90,8 +91,8 @@ namespace EDiscordGatewayIntent
  *  1. Create a Discord application and bot in the Discord Developer Portal.
  *  2. Enable all three Privileged Gateway Intents on the Bot page.
  *  3. Invite the bot to your server with "Send Messages" + "Read Message History".
- *  4. Fill in BotToken and ChannelId in the DiscordBridge section of
- *     Saved/Config/{Platform}/DiscordBridge.ini (or via Project Settings → Mods).
+ *  4. Fill in BotToken and ChannelId in Configs/DiscordBridge.cfg (auto-created
+ *     on first server start) and restart the server.
  *  5. Optionally customise GameToDiscordFormat and DiscordToGameFormat.
  *  6. In Blueprint, bind to OnDiscordMessageReceived and call
  *     SendGameMessageToDiscord() from your chat hooks.
@@ -239,6 +240,9 @@ private:
 	/** The WebSocket client connected to the Discord Gateway. */
 	UPROPERTY()
 	USMLWebSocketClient* WebSocketClient{nullptr};
+
+	/** Loaded configuration (populated in Initialize()). */
+	FDiscordBridgeConfig Config;
 
 	/** Last sequence number received from Discord (used in heartbeats). */
 	int32 LastSequenceNumber{-1};

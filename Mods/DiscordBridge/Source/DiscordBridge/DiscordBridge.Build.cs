@@ -34,10 +34,6 @@ public class DiscordBridge : ModuleRules
 			// public dependency.  Note: "JsonUtilities" (FJsonObjectConverter) is NOT
 			// listed here because this module does not use UStruct-to-JSON conversion.
 			"Json",
-			// UDeveloperSettings base class – confirmed present in Satisfactory's custom
-			// UE build.  Verified: FactoryGame.Build.cs lists "DeveloperSettings" in
-			// PublicDependencyModuleNames.
-			"DeveloperSettings",
 		});
 	}
 }
