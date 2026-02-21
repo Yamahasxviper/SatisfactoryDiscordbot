@@ -40,6 +40,7 @@ namespace EDiscordGatewayOpcode
 	static constexpr int32 Dispatch          = 0;  // Server → Client: an event was dispatched
 	static constexpr int32 Heartbeat         = 1;  // Client → Server: keep-alive heartbeat
 	static constexpr int32 Identify          = 2;  // Client → Server: trigger authentication
+	static constexpr int32 UpdatePresence    = 3;  // Client → Server: update bot presence/status
 	static constexpr int32 Resume            = 6;  // Client → Server: resume a dropped session
 	static constexpr int32 Reconnect         = 7;  // Server → Client: client should reconnect
 	static constexpr int32 InvalidSession    = 9;  // Server → Client: session is invalid
@@ -151,6 +152,14 @@ public:
 	void Disconnect();
 
 	/**
+	 * Send a presence update to Discord to set the bot's online status.
+	 *
+	 * @param Status  One of "online", "idle", "dnd", or "invisible".
+	 */
+	UFUNCTION(BlueprintCallable, Category="Discord Bridge")
+	void SendUpdatePresence(const FString& Status);
+
+	/**
 	 * Returns true when the Gateway WebSocket is open and the bot has been
 	 * identified (Ready event received from Discord).
 	 */
@@ -207,6 +216,9 @@ private:
 
 	/** Send a heartbeat (op=1) to keep the Gateway connection alive. */
 	void SendHeartbeat();
+
+	/** Send a plain text message to the configured Discord channel via the REST API. */
+	void SendStatusMessageToDiscord(const FString& Message);
 
 	/** Serialise a JSON object and send it as a text WebSocket frame. */
 	void SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload);

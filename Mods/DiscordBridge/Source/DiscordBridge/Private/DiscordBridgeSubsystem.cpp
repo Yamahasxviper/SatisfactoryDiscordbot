@@ -84,6 +84,16 @@ void UDiscordBridgeSubsystem::Disconnect()
 		World->GetTimerManager().ClearTimer(HeartbeatTimerHandle);
 	}
 
+	// Post the server-offline notification message while still connected.
+	if (bGatewayReady)
+	{
+		const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
+		if (!Config->ServerOfflineMessage.IsEmpty())
+		{
+			SendStatusMessageToDiscord(Config->ServerOfflineMessage);
+		}
+	}
+
 	bGatewayReady      = false;
 	LastSequenceNumber = -1;
 	BotUserId.Empty();
@@ -317,6 +327,16 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: Gateway ready. Bot user ID: %s"), *BotUserId);
 
+	// Set bot presence to Online so Discord shows it as available.
+	SendUpdatePresence(TEXT("online"));
+
+	// Post the server-online notification message, if configured.
+	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
+	if (!Config->ServerOnlineMessage.IsEmpty())
+	{
+		SendStatusMessageToDiscord(Config->ServerOnlineMessage);
+	}
+
 	OnDiscordConnected.Broadcast();
 }
 
@@ -429,6 +449,75 @@ void UDiscordBridgeSubsystem::SendHeartbeat()
 	}
 
 	SendGatewayPayload(Payload);
+}
+
+void UDiscordBridgeSubsystem::SendUpdatePresence(const FString& Status)
+{
+	// Build the presence data object (Discord Gateway op=3).
+	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
+	Data->SetField(TEXT("since"),      MakeShared<FJsonValueNull>());
+	Data->SetArrayField(TEXT("activities"), TArray<TSharedPtr<FJsonValue>>());
+	Data->SetStringField(TEXT("status"), Status);
+	Data->SetBoolField(TEXT("afk"),    false);
+
+	TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
+	Payload->SetNumberField(TEXT("op"), EDiscordGatewayOpcode::UpdatePresence);
+	Payload->SetObjectField(TEXT("d"),  Data);
+
+	SendGatewayPayload(Payload);
+
+	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Presence updated to '%s'."), *Status);
+}
+
+void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
+{
+	const UDiscordBridgeConfig* Config = GetDefault<UDiscordBridgeConfig>();
+
+	if (Config->BotToken.IsEmpty() || Config->ChannelId.IsEmpty())
+	{
+		return;
+	}
+
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("content"), Message);
+
+	FString BodyString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
+	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
+
+	const FString Url = FString::Printf(
+		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config->ChannelId);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
+		FHttpModule::Get().CreateRequest();
+
+	Request->SetURL(Url);
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
+	Request->SetHeader(TEXT("Authorization"),
+	                   FString::Printf(TEXT("Bot %s"), *Config->BotToken));
+	Request->SetContentAsString(BodyString);
+
+	Request->OnProcessRequestComplete().BindWeakLambda(
+		this,
+		[Message](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
+		{
+			if (!bConnected || !Resp.IsValid())
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: HTTP request failed for status message '%s'."),
+				       *Message);
+				return;
+			}
+			if (Resp->GetResponseCode() < 200 || Resp->GetResponseCode() >= 300)
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Discord REST API returned %d: %s"),
+				       Resp->GetResponseCode(), *Resp->GetContentAsString());
+			}
+		});
+
+	Request->ProcessRequest();
 }
 
 void UDiscordBridgeSubsystem::SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload)
