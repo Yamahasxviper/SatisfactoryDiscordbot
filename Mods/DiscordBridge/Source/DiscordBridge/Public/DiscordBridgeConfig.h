@@ -86,4 +86,24 @@ public:
 	 */
 	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Behaviour")
 	bool bIgnoreBotMessages{true};
+
+	// ── Server status messages ────────────────────────────────────────────────
+
+	/**
+	 * Message posted to the bridged channel when the server comes online.
+	 * Leave empty to disable the notification.
+	 *
+	 * Default: ":green_circle: Server is now **online**!"
+	 */
+	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Server Status")
+	FString ServerOnlineMessage;
+
+	/**
+	 * Message posted to the bridged channel when the server is shutting down.
+	 * Leave empty to disable the notification.
+	 *
+	 * Default: ":red_circle: Server is now **offline**."
+	 */
+	UPROPERTY(Config, EditAnywhere, Category="Discord Bridge|Server Status")
+	FString ServerOfflineMessage;
 };
