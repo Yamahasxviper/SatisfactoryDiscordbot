@@ -87,9 +87,15 @@ void UDiscordBridgeSubsystem::Disconnect()
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	HeartbeatTickerHandle.Reset();
 
-	// Post the server-offline notification message while still connected.
+	// Signal offline status and post the server-offline notification while
+	// the WebSocket is still open so Discord receives both before we close.
 	if (bGatewayReady)
 	{
+		// Setting presence to "invisible" makes the bot appear offline to
+		// users immediately, without waiting for Discord to detect the
+		// WebSocket disconnection.
+		SendUpdatePresence(TEXT("invisible"));
+
 		if (!Config.ServerOfflineMessage.IsEmpty())
 		{
 			SendStatusMessageToDiscord(Config.ServerOfflineMessage);
@@ -409,11 +415,20 @@ void UDiscordBridgeSubsystem::SendIdentify()
 	Props->SetStringField(TEXT("browser"), TEXT("satisfactory_discord_bridge"));
 	Props->SetStringField(TEXT("device"),  TEXT("satisfactory_discord_bridge"));
 
+	// Set the initial presence so the bot appears online immediately upon
+	// authentication, before a separate UpdatePresence op is sent.
+	TSharedPtr<FJsonObject> InitialPresence = MakeShared<FJsonObject>();
+	InitialPresence->SetField(TEXT("since"), MakeShared<FJsonValueNull>());
+	InitialPresence->SetArrayField(TEXT("activities"), TArray<TSharedPtr<FJsonValue>>());
+	InitialPresence->SetStringField(TEXT("status"), TEXT("online"));
+	InitialPresence->SetBoolField(TEXT("afk"), false);
+
 	// Build the Identify data object.
 	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
 	Data->SetStringField(TEXT("token"),   Config.BotToken);
 	Data->SetNumberField(TEXT("intents"), EDiscordGatewayIntent::All);
 	Data->SetObjectField(TEXT("properties"), Props);
+	Data->SetObjectField(TEXT("presence"), InitialPresence);
 
 	// Wrap in the Gateway payload envelope.
 	TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
