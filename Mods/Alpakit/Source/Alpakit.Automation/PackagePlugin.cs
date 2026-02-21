@@ -275,5 +275,22 @@ public class PackagePlugin : BuildCookRun
 				SC.StageFile(StagedFileType.NonUFS, intermediateModuleFilePath, outputFilePath);
 			}
 		}
+
+		StagePluginConfigFiles(ProjectParams, SC);
+	}
+
+	private static void StagePluginConfigFiles(ProjectParams ProjectParams, DeploymentContext SC)
+	{
+		var pluginConfigDir = DirectoryReference.Combine(ProjectParams.DLCFile.Directory, "Config");
+		if (!DirectoryReference.Exists(pluginConfigDir))
+			return;
+
+		var pluginRelativePath = GetPluginPathRelativeToStageRoot(ProjectParams);
+
+		foreach (var configFile in DirectoryReference.EnumerateFiles(pluginConfigDir))
+		{
+			var stagedPath = new StagedFileReference(CombinePaths(pluginRelativePath, "Config", configFile.GetFileName()));
+			SC.StageFile(StagedFileType.NonUFS, configFile, stagedPath);
+		}
 	}
 }
