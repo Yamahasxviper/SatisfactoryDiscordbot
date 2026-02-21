@@ -1,6 +1,6 @@
 // Copyright Coffee Stain Studios. All Rights Reserved.
 
-#include "DiscordBridgeConfig.h"
+#include "LogViewerConfig.h"
 
 #include "Dom/JsonObject.h"
 #include "HAL/PlatformFileManager.h"
@@ -27,29 +27,20 @@ namespace
 		}
 		return Default;
 	}
-
-	bool GetBoolFieldOrDefault(const TSharedPtr<FJsonObject>& Json,
-	                           const FString& Key,
-	                           bool Default)
-	{
-		bool Value = Default;
-		Json->TryGetBoolField(Key, Value);
-		return Value;
-	}
 } // anonymous namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FDiscordBridgeConfig
+// FLogViewerConfig
 // ─────────────────────────────────────────────────────────────────────────────
 
-FString FDiscordBridgeConfig::GetConfigFilePath()
+FString FLogViewerConfig::GetConfigFilePath()
 {
-	return FPaths::ProjectDir() + TEXT("Configs/DiscordBridge.cfg");
+	return FPaths::ProjectDir() + TEXT("Configs/LogViewer.cfg");
 }
 
-FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
+FLogViewerConfig FLogViewerConfig::LoadOrCreate()
 {
-	FDiscordBridgeConfig Config;
+	FLogViewerConfig Config;
 	const FString FilePath = GetConfigFilePath();
 
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
@@ -67,20 +58,26 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 			if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
 			{
-				Config.BotToken             = GetStringFieldOrDefault(JsonObject, TEXT("BotToken"),             TEXT(""));
-				Config.ChannelId            = GetStringFieldOrDefault(JsonObject, TEXT("ChannelId"),            TEXT(""));
-				Config.GameToDiscordFormat  = GetStringFieldOrDefault(JsonObject, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
-				Config.DiscordToGameFormat  = GetStringFieldOrDefault(JsonObject, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
-				Config.bIgnoreBotMessages   = GetBoolFieldOrDefault  (JsonObject, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
-				Config.ServerOnlineMessage  = GetStringFieldOrDefault(JsonObject, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
-				Config.ServerOfflineMessage = GetStringFieldOrDefault(JsonObject, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+				double PortDouble = static_cast<double>(Config.Port);
+				if (JsonObject->TryGetNumberField(TEXT("Port"), PortDouble))
+				{
+					Config.Port = FMath::Clamp(static_cast<int32>(PortDouble), 1, 65535);
+				}
 
-				UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Loaded config from %s"), *FilePath);
+				double LogLineCountDouble = static_cast<double>(Config.LogLineCount);
+				if (JsonObject->TryGetNumberField(TEXT("LogLineCount"), LogLineCountDouble))
+				{
+					Config.LogLineCount = FMath::Clamp(static_cast<int32>(LogLineCountDouble), 0, 10000);
+				}
+
+				Config.AuthToken = GetStringFieldOrDefault(JsonObject, TEXT("AuthToken"), TEXT(""));
+
+				UE_LOG(LogTemp, Log, TEXT("LogViewer: Loaded config from %s"), *FilePath);
 			}
 			else
 			{
 				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: Failed to parse config JSON at '%s'. "
+				       TEXT("LogViewer: Failed to parse config JSON at '%s'. "
 				            "Recreating the file with defaults."), *FilePath);
 				bNeedsSave = true;
 			}
@@ -88,7 +85,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		else
 		{
 			UE_LOG(LogTemp, Warning,
-			       TEXT("DiscordBridge: Failed to read config file at '%s'. "
+			       TEXT("LogViewer: Failed to read config file at '%s'. "
 			            "Using built-in defaults."), *FilePath);
 			bNeedsSave = true;
 		}
@@ -96,7 +93,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 	else
 	{
 		UE_LOG(LogTemp, Log,
-		       TEXT("DiscordBridge: Config file not found at '%s'. "
+		       TEXT("LogViewer: Config file not found at '%s'. "
 		            "Creating it with defaults."), *FilePath);
 		bNeedsSave = true;
 	}
@@ -104,34 +101,28 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 	if (bNeedsSave)
 	{
 		TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
-		JsonObject->SetStringField(TEXT("BotToken"),             Config.BotToken);
-		JsonObject->SetStringField(TEXT("ChannelId"),            Config.ChannelId);
-		JsonObject->SetStringField(TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
-		JsonObject->SetStringField(TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
-		JsonObject->SetBoolField  (TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
-		JsonObject->SetStringField(TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
-		JsonObject->SetStringField(TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+		JsonObject->SetNumberField(TEXT("Port"),         Config.Port);
+		JsonObject->SetNumberField(TEXT("LogLineCount"), Config.LogLineCount);
+		JsonObject->SetStringField(TEXT("AuthToken"),    Config.AuthToken);
 
 		FString JsonContent;
 		const TSharedRef<TJsonWriter<>> Writer =
 			TJsonWriterFactory<>::Create(&JsonContent);
 		FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 
-		// Ensure the Configs directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(FilePath));
 
 		if (FFileHelper::SaveStringToFile(JsonContent, *FilePath))
 		{
 			UE_LOG(LogTemp, Log,
-			       TEXT("DiscordBridge: Wrote default config to '%s'. "
-			            "Set BotToken and ChannelId in that file, then restart "
-			            "the server to enable the Discord bridge."), *FilePath);
+			       TEXT("LogViewer: Wrote default config to '%s'. "
+			            "Browse to http://<server-ip>:%d/logs to view the server log."),
+			       *FilePath, Config.Port);
 		}
 		else
 		{
 			UE_LOG(LogTemp, Warning,
-			       TEXT("DiscordBridge: Could not write default config to '%s'."),
-			       *FilePath);
+			       TEXT("LogViewer: Could not write default config to '%s'."), *FilePath);
 		}
 	}
 
