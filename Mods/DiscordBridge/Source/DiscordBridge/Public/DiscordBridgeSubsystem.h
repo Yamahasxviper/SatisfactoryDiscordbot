@@ -293,4 +293,11 @@ private:
 
 	/** Snowflake ID of the bot user; used to filter out self-sent messages. */
 	FString BotUserId;
+
+	/**
+	 * Text values of Discord messages currently being relayed to the game chat.
+	 * Populated in RelayDiscordMessageToGame() and consumed in OnNewChatMessage()
+	 * so that the relayed CMT_PlayerMessage is not immediately echoed back to Discord.
+	 */
+	TSet<FString> PendingRelayedMessages;
 };
