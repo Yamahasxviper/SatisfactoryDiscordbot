@@ -3,6 +3,7 @@
 #include "FGPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Server/FGDSAuthenticationTypes.h"
+#include "FGChatManager.h"
 
 AFGPlayerController::AFGPlayerController() : Super() {
 	this->mHotbarRadialMenuWidgetClass = nullptr;
@@ -151,7 +152,13 @@ void AFGPlayerController::OnDismantlePortableMiner_Implementation( AFGPortableMi
 void AFGPlayerController::OnDismantleGolfCart_Implementation( AFGWheeledVehicle* inGolfCart){ }
 void AFGPlayerController::CheckPawnMapArea(){ }
 bool AFGPlayerController::InitMapAreaCheckFunction(){ return bool(); }
-void AFGPlayerController::EnterChatMessage(const FString& inMessage){ }
+void AFGPlayerController::EnterChatMessage(const FString& inMessage) {
+	bool shouldSendMessage = true;
+	ChatMessageEntered.Broadcast(inMessage, shouldSendMessage);
+	if (shouldSendMessage) {
+		Server_SendChatMessage(inMessage);
+	}
+}
 bool AFGPlayerController::GetIsPhotoMode() const{ return bool(); }
 void AFGPlayerController::OnDisabledInputGateChanged_Implementation(){ }
 void AFGPlayerController::TogglePhotoMode(){ }
@@ -180,7 +187,24 @@ void AFGPlayerController::Server_StartRespawn_Implementation(){ }
 bool AFGPlayerController::Server_StartRespawn_Validate(){ return bool(); }
 void AFGPlayerController::Server_FinishRespawn_Implementation(){ }
 bool AFGPlayerController::Server_FinishRespawn_Validate(){ return bool(); }
-void AFGPlayerController::Server_SendChatMessage_Implementation(const FString& messageText){  }
+void AFGPlayerController::Server_SendChatMessage_Implementation(const FString& messageText) {
+	FChatMessageStruct MessageStruct;
+	MessageStruct.MessageText = FText::FromString(messageText);
+	MessageStruct.MessageType = EFGChatMessageType::CMT_PlayerMessage;
+
+	if (AGameStateBase* GameState = GetGameState()) {
+		MessageStruct.ServerTimeStamp = GameState->GetServerWorldTimeSeconds();
+	}
+
+	if (APlayerState* PlayerState = GetPlayerState<APlayerState>()) {
+		MessageStruct.MessageSender = FText::FromString(PlayerState->GetPlayerName());
+	}
+
+	AFGChatManager* ChatManager = AFGChatManager::Get(GetWorld());
+	if (ChatManager) {
+		ChatManager->BroadcastChatMessage(MessageStruct, this);
+	}
+}
 void AFGPlayerController::Server_UpdatePlayerInputDeviceType_Implementation(EInputDeviceType newInputDeviceType){  }
 void AFGPlayerController::Server_WaitForLevelStreaming(){ }
 void AFGPlayerController::Client_WaitForLevelStreaming_Implementation(){ }

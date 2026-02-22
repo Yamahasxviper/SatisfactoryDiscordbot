@@ -40,6 +40,22 @@ void USMLRemoteCallObject::SendChatMessage_Implementation(const FString& Message
 	
 }
 
+void USMLRemoteCallObject::SendChatMessageWithSender_Implementation(const FString& Message, const FLinearColor& Color, const FString& Sender) {
+	AFGChatManager* ChatManager = AFGChatManager::Get(GetWorld());
+	if (ChatManager) {
+		FChatMessageStruct MessageStruct;
+		MessageStruct.MessageText = FText::FromString(Message);
+		MessageStruct.MessageType = EFGChatMessageType::CMT_PlayerMessage;
+		MessageStruct.ServerTimeStamp = GetGameState()->GetServerWorldTimeSeconds();
+		MessageStruct.MessageSenderColor = Color;
+		MessageStruct.MessageSender = FText::FromString(Sender);
+		ChatManager->AddChatMessageToReceived(MessageStruct);
+	} else {
+		UE_LOG(LogSatisfactoryModLoader, Error, TEXT("A mod tried to send a chat message before the game's ChatManager was ready! It has been prevented to avoid a crash. The mod developer must fix this by waiting for the chat manager to be valid. The message would have been: %s"), *Message);
+	}
+}
+
+
 bool USMLRemoteCallObject::HandleChatCommand_Validate(const FString& CommandLine) {
 	return true;
 }
