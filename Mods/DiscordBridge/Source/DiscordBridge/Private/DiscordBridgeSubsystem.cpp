@@ -760,8 +760,9 @@ void UDiscordBridgeSubsystem::OnNewChatMessage()
 	//
 	// In the normal (non-full) case we process all entries from NumSeenChatMessages
 	// onward; in the rolling-buffer case we process only the last entry.
-	// Forward only CMT_PlayerMessage entries; CMT_SystemMessage entries include
-	// our own Discord-relay messages and skipping them prevents an echo loop.
+	// Forward only CMT_PlayerMessage entries to Discord.  Messages relayed FROM
+	// Discord are also CMT_PlayerMessage, so PendingRelayedMessages is used to
+	// identify and skip them before they are forwarded back to Discord.
 	const int32 StartIdx = (Messages.Num() > NumSeenChatMessages)
 	                       ? NumSeenChatMessages
 	                       : (Messages.Num() - 1);
@@ -773,6 +774,17 @@ void UDiscordBridgeSubsystem::OnNewChatMessage()
 		{
 			const FString PlayerName  = Msg.MessageSender.ToString().TrimStartAndEnd();
 			const FString MessageText = Msg.MessageText.ToString().TrimStartAndEnd();
+
+			// Skip messages we relayed from Discord to prevent echo loops.
+			// RelayDiscordMessageToGame() pre-registers the FormattedMessage text
+			// in PendingRelayedMessages; Remove() returns > 0 when found.
+			if (PendingRelayedMessages.Remove(MessageText) > 0)
+			{
+				UE_LOG(LogTemp, VeryVerbose,
+				       TEXT("DiscordBridge: Suppressing echo of Discord-relayed message: '%s'"),
+				       *MessageText);
+				continue;
+			}
 
 			UE_LOG(LogTemp, Log,
 			       TEXT("DiscordBridge: Player message detected. Sender: '%s', Text: '%s'"),
@@ -892,7 +904,7 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 		return;
 	}
 
-	// Apply the configurable format string (DiscordToGameFormat).
+	// Apply the configurable format string (DiscordToGameFormat) to the message body.
 	// Use a fallback if the format is empty so the message is never silently
 	// dropped due to a misconfigured INI.
 	FString FormattedMessage = Config.DiscordToGameFormat;
@@ -901,20 +913,33 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 
 	if (FormattedMessage.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: DiscordToGameFormat produced an empty string for user '%s'. "
-		            "Check the DiscordToGameFormat setting in DefaultDiscordBridge.ini."),
-		       *Username);
-		return;
+		// Format produced an empty result – fall back to the raw message so the
+		// content is always visible rather than silently dropped.
+		FormattedMessage = Message;
 	}
 
+	// Build the sender label that will appear in the chat name column.
+	// The "[Discord] " prefix is also used by OnNewChatMessage to detect and
+	// suppress the echo that would otherwise result from broadcasting a
+	// CMT_PlayerMessage (which OnNewChatMessage would normally forward to Discord).
+	const FString SenderLabel = FString::Printf(TEXT("[Discord] %s"), *Username);
+
 	FChatMessageStruct ChatMsg;
+	// Use CMT_PlayerMessage so the game's chat widget renders both the sender
+	// name (MessageSender) and the message body (MessageText) visibly.
+	// CMT_SystemMessage can suppress or override MessageText in some engine
+	// builds, causing only the sender label to appear.
+	ChatMsg.MessageType   = EFGChatMessageType::CMT_PlayerMessage;
+	ChatMsg.MessageSender = FText::FromString(SenderLabel);
 	ChatMsg.MessageText   = FText::FromString(FormattedMessage);
-	ChatMsg.MessageType   = EFGChatMessageType::CMT_SystemMessage;
-	ChatMsg.MessageSender = FText::FromString(TEXT("Discord"));
+
+	// Register this message before broadcasting so that OnNewChatMessage can
+	// recognise and skip it, preventing an echo back to Discord.
+	PendingRelayedMessages.Add(FormattedMessage.TrimStartAndEnd());
 
 	ChatManager->BroadcastChatMessage(ChatMsg);
 
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Relayed to game chat: %s"), *FormattedMessage);
+	       TEXT("DiscordBridge: Relayed to game chat – sender: '%s', text: '%s'"),
+	       *SenderLabel, *FormattedMessage);
 }
