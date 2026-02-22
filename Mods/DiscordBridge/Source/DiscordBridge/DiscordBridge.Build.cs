@@ -24,9 +24,10 @@ public class DiscordBridge : ModuleRules
 			"FactoryGame",
 			// SML runtime dependency – ensures correct module load ordering.
 			"SML",
-			// Our own SSL-backed WebSocket client plugin (SMLWebSocket mod in this repo).
-			// Confirmed available: built alongside this mod by Alpakit.
-			"SMLWebSocket",
+			// Unreal Engine built-in WebSocket module – available in Satisfactory's custom
+			// UE build.  Replaces the former SMLWebSocket plugin so DiscordBridge no longer
+			// requires a separate companion mod.  Provides IWebSocket / FWebSocketsModule.
+			"WebSockets",
 			// Unreal HTTP module – confirmed present in Satisfactory's custom UE build.
 			// Verified: FactoryGame.Build.cs lists "HTTP" in PublicDependencyModuleNames,
 			// which makes it transitively available to every SML-dependent mod.

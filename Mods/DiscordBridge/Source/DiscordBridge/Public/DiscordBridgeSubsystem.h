@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Containers/Ticker.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "SMLWebSocketClient.h"
+#include "IWebSocket.h"
 #include "DiscordBridgeConfig.h"
 #include "DiscordBridgeSubsystem.generated.h"
 
@@ -79,7 +79,7 @@ namespace EDiscordGatewayIntent
  * How it works
  * ────────────
  *  • Connects to the Discord Gateway (wss://gateway.discord.gg/?v=10&encoding=json)
- *    using USMLWebSocketClient from the SMLWebSocket plugin.
+ *    using Unreal Engine's built-in WebSockets module (IWebSocket / FWebSocketsModule).
  *  • Authenticates with the configured BotToken and requests the three privileged
  *    intents: Presence Intent, Server Members Intent, Message Content Intent.
  *  • Discord → Game: MESSAGE_CREATE events on the configured channel fire
@@ -173,22 +173,24 @@ public:
 	bool IsConnected() const { return bGatewayReady; }
 
 private:
+	// ── WebSocket helpers ─────────────────────────────────────────────────────
+
+	/** Create a new IWebSocket, bind all delegates, and call Connect(). */
+	void CreateAndConnectWebSocket();
+
+	/**
+	 * Schedule a reconnect attempt using exponential back-off.
+	 * Called from OnWebSocketClosed / OnWebSocketError when the disconnect was
+	 * not user-initiated and the close code is not a terminal Discord error.
+	 */
+	void ScheduleReconnect();
+
 	// ── WebSocket event handlers (called on the game thread) ──────────────────
 
-	UFUNCTION()
 	void OnWebSocketConnected();
-
-	UFUNCTION()
 	void OnWebSocketMessage(const FString& RawJson);
-
-	UFUNCTION()
-	void OnWebSocketClosed(int32 StatusCode, const FString& Reason);
-
-	UFUNCTION()
+	void OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean);
 	void OnWebSocketError(const FString& ErrorMessage);
-
-	UFUNCTION()
-	void OnWebSocketReconnecting(int32 AttemptNumber, float DelaySeconds);
 
 	// ── Discord Gateway protocol ──────────────────────────────────────────────
 
@@ -246,6 +248,20 @@ private:
 	FTSTicker::FDelegateHandle HeartbeatTickerHandle;
 	float HeartbeatIntervalSeconds{0.0f};
 
+	// ── Reconnect state ───────────────────────────────────────────────────────
+
+	/** One-shot ticker that fires the next reconnect attempt after back-off delay. */
+	FTSTicker::FDelegateHandle ReconnectTickerHandle;
+
+	/** Number of consecutive failed connection attempts (reset on success). */
+	int32 ReconnectAttemptCount{0};
+
+	/**
+	 * Set to true by Disconnect() so that OnWebSocketClosed / OnWebSocketError
+	 * do not trigger automatic reconnection.
+	 */
+	bool bUserDisconnected{false};
+
 	// ── Chat-manager binding ──────────────────────────────────────────────────
 
 	/**
@@ -270,9 +286,8 @@ private:
 
 	// ── Internal state ────────────────────────────────────────────────────────
 
-	/** The WebSocket client connected to the Discord Gateway. */
-	UPROPERTY()
-	USMLWebSocketClient* WebSocketClient{nullptr};
+	/** The WebSocket connection to the Discord Gateway (UE built-in module). */
+	TSharedPtr<IWebSocket> WebSocket;
 
 	/** Loaded configuration (populated in Initialize()). */
 	FDiscordBridgeConfig Config;

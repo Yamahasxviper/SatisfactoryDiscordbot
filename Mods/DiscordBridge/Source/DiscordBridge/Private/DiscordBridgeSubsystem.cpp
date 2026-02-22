@@ -9,6 +9,8 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "WebSocketsModule.h"
+#include "IWebSocket.h"
 #include "FGChatManager.h"
 
 // Discord Gateway endpoint (v10, JSON encoding)
@@ -100,32 +102,92 @@ void UDiscordBridgeSubsystem::Deinitialize()
 
 void UDiscordBridgeSubsystem::Connect()
 {
-	if (WebSocketClient && WebSocketClient->IsConnected())
+	if (WebSocket.IsValid() && WebSocket->IsConnected())
 	{
 		return; // Already connected.
 	}
 
-	WebSocketClient = USMLWebSocketClient::CreateWebSocketClient(this);
+	bUserDisconnected    = false;
+	ReconnectAttemptCount = 0;
 
-	// Configure auto-reconnect; Discord may close the connection at any time.
-	WebSocketClient->bAutoReconnect              = true;
-	WebSocketClient->ReconnectInitialDelaySeconds = 2.0f;
-	WebSocketClient->MaxReconnectDelaySeconds     = 30.0f;
-	WebSocketClient->MaxReconnectAttempts         = 0; // infinite
+	// Cancel any previously scheduled reconnect before creating a fresh socket.
+	FTSTicker::GetCoreTicker().RemoveTicker(ReconnectTickerHandle);
+	ReconnectTickerHandle.Reset();
 
-	// Bind WebSocket delegates.
-	WebSocketClient->OnConnected.AddDynamic(this,  &UDiscordBridgeSubsystem::OnWebSocketConnected);
-	WebSocketClient->OnMessage.AddDynamic(this,    &UDiscordBridgeSubsystem::OnWebSocketMessage);
-	WebSocketClient->OnClosed.AddDynamic(this,     &UDiscordBridgeSubsystem::OnWebSocketClosed);
-	WebSocketClient->OnError.AddDynamic(this,      &UDiscordBridgeSubsystem::OnWebSocketError);
-	WebSocketClient->OnReconnecting.AddDynamic(this, &UDiscordBridgeSubsystem::OnWebSocketReconnecting);
+	CreateAndConnectWebSocket();
+}
+
+void UDiscordBridgeSubsystem::CreateAndConnectWebSocket()
+{
+	// Create a new IWebSocket via UE's built-in WebSockets module.
+	// The module handles SSL/TLS for wss:// URLs through its own backend
+	// (libwebsockets or similar), so no manual OpenSSL setup is required.
+	WebSocket = FWebSocketsModule::Get().CreateWebSocket(DiscordGatewayUrl, TEXT(""));
+
+	// Bind delegates using weak-lambda captures so stale callbacks are silently
+	// skipped if this subsystem is garbage-collected before the socket fires.
+	WebSocket->OnConnected().AddWeakLambda(this, [this]()
+	{
+		OnWebSocketConnected();
+	});
+
+	WebSocket->OnMessage().AddWeakLambda(this, [this](const FString& Message)
+	{
+		OnWebSocketMessage(Message);
+	});
+
+	WebSocket->OnClosed().AddWeakLambda(this,
+		[this](int32 StatusCode, const FString& Reason, bool bWasClean)
+	{
+		OnWebSocketClosed(StatusCode, Reason, bWasClean);
+	});
+
+	WebSocket->OnConnectionError().AddWeakLambda(this, [this](const FString& ErrorMessage)
+	{
+		OnWebSocketError(ErrorMessage);
+	});
 
 	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Connecting to Discord Gateway…"));
-	WebSocketClient->Connect(DiscordGatewayUrl, {}, {});
+	WebSocket->Connect();
+}
+
+void UDiscordBridgeSubsystem::ScheduleReconnect()
+{
+	++ReconnectAttemptCount;
+
+	// Exponential back-off: 2 s, 4 s, 8 s, … capped at 30 s.
+	const float Delay = FMath::Min(
+		2.0f * FMath::Pow(2.0f, static_cast<float>(ReconnectAttemptCount - 1)),
+		30.0f);
+
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: Reconnecting to Discord Gateway in %.1f s (attempt %d)…"),
+	       Delay, ReconnectAttemptCount);
+
+	FTSTicker::GetCoreTicker().RemoveTicker(ReconnectTickerHandle);
+	ReconnectTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
+		{
+			if (!bUserDisconnected)
+			{
+				// Drop the old (closed) socket reference and open a new connection.
+				WebSocket.Reset();
+				CreateAndConnectWebSocket();
+			}
+			return false; // one-shot
+		}),
+		Delay);
 }
 
 void UDiscordBridgeSubsystem::Disconnect()
 {
+	// Mark as user-initiated so reconnect logic is suppressed.
+	bUserDisconnected = true;
+
+	// Cancel any pending reconnect timer.
+	FTSTicker::GetCoreTicker().RemoveTicker(ReconnectTickerHandle);
+	ReconnectTickerHandle.Reset();
+
 	// Stop heartbeat ticker.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	HeartbeatTickerHandle.Reset();
@@ -149,10 +211,10 @@ void UDiscordBridgeSubsystem::Disconnect()
 	LastSequenceNumber = -1;
 	BotUserId.Empty();
 
-	if (WebSocketClient)
+	if (WebSocket.IsValid())
 	{
-		WebSocketClient->Close(1000, TEXT("Client shutting down"));
-		WebSocketClient = nullptr;
+		WebSocket->Close(1000, TEXT("Client shutting down"));
+		WebSocket.Reset();
 	}
 }
 
@@ -162,6 +224,8 @@ void UDiscordBridgeSubsystem::Disconnect()
 
 void UDiscordBridgeSubsystem::OnWebSocketConnected()
 {
+	// Reset the back-off counter – this connection attempt succeeded.
+	ReconnectAttemptCount = 0;
 	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: WebSocket connection established. Awaiting Hello…"));
 	// Discord will send op=10 (Hello) next; we send Identify in response.
 }
@@ -171,15 +235,15 @@ void UDiscordBridgeSubsystem::OnWebSocketMessage(const FString& RawJson)
 	HandleGatewayPayload(RawJson);
 }
 
-void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString& Reason)
+void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString& Reason,
+                                                  bool /*bWasClean*/)
 {
 	UE_LOG(LogTemp, Warning,
 	       TEXT("DiscordBridge: Gateway connection closed (code=%d, reason='%s')."),
 	       StatusCode, *Reason);
 
 	// Detect Discord-specific close codes that indicate a permanent error.
-	// For these codes reconnecting with the same credentials will never succeed,
-	// so we signal the WebSocket client to stop auto-reconnecting.
+	// For these codes reconnecting with the same credentials will never succeed.
 	bool bTerminal = false;
 	switch (StatusCode)
 	{
@@ -218,13 +282,6 @@ void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString&
 		break;
 	}
 
-	if (bTerminal && WebSocketClient)
-	{
-		// Calling Close() sets bUserInitiatedClose on the background thread,
-		// which causes the reconnect loop to exit without retrying.
-		WebSocketClient->Close(1000, FString::Printf(TEXT("Terminal Discord close code %d"), StatusCode));
-	}
-
 	// Cancel heartbeat; it will be restarted on the next successful connection.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	HeartbeatTickerHandle.Reset();
@@ -236,6 +293,12 @@ void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString&
 	{
 		OnDiscordDisconnected.Broadcast(
 			FString::Printf(TEXT("Connection closed (code %d): %s"), StatusCode, *Reason));
+	}
+
+	// Schedule a reconnect unless the close was user-initiated or terminal.
+	if (!bUserDisconnected && !bTerminal)
+	{
+		ScheduleReconnect();
 	}
 }
 
@@ -251,18 +314,12 @@ void UDiscordBridgeSubsystem::OnWebSocketError(const FString& ErrorMessage)
 		bGatewayReady = false;
 		OnDiscordDisconnected.Broadcast(FString::Printf(TEXT("WebSocket error: %s"), *ErrorMessage));
 	}
-}
 
-void UDiscordBridgeSubsystem::OnWebSocketReconnecting(int32 AttemptNumber, float DelaySeconds)
-{
-	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Reconnecting to Discord Gateway (attempt %d, delay %.1fs)…"),
-	       AttemptNumber, DelaySeconds);
-
-	// Reset Gateway state; we'll re-identify once the WebSocket reconnects.
-	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
-	HeartbeatTickerHandle.Reset();
-	bGatewayReady = false;
+	// Schedule a reconnect unless Disconnect() was called.
+	if (!bUserDisconnected)
+	{
+		ScheduleReconnect();
+	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -398,10 +455,11 @@ void UDiscordBridgeSubsystem::HandleHeartbeatAck()
 void UDiscordBridgeSubsystem::HandleReconnect()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Server requested reconnect."));
-	// Close and let USMLWebSocketClient's auto-reconnect handle the rest.
-	if (WebSocketClient)
+	// Close the current socket; ScheduleReconnect() in OnWebSocketClosed will
+	// re-open it via CreateAndConnectWebSocket() after the back-off delay.
+	if (WebSocket.IsValid())
 	{
-		WebSocketClient->Close(1000, TEXT("Reconnect requested by server"));
+		WebSocket->Close(1000, TEXT("Reconnect requested by server"));
 	}
 }
 
@@ -643,7 +701,7 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 
 void UDiscordBridgeSubsystem::SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload)
 {
-	if (!WebSocketClient || !WebSocketClient->IsConnected())
+	if (!WebSocket.IsValid() || !WebSocket->IsConnected())
 	{
 		return;
 	}
@@ -652,7 +710,7 @@ void UDiscordBridgeSubsystem::SendGatewayPayload(const TSharedPtr<FJsonObject>& 
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(Payload.ToSharedRef(), Writer);
 
-	WebSocketClient->SendText(JsonString);
+	WebSocket->Send(JsonString);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
