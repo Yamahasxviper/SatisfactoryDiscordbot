@@ -192,12 +192,12 @@ void AFGPlayerController::Server_SendChatMessage_Implementation(const FString& m
 	MessageStruct.MessageText = FText::FromString(messageText);
 	MessageStruct.MessageType = EFGChatMessageType::CMT_PlayerMessage;
 
-	if (AGameStateBase* GameState = GetGameState()) {
+	if (AGameStateBase* GameState = GetWorld()->GetGameState()) {
 		MessageStruct.ServerTimeStamp = GameState->GetServerWorldTimeSeconds();
 	}
 
-	if (APlayerState* PlayerState = GetPlayerState<APlayerState>()) {
-		MessageStruct.MessageSender = FText::FromString(PlayerState->GetPlayerName());
+	if (APlayerState* LocalPlayerState = GetPlayerState<APlayerState>()) {
+		MessageStruct.MessageSender = FText::FromString(LocalPlayerState->GetPlayerName());
 	}
 
 	AFGChatManager* ChatManager = AFGChatManager::Get(GetWorld());
