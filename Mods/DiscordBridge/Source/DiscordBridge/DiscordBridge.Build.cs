@@ -19,6 +19,9 @@ public class DiscordBridge : ModuleRules
 			// Header stubs for APIs not present in Satisfactory's custom UE build.
 			// Required by all Alpakit C++ mods so UBT can resolve engine headers at mod compile time.
 			"DummyHeaders",
+			// FactoryGame – provides AFGChatManager, AFGPlayerController, etc.
+			// Declared explicitly even though it is transitively available through SML.
+			"FactoryGame",
 			// SML runtime dependency – ensures correct module load ordering.
 			"SML",
 			// Our own SSL-backed WebSocket client plugin (SMLWebSocket mod in this repo).

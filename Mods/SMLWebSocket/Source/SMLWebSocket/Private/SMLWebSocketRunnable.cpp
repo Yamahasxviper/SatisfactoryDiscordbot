@@ -246,8 +246,17 @@ uint32 FSMLWebSocketRunnable::Run()
 		bConnected = true;
 		NotifyConnected();
 
-		while (!bStopRequested && !bUserInitiatedClose)
+		// The inner loop uses an unconditional for(;;) so that a pending close
+		// request (queued via EnqueueClose) is always processed and its WebSocket
+		// Close frame is always sent, even when bUserInitiatedClose was already
+		// set by EnqueueClose before the loop had a chance to dequeue the request.
+		while (!bStopRequested)
 		{
+			// Flush pending outbound messages FIRST so that any messages queued
+			// just before Close() is called (e.g. presence update) are transmitted
+			// before the Close frame goes out.
+			FlushOutboundQueue();
+
 			// Check for a user-requested close from the game thread.
 			FSMLWebSocketCloseRequest CloseReq;
 			if (CloseRequests.Dequeue(CloseReq))
@@ -269,9 +278,9 @@ uint32 FSMLWebSocketRunnable::Run()
 				break;
 			}
 
-			// Flush pending outbound messages before blocking on reads so that sends
-			// have at most ~PollIntervalMs latency even when no data arrives.
-			FlushOutboundQueue();
+			// EnqueueClose sets bUserInitiatedClose before queuing the request.
+			// If the connection was lost before we dequeued it, honour the flag here.
+			if (bUserInitiatedClose) break;
 
 			// Poll for incoming data (short timeout keeps the loop responsive).
 			bool bDataAvailable = false;
@@ -976,6 +985,17 @@ bool FSMLWebSocketRunnable::ProcessIncomingFrame()
 	if (bMasked)
 	{
 		if (!NetRecvExact(MaskKey, 4)) return false;
+	}
+
+	// Guard against absurdly large payloads that could cause OOM.
+	// Discord messages are at most a few KB; 64 MB is a very generous ceiling.
+	static constexpr uint64 MaxPayloadBytes = 64u * 1024u * 1024u;
+	if (PayloadLen > MaxPayloadBytes)
+	{
+		UE_LOG(LogTemp, Error,
+		       TEXT("SMLWebSocket: Incoming frame payload too large (%llu bytes) – closing connection"),
+		       static_cast<unsigned long long>(PayloadLen));
+		return false;
 	}
 
 	// Read payload

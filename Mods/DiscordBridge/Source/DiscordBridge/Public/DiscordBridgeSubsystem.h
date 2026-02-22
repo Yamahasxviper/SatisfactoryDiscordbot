@@ -215,6 +215,15 @@ private:
 	/** t=MESSAGE_CREATE: A new message was posted in a channel. */
 	void HandleMessageCreate(const TSharedPtr<FJsonObject>& DataObj);
 
+	/**
+	 * Automatically relays an incoming Discord message to the Satisfactory in-game
+	 * chat via AFGChatManager::BroadcastChatMessage.
+	 * Bound to OnDiscordMessageReceived in Initialize() so messages are bridged
+	 * without requiring any Blueprint wiring.
+	 */
+	UFUNCTION()
+	void RelayDiscordMessageToGame(const FString& Username, const FString& Message);
+
 	/** Send the Identify payload (op=2) to authenticate the bot. */
 	void SendIdentify();
 
