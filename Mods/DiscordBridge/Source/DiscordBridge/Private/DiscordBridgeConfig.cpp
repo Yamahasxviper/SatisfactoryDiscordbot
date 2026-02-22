@@ -75,8 +75,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 		Config.BotToken             = GetIniStringOrDefault(ConfigFile, TEXT("BotToken"),             TEXT(""));
 		Config.ChannelId            = GetIniStringOrDefault(ConfigFile, TEXT("ChannelId"),            TEXT(""));
+		Config.ServerName           = GetIniStringOrDefault(ConfigFile, TEXT("ServerName"),           Config.ServerName);
 		Config.GameToDiscordFormat  = GetIniStringOrDefault(ConfigFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
+		Config.DiscordSenderFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (ConfigFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(ConfigFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
@@ -104,11 +106,14 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Snowflake ID of the Discord text channel to bridge with in-game chat.\n")
 			TEXT("; Enable Developer Mode in Discord, right-click a channel, then \"Copy Channel ID\".\n")
 			TEXT("ChannelId=\n")
-			TEXT("; Format for game -> Discord messages. Placeholders: {PlayerName}, {Message}.\n")
+			TEXT("; Display name for this server. Used as {ServerName} in GameToDiscordFormat.\n")
+			TEXT("ServerName=\n")
+			TEXT("; Format for game -> Discord messages. Placeholders: {ServerName}, {PlayerName}, {Message}.\n")
 			TEXT("GameToDiscordFormat=**{PlayerName}**: {Message}\n")
-			TEXT("; Format for Discord -> game messages.\n")
-			TEXT("; Available placeholder: {Message}  ({Username} appears in the sender name column).\n")
+			TEXT("; Format for Discord -> game messages. Placeholder: {Message}, {Username}.\n")
 			TEXT("DiscordToGameFormat={Message}\n")
+			TEXT("; Format for the sender name shown in-game for Discord messages. Placeholder: {Username}.\n")
+			TEXT("DiscordSenderFormat=[Discord] {Username}\n")
 			TEXT("; When True, messages from bot accounts are ignored (prevents echo loops).\n")
 			TEXT("bIgnoreBotMessages=True\n")
 			TEXT("; Message posted to Discord when the server comes online. Leave empty to disable.\n")
@@ -157,8 +162,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		// Restore all other user-customised settings from the backup so that
 		// message formats and status messages also survive a mod update that
 		// resets the primary config to its shipped defaults.
+		Config.ServerName           = GetIniStringOrDefault(BackupFile, TEXT("ServerName"),           Config.ServerName);
 		Config.GameToDiscordFormat  = GetIniStringOrDefault(BackupFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
+		Config.DiscordSenderFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (BackupFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(BackupFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(BackupFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
@@ -185,16 +192,20 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; This file is read automatically when the primary config is missing credentials.\n")
 			TEXT("BotToken=%s\n")
 			TEXT("ChannelId=%s\n")
+			TEXT("ServerName=%s\n")
 			TEXT("GameToDiscordFormat=%s\n")
 			TEXT("DiscordToGameFormat=%s\n")
+			TEXT("DiscordSenderFormat=%s\n")
 			TEXT("bIgnoreBotMessages=%s\n")
 			TEXT("ServerOnlineMessage=%s\n")
 			TEXT("ServerOfflineMessage=%s\n"),
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
+			*Config.ServerName,
 			*Config.GameToDiscordFormat,
 			*Config.DiscordToGameFormat,
+			*Config.DiscordSenderFormat,
 			Config.bIgnoreBotMessages ? TEXT("True") : TEXT("False"),
 			*Config.ServerOnlineMessage,
 			*Config.ServerOfflineMessage);

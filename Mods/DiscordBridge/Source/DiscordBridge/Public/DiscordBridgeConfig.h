@@ -50,14 +50,22 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 
 	// ── Message formats ───────────────────────────────────────────────────────
 
-	/** Format for game → Discord messages. Placeholders: {PlayerName}, {Message}. */
+	/** Display name for this server used as the {ServerName} placeholder in
+	 *  GameToDiscordFormat.  Leave empty to omit the server label. */
+	FString ServerName;
+
+	/** Format for game → Discord messages. Placeholders: {ServerName}, {PlayerName}, {Message}. */
 	FString GameToDiscordFormat{ TEXT("**{PlayerName}**: {Message}") };
 
 	/** Format for Discord → game messages. Placeholders: {Username}, {Message}.
-	 *  This string is used as the in-game chat message body; the sender name
-	 *  column always shows "[Discord] {Username}" regardless of this setting.
+	 *  This string is used as the in-game chat message body.
 	 *  Default: just the raw Discord message text. */
 	FString DiscordToGameFormat{ TEXT("{Message}") };
+
+	/** Format for the sender name column in the in-game chat for Discord messages.
+	 *  Available placeholder: {Username}.
+	 *  Default: "[Discord] {Username}". */
+	FString DiscordSenderFormat{ TEXT("[Discord] {Username}") };
 
 	// ── Behaviour ─────────────────────────────────────────────────────────────
 

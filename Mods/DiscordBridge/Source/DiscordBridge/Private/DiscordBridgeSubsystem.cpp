@@ -76,9 +76,13 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	// Log active format strings so operators can verify they were loaded correctly.
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: GameToDiscordFormat = \"%s\""), *Config.GameToDiscordFormat);
+	       TEXT("DiscordBridge: ServerName           = \"%s\""), *Config.ServerName);
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: DiscordToGameFormat = \"%s\""), *Config.DiscordToGameFormat);
+	       TEXT("DiscordBridge: GameToDiscordFormat  = \"%s\""), *Config.GameToDiscordFormat);
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: DiscordToGameFormat  = \"%s\""), *Config.DiscordToGameFormat);
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: DiscordSenderFormat  = \"%s\""), *Config.DiscordSenderFormat);
 
 	Connect();
 }
@@ -822,6 +826,7 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	const FString EffectivePlayerName = PlayerName.IsEmpty() ? TEXT("Unknown") : PlayerName;
 
 	FString FormattedContent = Config.GameToDiscordFormat;
+	FormattedContent = FormattedContent.Replace(TEXT("{ServerName}"),  *Config.ServerName);
 	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *EffectivePlayerName);
 	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
 
@@ -918,11 +923,15 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 		FormattedMessage = Message;
 	}
 
-	// Build the sender label that will appear in the chat name column.
-	// The "[Discord] " prefix is also used by OnNewChatMessage to detect and
-	// suppress the echo that would otherwise result from broadcasting a
-	// CMT_PlayerMessage (which OnNewChatMessage would normally forward to Discord).
-	const FString SenderLabel = FString::Printf(TEXT("[Discord] %s"), *Username);
+	// Build the sender label that will appear in the chat name column using
+	// the configurable DiscordSenderFormat. Falls back to "[Discord] {Username}"
+	// if the format produces an empty string.
+	FString SenderLabel = Config.DiscordSenderFormat;
+	SenderLabel = SenderLabel.Replace(TEXT("{Username}"), *Username);
+	if (SenderLabel.IsEmpty())
+	{
+		SenderLabel = FString::Printf(TEXT("[Discord] %s"), *Username);
+	}
 
 	FChatMessageStruct ChatMsg;
 	// Use CMT_PlayerMessage so the game's chat widget renders both the sender
