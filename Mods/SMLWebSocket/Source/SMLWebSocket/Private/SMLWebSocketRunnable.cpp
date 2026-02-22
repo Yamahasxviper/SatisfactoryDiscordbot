@@ -525,7 +525,16 @@ bool FSMLWebSocketRunnable::PerformSslHandshake(const FString& Host)
 	}
 
 	// Set the SNI hostname so the server can choose the right certificate.
-	SSL_set_tlsext_host_name(SslInstance, TCHAR_TO_ANSI(*Host));
+	// SSL_set_tlsext_host_name is a macro that calls SSL_ctrl(); it returns 1 on
+	// success and 0 on failure.  A failure here is non-fatal for the connection
+	// itself (the TLS handshake can still succeed without SNI) but we log it so
+	// that certificate-selection problems are easier to diagnose.
+	if (SSL_set_tlsext_host_name(SslInstance, TCHAR_TO_UTF8(*Host)) != 1)
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("SMLWebSocket: SSL_set_tlsext_host_name failed for host '%s'. "
+		            "TLS handshake will proceed without SNI."), *Host);
+	}
 
 	// Run the TLS handshake. Because we use memory BIOs we must manually
 	// pump data between OpenSSL and the TCP socket.
