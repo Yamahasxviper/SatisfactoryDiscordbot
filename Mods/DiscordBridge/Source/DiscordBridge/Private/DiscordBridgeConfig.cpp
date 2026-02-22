@@ -75,6 +75,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 		Config.BotToken             = GetIniStringOrDefault(ConfigFile, TEXT("BotToken"),             TEXT(""));
 		Config.ChannelId            = GetIniStringOrDefault(ConfigFile, TEXT("ChannelId"),            TEXT(""));
+		Config.ServerName           = GetIniStringOrDefault(ConfigFile, TEXT("ServerName"),           Config.ServerName);
 		Config.GameToDiscordFormat  = GetIniStringOrDefault(ConfigFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
 		Config.DiscordSenderFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
@@ -105,7 +106,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Snowflake ID of the Discord text channel to bridge with in-game chat.\n")
 			TEXT("; Enable Developer Mode in Discord, right-click a channel, then \"Copy Channel ID\".\n")
 			TEXT("ChannelId=\n")
-			TEXT("; Format for game -> Discord messages. Placeholders: {PlayerName}, {Message}.\n")
+			TEXT("; Display name for this server. Used as {ServerName} in GameToDiscordFormat.\n")
+			TEXT("ServerName=\n")
+			TEXT("; Format for game -> Discord messages. Placeholders: {ServerName}, {PlayerName}, {Message}.\n")
 			TEXT("GameToDiscordFormat=**{PlayerName}**: {Message}\n")
 			TEXT("; Format for Discord -> game messages. Placeholder: {Message}, {Username}.\n")
 			TEXT("DiscordToGameFormat={Message}\n")
@@ -159,6 +162,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		// Restore all other user-customised settings from the backup so that
 		// message formats and status messages also survive a mod update that
 		// resets the primary config to its shipped defaults.
+		Config.ServerName           = GetIniStringOrDefault(BackupFile, TEXT("ServerName"),           Config.ServerName);
 		Config.GameToDiscordFormat  = GetIniStringOrDefault(BackupFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
 		Config.DiscordSenderFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
@@ -188,6 +192,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; This file is read automatically when the primary config is missing credentials.\n")
 			TEXT("BotToken=%s\n")
 			TEXT("ChannelId=%s\n")
+			TEXT("ServerName=%s\n")
 			TEXT("GameToDiscordFormat=%s\n")
 			TEXT("DiscordToGameFormat=%s\n")
 			TEXT("DiscordSenderFormat=%s\n")
@@ -197,6 +202,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
+			*Config.ServerName,
 			*Config.GameToDiscordFormat,
 			*Config.DiscordToGameFormat,
 			*Config.DiscordSenderFormat,

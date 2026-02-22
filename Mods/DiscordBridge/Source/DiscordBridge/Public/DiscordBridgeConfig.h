@@ -50,7 +50,11 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 
 	// ── Message formats ───────────────────────────────────────────────────────
 
-	/** Format for game → Discord messages. Placeholders: {PlayerName}, {Message}. */
+	/** Display name for this server used as the {ServerName} placeholder in
+	 *  GameToDiscordFormat.  Leave empty to omit the server label. */
+	FString ServerName;
+
+	/** Format for game → Discord messages. Placeholders: {ServerName}, {PlayerName}, {Message}. */
 	FString GameToDiscordFormat{ TEXT("**{PlayerName}**: {Message}") };
 
 	/** Format for Discord → game messages. Placeholders: {Username}, {Message}.

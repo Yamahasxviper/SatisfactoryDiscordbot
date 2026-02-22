@@ -76,9 +76,11 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	// Log active format strings so operators can verify they were loaded correctly.
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: GameToDiscordFormat = \"%s\""), *Config.GameToDiscordFormat);
+	       TEXT("DiscordBridge: ServerName           = \"%s\""), *Config.ServerName);
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: DiscordToGameFormat = \"%s\""), *Config.DiscordToGameFormat);
+	       TEXT("DiscordBridge: GameToDiscordFormat  = \"%s\""), *Config.GameToDiscordFormat);
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: DiscordToGameFormat  = \"%s\""), *Config.DiscordToGameFormat);
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: DiscordSenderFormat  = \"%s\""), *Config.DiscordSenderFormat);
 
@@ -824,6 +826,7 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	const FString EffectivePlayerName = PlayerName.IsEmpty() ? TEXT("Unknown") : PlayerName;
 
 	FString FormattedContent = Config.GameToDiscordFormat;
+	FormattedContent = FormattedContent.Replace(TEXT("{ServerName}"),  *Config.ServerName);
 	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *EffectivePlayerName);
 	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
 
