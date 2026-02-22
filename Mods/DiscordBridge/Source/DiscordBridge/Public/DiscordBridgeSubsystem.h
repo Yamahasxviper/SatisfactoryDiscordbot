@@ -85,8 +85,12 @@ namespace EDiscordGatewayIntent
  *  • Discord → Game: MESSAGE_CREATE events on the configured channel fire
  *    OnDiscordMessageReceived so that Blueprint (or another C++ subsystem) can
  *    inject the message into the Satisfactory chat.
- *  • Game → Discord: Call SendGameMessageToDiscord() to POST the message to the
- *    Discord REST API (https://discord.com/api/v10/channels/{id}/messages).
+ *  • Game → Discord: AFGChatManager::AddChatMessageToReceived is intercepted via
+ *    SML's NativeHookManager so that every CMT_PlayerMessage added to the server's
+ *    chat history is forwarded to Discord through the REST API.  This avoids the
+ *    timing fragility of the previous OnChatMessageAdded + GetReceivedChatMessages
+ *    approach and works even when BroadcastChatMessage / Server_SendChatMessage_Impl
+ *    are too short for funchook to patch.
  *
  * Setup
  * ─────
@@ -172,6 +176,22 @@ public:
 	UFUNCTION(BlueprintPure, Category="Discord Bridge")
 	bool IsConnected() const { return bGatewayReady; }
 
+	/**
+	 * Called by the native hook on AFGChatManager::AddChatMessageToReceived every
+	 * time a player-chat message lands in the server's history.  Forwards the
+	 * message to Discord and handles echo prevention for messages we relayed FROM
+	 * Discord.
+	 *
+	 * This is public so that the static hook lambda installed in
+	 * FDiscordBridgeModule::StartupModule() can call it without friendship.
+	 *
+	 * @param PlayerName  Value of FChatMessageStruct::MessageSender (may be empty
+	 *                    if the game does not populate it server-side; falls back
+	 *                    to "Unknown" inside SendGameMessageToDiscord).
+	 * @param MessageText Plain text of the chat message.
+	 */
+	void HandleIncomingChatMessage(const FString& PlayerName, const FString& MessageText);
+
 private:
 	// ── WebSocket event handlers (called on the game thread) ──────────────────
 
@@ -246,28 +266,6 @@ private:
 	FTSTicker::FDelegateHandle HeartbeatTickerHandle;
 	float HeartbeatIntervalSeconds{0.0f};
 
-	// ── Chat-manager binding ──────────────────────────────────────────────────
-
-	/**
-	 * Called by AFGChatManager::OnChatMessageAdded each time the server receives
-	 * a new chat message.  Forwards CMT_PlayerMessage entries to Discord and
-	 * advances NumSeenChatMessages so replayed messages are never re-forwarded.
-	 */
-	UFUNCTION()
-	void OnNewChatMessage();
-
-	/** Ticker that polls for AFGChatManager every second until it is available. */
-	FTSTicker::FDelegateHandle ChatManagerBindTickerHandle;
-
-	/** Cached pointer to the ChatManager we have bound OnNewChatMessage to. */
-	UPROPERTY()
-	AFGChatManager* BoundChatManager{nullptr};
-
-	/** Index into the ChatManager's received-messages array up to which we have
-	 *  already inspected.  Prevents replaying messages that existed before the
-	 *  binding was established. */
-	int32 NumSeenChatMessages{0};
-
 	// ── Internal state ────────────────────────────────────────────────────────
 
 	/** The WebSocket client connected to the Discord Gateway. */
@@ -296,7 +294,7 @@ private:
 
 	/**
 	 * Text values of Discord messages currently being relayed to the game chat.
-	 * Populated in RelayDiscordMessageToGame() and consumed in OnNewChatMessage()
+	 * Populated in RelayDiscordMessageToGame() and consumed in HandleIncomingChatMessage()
 	 * so that the relayed CMT_PlayerMessage is not immediately echoed back to Discord.
 	 */
 	TSet<FString> PendingRelayedMessages;
