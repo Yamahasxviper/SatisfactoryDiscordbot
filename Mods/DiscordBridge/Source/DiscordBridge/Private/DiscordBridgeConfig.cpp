@@ -37,28 +37,41 @@ namespace
 // FDiscordBridgeConfig
 // ─────────────────────────────────────────────────────────────────────────────
 
-FString FDiscordBridgeConfig::GetConfigFilePath()
+FString FDiscordBridgeConfig::GetModConfigFilePath()
 {
-	// Store the live config in the project's Saved directory so Alpakit mod
-	// updates never overwrite the user's BotToken / ChannelId settings.
-	// On a deployed server this resolves to:
+	// The primary config lives in the mod's own Config folder so it is the
+	// first place a server operator would look.  On a deployed server:
+	//   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
+	// NOTE: Alpakit/SMM mod updates overwrite this file; the mod automatically
+	// saves a backup to GetBackupConfigFilePath() so credentials survive upgrades.
+	return FPaths::Combine(FPaths::ProjectDir(),
+	                       TEXT("Mods"), TEXT("DiscordBridge"),
+	                       TEXT("Config"), TEXT("DefaultDiscordBridge.ini"));
+}
+
+FString FDiscordBridgeConfig::GetBackupConfigFilePath()
+{
+	// Backup config in Saved/Config/ – never touched by Alpakit mod updates.
+	// Written automatically whenever the primary config has valid credentials.
+	// On a deployed server:
 	//   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
-	// Alpakit only stages files from the plugin's own directory tree; it never
-	// touches the Saved/ directory, so this file survives every mod upgrade.
 	return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("DiscordBridge.ini"));
 }
 
 FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 {
 	FDiscordBridgeConfig Config;
-	const FString FilePath = GetConfigFilePath();
+	const FString ModFilePath    = GetModConfigFilePath();
+	const FString BackupFilePath = GetBackupConfigFilePath();
 
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-	if (PlatformFile.FileExists(*FilePath))
+	// ── Step 1: load the primary config (mod folder) ─────────────────────────
+	bool bLoadedFromMod = false;
+	if (PlatformFile.FileExists(*ModFilePath))
 	{
 		FConfigFile ConfigFile;
-		ConfigFile.Read(FilePath);
+		ConfigFile.Read(ModFilePath);
 
 		Config.BotToken             = GetIniStringOrDefault(ConfigFile, TEXT("BotToken"),             TEXT(""));
 		Config.ChannelId            = GetIniStringOrDefault(ConfigFile, TEXT("ChannelId"),            TEXT(""));
@@ -68,15 +81,16 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(ConfigFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
 
-		UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Loaded config from %s"), *FilePath);
+		bLoadedFromMod = true;
+		UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Loaded config from %s"), *ModFilePath);
 	}
 	else
 	{
-		// The config file is missing. Write a template with default values so the
-		// server operator has a ready-made file to fill in.
+		// Primary config missing – create it with defaults so the operator has
+		// a ready-made file to fill in.
 		UE_LOG(LogTemp, Log,
 		       TEXT("DiscordBridge: Config file not found at '%s'. "
-		            "Creating it with defaults."), *FilePath);
+		            "Creating it with defaults."), *ModFilePath);
 
 		const FString DefaultContent =
 			TEXT("[DiscordBridge]\n")
@@ -97,20 +111,91 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("ServerOfflineMessage=:red_circle: Server is now **offline**.\n");
 
 		// Ensure the Config directory exists before writing.
-		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(FilePath));
+		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(ModFilePath));
 
-		if (FFileHelper::SaveStringToFile(DefaultContent, *FilePath))
+		if (FFileHelper::SaveStringToFile(DefaultContent, *ModFilePath))
 		{
 			UE_LOG(LogTemp, Log,
 			       TEXT("DiscordBridge: Wrote default config to '%s'. "
 			            "Set BotToken and ChannelId in that file, then restart "
-			            "the server to enable the Discord bridge."), *FilePath);
+			            "the server to enable the Discord bridge."), *ModFilePath);
 		}
 		else
 		{
 			UE_LOG(LogTemp, Warning,
 			       TEXT("DiscordBridge: Could not write default config to '%s'."),
-			       *FilePath);
+			       *ModFilePath);
+		}
+	}
+
+	// ── Step 2: fall back to backup when credentials are missing ──────────────
+	// This happens after a mod update resets the primary config file.
+	if ((Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty()) &&
+	    PlatformFile.FileExists(*BackupFilePath))
+	{
+		FConfigFile BackupFile;
+		BackupFile.Read(BackupFilePath);
+
+		const bool bHadToken   = !Config.BotToken.IsEmpty();
+		const bool bHadChannel = !Config.ChannelId.IsEmpty();
+
+		if (Config.BotToken.IsEmpty())
+		{
+			Config.BotToken = GetIniStringOrDefault(BackupFile, TEXT("BotToken"), TEXT(""));
+		}
+		if (Config.ChannelId.IsEmpty())
+		{
+			Config.ChannelId = GetIniStringOrDefault(BackupFile, TEXT("ChannelId"), TEXT(""));
+		}
+
+		if (!bHadToken || !bHadChannel)
+		{
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Credentials not set in primary config '%s'. "
+			            "Loaded from backup at '%s'. "
+			            "Copy your BotToken and ChannelId back into the primary config "
+			            "to silence this message."),
+			       *ModFilePath, *BackupFilePath);
+		}
+	}
+
+	// ── Step 3: keep the backup up to date ────────────────────────────────────
+	// Whenever the primary config has valid credentials, write an up-to-date
+	// backup so they survive the next mod update.
+	if (!Config.BotToken.IsEmpty() && !Config.ChannelId.IsEmpty() && bLoadedFromMod)
+	{
+		const FString BackupContent = FString::Printf(
+			TEXT("[DiscordBridge]\n")
+			TEXT("; Auto-generated backup of %s\n")
+			TEXT("; This file is read automatically when the primary config is missing credentials.\n")
+			TEXT("BotToken=%s\n")
+			TEXT("ChannelId=%s\n")
+			TEXT("GameToDiscordFormat=%s\n")
+			TEXT("DiscordToGameFormat=%s\n")
+			TEXT("bIgnoreBotMessages=%s\n")
+			TEXT("ServerOnlineMessage=%s\n")
+			TEXT("ServerOfflineMessage=%s\n"),
+			*ModFilePath,
+			*Config.BotToken,
+			*Config.ChannelId,
+			*Config.GameToDiscordFormat,
+			*Config.DiscordToGameFormat,
+			Config.bIgnoreBotMessages ? TEXT("True") : TEXT("False"),
+			*Config.ServerOnlineMessage,
+			*Config.ServerOfflineMessage);
+
+		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
+
+		if (FFileHelper::SaveStringToFile(BackupContent, *BackupFilePath))
+		{
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Updated backup config at '%s'."), *BackupFilePath);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+			       TEXT("DiscordBridge: Could not write backup config to '%s'."),
+			       *BackupFilePath);
 		}
 	}
 
