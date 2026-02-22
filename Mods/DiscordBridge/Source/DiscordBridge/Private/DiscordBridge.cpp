@@ -12,13 +12,14 @@ static FDelegateHandle GChatHookHandle;
 
 void FDiscordBridgeModule::StartupModule()
 {
-	// Hook AFGChatManager::BroadcastChatMessage to forward player chat messages to
-	// Discord.  This is the server-side broadcast that fires for every chat message
-	// regardless of how it originated, so it works whether the message came from the
-	// in-game chat UI or from a console command.
+	// Hook AFGChatManager::Multicast_BroadcastChatMessage_Implementation to forward
+	// player chat messages to Discord.  BroadcastChatMessage itself is too short for
+	// funchook to instrument ("Too short instructions"), so we hook the NetMulticast
+	// implementation instead.  On the server UE executes the _Implementation locally
+	// before replicating to clients, so every message is still captured exactly once.
 	// We filter to CMT_PlayerMessage only to avoid echo-looping our own Discord→game
 	// relay messages (which are posted as CMT_SystemMessage).
-	GChatHookHandle = SUBSCRIBE_UOBJECT_METHOD(AFGChatManager, BroadcastChatMessage,
+	GChatHookHandle = SUBSCRIBE_UOBJECT_METHOD(AFGChatManager, Multicast_BroadcastChatMessage_Implementation,
 		([](auto& Call, AFGChatManager* Self,
 		    const FChatMessageStruct& NewMessage,
 		    APlayerController* InstigatorController)
@@ -47,7 +48,7 @@ void FDiscordBridgeModule::StartupModule()
 
 void FDiscordBridgeModule::ShutdownModule()
 {
-	UNSUBSCRIBE_UOBJECT_METHOD(AFGChatManager, BroadcastChatMessage, GChatHookHandle);
+	UNSUBSCRIBE_UOBJECT_METHOD(AFGChatManager, Multicast_BroadcastChatMessage_Implementation, GChatHookHandle);
 }
 
 IMPLEMENT_MODULE(FDiscordBridgeModule, DiscordBridge)
