@@ -148,6 +148,15 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			Config.ChannelId = GetIniStringOrDefault(BackupFile, TEXT("ChannelId"), TEXT(""));
 		}
 
+		// Restore all other user-customised settings from the backup so that
+		// message formats and status messages also survive a mod update that
+		// resets the primary config to its shipped defaults.
+		Config.GameToDiscordFormat  = GetIniStringOrDefault(BackupFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
+		Config.DiscordToGameFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
+		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (BackupFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
+		Config.ServerOnlineMessage  = GetIniStringOrDefault(BackupFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
+		Config.ServerOfflineMessage = GetIniStringOrDefault(BackupFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+
 		if (!bHadToken || !bHadChannel)
 		{
 			UE_LOG(LogTemp, Log,
