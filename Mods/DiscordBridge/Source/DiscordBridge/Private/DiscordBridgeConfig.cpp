@@ -4,6 +4,7 @@
 
 #include "Dom/JsonObject.h"
 #include "HAL/PlatformFileManager.h"
+#include "Interfaces/IPluginManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/JsonReader.h"
@@ -44,7 +45,21 @@ namespace
 
 FString FDiscordBridgeConfig::GetConfigFilePath()
 {
-	return FPaths::ProjectDir() + TEXT("Configs/DiscordBridge.cfg");
+	// Primary location: inside the plugin's own Config directory.
+	// On a deployed server this resolves to
+	//   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DiscordBridge.cfg
+	// Alpakit only stages files that exist in the source tree, so
+	// DiscordBridge.cfg (which is auto-generated at runtime and is gitignored)
+	// is never included in a packaged update and therefore survives mod upgrades.
+	const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("DiscordBridge"));
+	if (Plugin.IsValid())
+	{
+		return FPaths::Combine(Plugin->GetBaseDir(), TEXT("Config"), TEXT("DiscordBridge.cfg"));
+	}
+
+	// Fallback (should not be reached in a normal deployment): use the SML
+	// convention so the mod still functions even without a valid plugin entry.
+	return FPaths::Combine(FPaths::ProjectDir(), TEXT("Configs"), TEXT("DiscordBridge.cfg"));
 }
 
 FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
@@ -79,10 +94,14 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			}
 			else
 			{
+				// The file exists but contains malformed JSON.  Log a warning and
+				// use built-in defaults for this session.  We intentionally do NOT
+				// overwrite the file so the server operator can inspect and fix it
+				// without losing their BotToken / ChannelId settings.
 				UE_LOG(LogTemp, Warning,
 				       TEXT("DiscordBridge: Failed to parse config JSON at '%s'. "
-				            "Recreating the file with defaults."), *FilePath);
-				bNeedsSave = true;
+				            "Using built-in defaults for this session. "
+				            "Please fix the JSON syntax and restart the server."), *FilePath);
 			}
 		}
 		else
@@ -90,7 +109,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			UE_LOG(LogTemp, Warning,
 			       TEXT("DiscordBridge: Failed to read config file at '%s'. "
 			            "Using built-in defaults."), *FilePath);
-			bNeedsSave = true;
 		}
 	}
 	else

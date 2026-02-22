@@ -8,16 +8,22 @@
  * Configuration for the Discord Bridge mod.
  *
  * Values are read from and written to
- *   <ServerDir>/FactoryGame/Configs/DiscordBridge.cfg   (JSON format)
+ *   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DiscordBridge.cfg  (JSON format)
  *
  * The file is created automatically with defaults on the first server start.
  * To enable the bot:
- *   1. Open  FactoryGame/Configs/DiscordBridge.cfg
+ *   1. Open  Mods/DiscordBridge/Config/DiscordBridge.cfg
  *   2. Set   "BotToken"  – the token from the Discord Developer Portal (Bot → Token).
  *            Treat this value as a password; do not share it.
  *   3. Set   "ChannelId" – the snowflake ID of the target text channel.
  *            Enable Developer Mode in Discord, right-click the channel, "Copy Channel ID".
  *   4. Restart the server.
+ *
+ * The config file lives inside the mod's own folder so it is easy to find.
+ * Alpakit only packages files that exist in the source repository; because
+ * DiscordBridge.cfg is auto-generated at runtime (and is gitignored), it is
+ * never included in a packaged mod update and therefore persists across
+ * upgrades without any special handling.
  *
  * Discord bot requirements
  * ────────────────────────
@@ -61,10 +67,10 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
 	/**
-	 * Loads configuration from <ProjectDir>/Configs/DiscordBridge.cfg.
+	 * Loads configuration from the plugin's Config/DiscordBridge.cfg file.
 	 * If the file does not exist it is created with default values and those
-	 * defaults are returned.  Any missing keys in an existing file are added
-	 * on the next save.
+	 * defaults are returned.  If the file exists but contains invalid JSON,
+	 * the defaults are used in memory without overwriting the file.
 	 */
 	static FDiscordBridgeConfig LoadOrCreate();
 
