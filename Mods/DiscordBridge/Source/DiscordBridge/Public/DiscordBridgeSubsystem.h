@@ -9,6 +9,8 @@
 #include "DiscordBridgeConfig.h"
 #include "DiscordBridgeSubsystem.generated.h"
 
+class AFGChatManager;
+
 // ── Delegate declarations ─────────────────────────────────────────────────────
 
 /**
@@ -243,6 +245,28 @@ private:
 
 	FTSTicker::FDelegateHandle HeartbeatTickerHandle;
 	float HeartbeatIntervalSeconds{0.0f};
+
+	// ── Chat-manager binding ──────────────────────────────────────────────────
+
+	/**
+	 * Called by AFGChatManager::OnChatMessageAdded each time the server receives
+	 * a new chat message.  Forwards CMT_PlayerMessage entries to Discord and
+	 * advances NumSeenChatMessages so replayed messages are never re-forwarded.
+	 */
+	UFUNCTION()
+	void OnNewChatMessage();
+
+	/** Ticker that polls for AFGChatManager every second until it is available. */
+	FTSTicker::FDelegateHandle ChatManagerBindTickerHandle;
+
+	/** Cached pointer to the ChatManager we have bound OnNewChatMessage to. */
+	UPROPERTY()
+	AFGChatManager* BoundChatManager{nullptr};
+
+	/** Index into the ChatManager's received-messages array up to which we have
+	 *  already inspected.  Prevents replaying messages that existed before the
+	 *  binding was established. */
+	int32 NumSeenChatMessages{0};
 
 	// ── Internal state ────────────────────────────────────────────────────────
 

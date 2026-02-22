@@ -36,6 +36,33 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	// across reconnect cycles (Connect() may be called multiple times).
 	OnDiscordMessageReceived.AddDynamic(this, &UDiscordBridgeSubsystem::RelayDiscordMessageToGame);
 
+	// Poll every second until AFGChatManager is spawned (it is an AFGSubsystem
+	// actor; it is not available during USubsystem::Initialize()).  Once found,
+	// bind OnNewChatMessage to its OnChatMessageAdded delegate so player chat
+	// messages are forwarded to Discord without requiring any funchook.
+	ChatManagerBindTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
+		{
+			UWorld* World = GetWorld();
+			if (!World) return true; // keep trying
+
+			AFGChatManager* CM = AFGChatManager::Get(World);
+			if (!CM) return true; // keep trying
+
+			// Record the current message count so we don't replay messages
+			// that existed before we connected.
+			TArray<FChatMessageStruct> Existing;
+			CM->GetReceivedChatMessages(Existing);
+			NumSeenChatMessages = Existing.Num();
+
+			CM->OnChatMessageAdded.AddDynamic(this, &UDiscordBridgeSubsystem::OnNewChatMessage);
+			BoundChatManager = CM;
+
+			UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Bound to AFGChatManager::OnChatMessageAdded."));
+			return false; // stop polling
+		}),
+		1.0f);
+
 	// Load (or auto-create) the JSON config file from Configs/DiscordBridge.cfg.
 	Config = FDiscordBridgeConfig::LoadOrCreate();
 
@@ -52,6 +79,17 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UDiscordBridgeSubsystem::Deinitialize()
 {
+	// Stop the ChatManager-bind polling ticker (no-op if it already stopped).
+	FTSTicker::GetCoreTicker().RemoveTicker(ChatManagerBindTickerHandle);
+	ChatManagerBindTickerHandle.Reset();
+
+	// Unbind from the ChatManager delegate if we managed to bind earlier.
+	if (IsValid(BoundChatManager))
+	{
+		BoundChatManager->OnChatMessageAdded.RemoveDynamic(this, &UDiscordBridgeSubsystem::OnNewChatMessage);
+		BoundChatManager = nullptr;
+	}
+
 	Disconnect();
 	Super::Deinitialize();
 }
@@ -628,7 +666,30 @@ bool UDiscordBridgeSubsystem::HeartbeatTick(float /*DeltaTime*/)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Game → Discord (REST API)
+// Chat-manager delegate handler (Game → Discord)
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::OnNewChatMessage()
+{
+	if (!IsValid(BoundChatManager)) return;
+
+	TArray<FChatMessageStruct> Messages;
+	BoundChatManager->GetReceivedChatMessages(Messages);
+
+	// Forward only the messages that arrived since the last call and were sent
+	// by a player (CMT_PlayerMessage).  CMT_SystemMessage entries include our
+	// own Discord-relay messages; skipping them prevents an echo loop.
+	for (int32 i = NumSeenChatMessages; i < Messages.Num(); ++i)
+	{
+		const FChatMessageStruct& Msg = Messages[i];
+		if (Msg.MessageType == EFGChatMessageType::CMT_PlayerMessage)
+		{
+			SendGameMessageToDiscord(Msg.MessageSender.ToString(), Msg.MessageText.ToString());
+		}
+	}
+	NumSeenChatMessages = Messages.Num();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName,
