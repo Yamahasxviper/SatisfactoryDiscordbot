@@ -811,16 +811,9 @@ void UDiscordBridgeSubsystem::OnGameChatMessageAdded()
 void UDiscordBridgeSubsystem::HandleIncomingChatMessage(const FString& PlayerName,
                                                          const FString& MessageText)
 {
-	// Skip messages we relayed from Discord to prevent echo loops.
-	// RelayDiscordMessageToGame() pre-registers the FormattedMessage text in
-	// PendingRelayedMessages; Remove() returns > 0 when the text is found.
-	if (PendingRelayedMessages.Remove(MessageText) > 0)
-	{
-		UE_LOG(LogTemp, VeryVerbose,
-		       TEXT("DiscordBridge: Suppressing echo of Discord-relayed message: '%s'"),
-		       *MessageText);
-		return;
-	}
+	// Discord relay messages are broadcast as CMT_CustomMessage, which the diff
+	// loop in OnGameChatMessageAdded ignores (it only processes CMT_PlayerMessage).
+	// Therefore no explicit echo-prevention bookkeeping is required here.
 
 	if (MessageText.IsEmpty())
 	{
@@ -855,9 +848,9 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	const FString EffectivePlayerName = PlayerName.IsEmpty() ? TEXT("Unknown") : PlayerName;
 
 	FString FormattedContent = Config.GameToDiscordFormat;
-	FormattedContent = FormattedContent.Replace(TEXT("{ServerName}"),  *Config.ServerName);
-	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *EffectivePlayerName);
-	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
+	FormattedContent = FormattedContent.Replace(TEXT("%ServerName%"),  *Config.ServerName);
+	FormattedContent = FormattedContent.Replace(TEXT("%PlayerName%"), *EffectivePlayerName);
+	FormattedContent = FormattedContent.Replace(TEXT("%Message%"),    *Message);
 
 	if (FormattedContent.IsEmpty())
 	{
@@ -941,12 +934,12 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	// Apply the configurable format string (DiscordToGameFormat) to the message body.
 	// Use a fallback if the format is empty so the message is never silently
 	// dropped due to a misconfigured INI.
-	// {PlayerName} is accepted as an alias for {Username} so operators can use
+	// %PlayerName% is accepted as an alias for %Username% so operators can use
 	// a consistent placeholder name across both directions.
 	FString FormattedMessage = Config.DiscordToGameFormat;
-	FormattedMessage = FormattedMessage.Replace(TEXT("{Username}"),   *Username);
-	FormattedMessage = FormattedMessage.Replace(TEXT("{PlayerName}"), *Username);
-	FormattedMessage = FormattedMessage.Replace(TEXT("{Message}"),    *Message);
+	FormattedMessage = FormattedMessage.Replace(TEXT("%Username%"),   *Username);
+	FormattedMessage = FormattedMessage.Replace(TEXT("%PlayerName%"), *Username);
+	FormattedMessage = FormattedMessage.Replace(TEXT("%Message%"),    *Message);
 
 	if (FormattedMessage.IsEmpty())
 	{
@@ -956,30 +949,31 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	}
 
 	// Build the sender label that will appear in the chat name column using
-	// the configurable DiscordSenderFormat. Falls back to "[Discord] {Username}"
+	// the configurable DiscordSenderFormat. Falls back to "[Discord] %Username%"
 	// if the format produces an empty string.
-	// {PlayerName} is accepted as an alias for {Username} so operators can use
+	// %PlayerName% is accepted as an alias for %Username% so operators can use
 	// a consistent placeholder name across both directions.
 	FString SenderLabel = Config.DiscordSenderFormat;
-	SenderLabel = SenderLabel.Replace(TEXT("{Username}"),   *Username);
-	SenderLabel = SenderLabel.Replace(TEXT("{PlayerName}"), *Username);
+	SenderLabel = SenderLabel.Replace(TEXT("%Username%"),   *Username);
+	SenderLabel = SenderLabel.Replace(TEXT("%PlayerName%"), *Username);
 	if (SenderLabel.IsEmpty())
 	{
 		SenderLabel = FString::Printf(TEXT("[Discord] %s"), *Username);
 	}
 
 	FChatMessageStruct ChatMsg;
-	// Use CMT_PlayerMessage so the game's chat widget renders both the sender
-	// name (MessageSender) and the message body (MessageText) visibly.
-	// CMT_SystemMessage can suppress or override MessageText in some engine
-	// builds, causing only the sender label to appear.
-	ChatMsg.MessageType   = EFGChatMessageType::CMT_PlayerMessage;
+	// Use CMT_CustomMessage so the game's chat widget renders both the sender
+	// name (MessageSender) and the message body (MessageText) without requiring
+	// a real player controller.  CMT_PlayerMessage expects an instigatorPlayerController
+	// to derive the sender identity, and passing nullptr causes the sender name to be
+	// dropped or overridden by the engine.  CMT_CustomMessage is the correct type for
+	// mod-injected messages that are not from an actual connected player.
+	// Using CMT_CustomMessage also means the Game→Discord diff loop (which only
+	// processes CMT_PlayerMessage entries) will naturally ignore these relay messages,
+	// eliminating the need for any echo-prevention bookkeeping.
+	ChatMsg.MessageType   = EFGChatMessageType::CMT_CustomMessage;
 	ChatMsg.MessageSender = FText::FromString(SenderLabel);
 	ChatMsg.MessageText   = FText::FromString(FormattedMessage);
-
-	// Register this message before broadcasting so that HandleIncomingChatMessage
-	// can recognise and skip it, preventing an echo back to Discord.
-	PendingRelayedMessages.Add(FormattedMessage.TrimStartAndEnd());
 
 	ChatManager->BroadcastChatMessage(ChatMsg);
 

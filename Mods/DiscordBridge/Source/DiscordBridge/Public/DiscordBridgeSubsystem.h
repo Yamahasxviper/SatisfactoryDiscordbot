@@ -177,8 +177,7 @@ public:
 
 	/**
 	 * Called by OnGameChatMessageAdded every time a player-chat message lands
-	 * in the server's history.  Forwards the message to Discord and handles
-	 * echo prevention for messages we relayed FROM Discord.
+	 * in the server's history.  Forwards the message to Discord.
 	 *
 	 * @param PlayerName  Value of FChatMessageStruct::MessageSender (may be empty
 	 *                    if the game does not populate it server-side; falls back
@@ -303,13 +302,6 @@ private:
 
 	/** Snowflake ID of the bot user; used to filter out self-sent messages. */
 	FString BotUserId;
-
-	/**
-	 * Text values of Discord messages currently being relayed to the game chat.
-	 * Populated in RelayDiscordMessageToGame() and consumed in HandleIncomingChatMessage()
-	 * so that the relayed CMT_PlayerMessage is not immediately echoed back to Discord.
-	 */
-	TSet<FString> PendingRelayedMessages;
 
 	// ── Chat manager binding ──────────────────────────────────────────────────
 
