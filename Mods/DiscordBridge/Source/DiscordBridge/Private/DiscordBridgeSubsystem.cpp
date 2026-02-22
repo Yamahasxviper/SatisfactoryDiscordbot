@@ -404,10 +404,23 @@ void UDiscordBridgeSubsystem::HandleHeartbeatAck()
 void UDiscordBridgeSubsystem::HandleReconnect()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Server requested reconnect."));
-	// Close and let USMLWebSocketClient's auto-reconnect handle the rest.
+
+	// Reset gateway state before restarting the connection.
+	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+	HeartbeatTickerHandle.Reset();
+	bPendingHeartbeatAck = false;
+	bGatewayReady = false;
+	LastSequenceNumber = -1;
+	BotUserId.Empty();
+
 	if (WebSocketClient)
 	{
-		WebSocketClient->Close(1000, TEXT("Reconnect requested by server"));
+		// Restart the connection directly instead of calling Close().
+		// Close() sets bUserInitiatedClose on the runnable, which permanently
+		// disables auto-reconnect and keeps the bot offline.
+		// Connect() internally stops the old runnable (without setting any
+		// reconnect-prevention flags) and starts a fresh connection attempt.
+		WebSocketClient->Connect(DiscordGatewayUrl, {}, {});
 	}
 }
 
@@ -575,26 +588,31 @@ void UDiscordBridgeSubsystem::SendHeartbeat()
 	// Zombie-connection detection (per Discord Gateway documentation):
 	// If the previous heartbeat was never acknowledged, the connection is a
 	// zombie – packets are being sent locally but not reaching Discord.
-	// Discord has already marked the bot offline.  Close the WebSocket with a
-	// non-1000 code so USMLWebSocketClient's auto-reconnect triggers a fresh
-	// connection and re-identification.
+	// Discord has already marked the bot offline.  Restart the connection so
+	// the bot re-identifies and comes back online.
 	if (bPendingHeartbeatAck)
 	{
 		UE_LOG(LogTemp, Warning,
 		       TEXT("DiscordBridge: Heartbeat not acknowledged – zombie connection detected. "
-		            "Closing to trigger reconnect."));
+		            "Reconnecting…"));
 
-		// Cancel the heartbeat ticker before closing so we don't send more
-		// heartbeats on a dead socket.
+		// Cancel the heartbeat ticker; it will be restarted once the new
+		// connection receives a Hello from Discord.
 		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 		HeartbeatTickerHandle.Reset();
 		bPendingHeartbeatAck = false;
+		bGatewayReady = false;
+		LastSequenceNumber = -1;
+		BotUserId.Empty();
 
 		if (WebSocketClient)
 		{
-			// Non-1000 close code signals USMLWebSocketClient that this was
-			// not a user-initiated close, so it will attempt to reconnect.
-			WebSocketClient->Close(1001, TEXT("Zombie connection – no heartbeat ack"));
+			// Restart the connection directly instead of calling Close().
+			// Close() sets bUserInitiatedClose on the runnable, which permanently
+			// disables auto-reconnect and keeps the bot offline.
+			// Connect() internally stops the old runnable (without setting any
+			// reconnect-prevention flags) and starts a fresh connection attempt.
+			WebSocketClient->Connect(DiscordGatewayUrl, {}, {});
 		}
 		return;
 	}
