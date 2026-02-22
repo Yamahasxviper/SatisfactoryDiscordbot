@@ -5,7 +5,8 @@
 #include "CoreMinimal.h"
 #include "Containers/Ticker.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "IWebSocket.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
 #include "DiscordBridgeConfig.h"
 #include "DiscordBridgeSubsystem.generated.h"
 
@@ -25,77 +26,58 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDiscordMessageReceivedDelegate,
                                              const FString&, Message);
 
 /**
- * Fired on the game thread when the Discord Gateway connection is established
- * and the bot has been identified successfully (Ready event received).
+ * Fired on the game thread once the first REST API poll succeeds and the bridge
+ * is confirmed active (bot token is valid, channel is reachable).
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDiscordConnectedDelegate);
 
 /**
- * Fired on the game thread when the Discord Gateway connection is lost.
+ * Fired on the game thread when polling is stopped (Disconnect() called or
+ * a terminal API error is encountered).
  *
- * @param Reason  Human-readable description of why the connection ended.
+ * @param Reason  Human-readable description of why polling stopped.
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDiscordDisconnectedDelegate,
                                             const FString&, Reason);
-
-// ── Discord Gateway opcodes (Discord API reference §Gateway Opcodes) ──────────
-namespace EDiscordGatewayOpcode
-{
-	static constexpr int32 Dispatch          = 0;  // Server → Client: an event was dispatched
-	static constexpr int32 Heartbeat         = 1;  // Client → Server: keep-alive heartbeat
-	static constexpr int32 Identify          = 2;  // Client → Server: trigger authentication
-	static constexpr int32 UpdatePresence    = 3;  // Client → Server: update bot presence/status
-	static constexpr int32 Resume            = 6;  // Client → Server: resume a dropped session
-	static constexpr int32 Reconnect         = 7;  // Server → Client: client should reconnect
-	static constexpr int32 InvalidSession    = 9;  // Server → Client: session is invalid
-	static constexpr int32 Hello            = 10;  // Server → Client: sent immediately after connecting
-	static constexpr int32 HeartbeatAck     = 11;  // Server → Client: heartbeat was acknowledged
-}
-
-// ── Discord Gateway intent bit-flags (Discord API reference §Gateway Intents) ─
-namespace EDiscordGatewayIntent
-{
-	// Non-privileged
-	static constexpr int32 Guilds         = 1 << 0;   //    1
-	static constexpr int32 GuildMessages  = 1 << 9;   //  512
-
-	// Privileged – must be enabled in the Discord Developer Portal
-	static constexpr int32 GuildMembers   = 1 << 1;   //    2  (Server Members Intent)
-	static constexpr int32 GuildPresences = 1 << 8;   //  256  (Presence Intent)
-	static constexpr int32 MessageContent = 1 << 15;  // 32768 (Message Content Intent)
-
-	// Combined value used when connecting to the Gateway.
-	static constexpr int32 All =
-		Guilds | GuildMembers | GuildPresences | GuildMessages | MessageContent;
-	// = 1 + 2 + 256 + 512 + 32768 = 33539
-}
 
 /**
  * UDiscordBridgeSubsystem
  *
  * A GameInstance-level subsystem that bridges Satisfactory in-game chat with
- * a Discord text channel.
+ * a Discord text channel using the Discord REST API only.
  *
  * How it works
  * ────────────
- *  • Connects to the Discord Gateway (wss://gateway.discord.gg/?v=10&encoding=json)
- *    using Unreal Engine's built-in WebSockets module (IWebSocket / FWebSocketsModule).
- *  • Authenticates with the configured BotToken and requests the three privileged
- *    intents: Presence Intent, Server Members Intent, Message Content Intent.
- *  • Discord → Game: MESSAGE_CREATE events on the configured channel fire
- *    OnDiscordMessageReceived so that Blueprint (or another C++ subsystem) can
- *    inject the message into the Satisfactory chat.
- *  • Game → Discord: Call SendGameMessageToDiscord() to POST the message to the
- *    Discord REST API (https://discord.com/api/v10/channels/{id}/messages).
+ *  • On startup the subsystem fetches the bot's own user-ID via
+ *    GET /users/@me so self-sent messages can be filtered out.
+ *  • It then performs a one-shot GET /channels/{id}/messages?limit=1 to
+ *    establish a "baseline" snowflake – the ID of the newest message that
+ *    already existed before the server started.  No old messages are relayed.
+ *  • A repeating FTSTicker fires every PollIntervalSeconds and calls
+ *    GET /channels/{id}/messages?after={last_id}&limit=100.
+ *    Any new messages are broadcast through OnDiscordMessageReceived and
+ *    automatically relayed to Satisfactory in-game chat.
+ *  • Game → Discord: SendGameMessageToDiscord() posts via
+ *    POST /channels/{id}/messages (Discord REST API v10).
+ *
+ * Discord bot requirements
+ * ────────────────────────
+ *  • Message Content Intent (GUILD_MESSAGES / MESSAGE_CONTENT) MUST be enabled
+ *    in the Discord Developer Portal → Bot → Privileged Gateway Intents so that
+ *    the REST API returns non-empty content fields.
+ *  • Presence Intent and Server Members Intent may still be enabled on the bot
+ *    account; they are harmless in REST-only mode and allow future Gateway use.
+ *  • The bot must have "Send Messages" and "Read Message History" permissions
+ *    in the target channel.
  *
  * Setup
  * ─────
  *  1. Create a Discord application and bot in the Discord Developer Portal.
- *  2. Enable all three Privileged Gateway Intents on the Bot page.
+ *  2. Enable Message Content Intent (Bot → Privileged Gateway Intents).
  *  3. Invite the bot to your server with "Send Messages" + "Read Message History".
- *  4. Fill in BotToken and ChannelId in Mods/DiscordBridge/Config/DiscordBridge.cfg
+ *  4. Fill in BotToken and ChannelId in Saved/Config/DiscordBridge.ini
  *     (auto-created on first server start) and restart the server.
- *  5. Optionally customise GameToDiscordFormat and DiscordToGameFormat.
+ *  5. Optionally tune PollIntervalSeconds, GameToDiscordFormat, DiscordToGameFormat.
  *  6. In Blueprint, bind to OnDiscordMessageReceived and call
  *     SendGameMessageToDiscord() from your chat hooks.
  */
@@ -121,11 +103,11 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Discord Bridge")
 	FDiscordMessageReceivedDelegate OnDiscordMessageReceived;
 
-	/** Fired when the Discord Gateway connection is ready. */
+	/** Fired once the first successful REST poll confirms the bot token is valid. */
 	UPROPERTY(BlueprintAssignable, Category="Discord Bridge")
 	FDiscordConnectedDelegate OnDiscordConnected;
 
-	/** Fired when the Discord Gateway connection is lost. */
+	/** Fired when polling is stopped (Disconnect() called or terminal error). */
 	UPROPERTY(BlueprintAssignable, Category="Discord Bridge")
 	FDiscordDisconnectedDelegate OnDiscordDisconnected;
 
@@ -144,130 +126,84 @@ public:
 	void SendGameMessageToDiscord(const FString& PlayerName, const FString& Message);
 
 	/**
-	 * Manually trigger a connection to the Discord Gateway.
+	 * Start polling the Discord REST API for new messages.
 	 * Called automatically during Initialize() when BotToken and ChannelId are set.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Discord Bridge")
 	void Connect();
 
 	/**
-	 * Disconnect from the Discord Gateway and cancel the heartbeat timer.
+	 * Stop polling and fire OnDiscordDisconnected.
 	 * Called automatically during Deinitialize().
 	 */
 	UFUNCTION(BlueprintCallable, Category="Discord Bridge")
 	void Disconnect();
 
 	/**
-	 * Send a presence update to Discord to set the bot's online status.
-	 *
-	 * @param Status  One of "online", "idle", "dnd", or "invisible".
-	 */
-	UFUNCTION(BlueprintCallable, Category="Discord Bridge")
-	void SendUpdatePresence(const FString& Status);
-
-	/**
-	 * Returns true when the Gateway WebSocket is open and the bot has been
-	 * identified (Ready event received from Discord).
+	 * Returns true while the poll ticker is active and the first REST poll has
+	 * confirmed the bot token is valid.
 	 */
 	UFUNCTION(BlueprintPure, Category="Discord Bridge")
-	bool IsConnected() const { return bGatewayReady; }
+	bool IsConnected() const { return bPollingActive; }
 
 private:
-	// ── WebSocket helpers ─────────────────────────────────────────────────────
-
-	/** Create a new IWebSocket, bind all delegates, and call Connect(). */
-	void CreateAndConnectWebSocket();
+	// ── REST poll helpers ─────────────────────────────────────────────────────
 
 	/**
-	 * Schedule a reconnect attempt using exponential back-off.
-	 * Called from OnWebSocketClosed / OnWebSocketError when the disconnect was
-	 * not user-initiated and the close code is not a terminal Discord error.
+	 * Step 1 (called once from Connect).
+	 * GET /users/@me to learn the bot's own snowflake ID so we can skip
+	 * messages the bot itself posted.
 	 */
-	void ScheduleReconnect();
-
-	// ── WebSocket event handlers (called on the game thread) ──────────────────
-
-	void OnWebSocketConnected();
-	void OnWebSocketMessage(const FString& RawJson);
-	void OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean);
-	void OnWebSocketError(const FString& ErrorMessage);
-
-	// ── Discord Gateway protocol ──────────────────────────────────────────────
-
-	/** Dispatch the correct handler based on the Gateway opcode. */
-	void HandleGatewayPayload(const FString& RawJson);
-
-	/** op=10: Server sent Hello; start heartbeating and send Identify. */
-	void HandleHello(const TSharedPtr<FJsonObject>& DataObj);
-
-	/** op=0: Server dispatched an event. Routes to the correct event handler. */
-	void HandleDispatch(const FString& EventType, int32 Sequence,
-	                    const TSharedPtr<FJsonObject>& DataObj);
-
-	/** op=11: Server acknowledged our heartbeat. */
-	void HandleHeartbeatAck();
-
-	/** op=7: Server asked us to reconnect. */
-	void HandleReconnect();
-
-	/** op=9: Session is invalid; re-identify or start fresh. */
-	void HandleInvalidSession(bool bResumable);
-
-	/** t=READY: Bot is authenticated and ready. */
-	void HandleReady(const TSharedPtr<FJsonObject>& DataObj);
-
-	/** t=MESSAGE_CREATE: A new message was posted in a channel. */
-	void HandleMessageCreate(const TSharedPtr<FJsonObject>& DataObj);
+	void FetchBotUserId();
 
 	/**
-	 * Automatically relays an incoming Discord message to the Satisfactory in-game
-	 * chat via AFGChatManager::BroadcastChatMessage.
-	 * Bound to OnDiscordMessageReceived in Initialize() so messages are bridged
-	 * without requiring any Blueprint wiring.
+	 * Step 2 (called from FetchBotUserId callback, or directly if the fetch
+	 * failed).  GET /channels/{id}/messages?limit=1 to establish the baseline
+	 * message ID.  No messages seen before server start are relayed.
 	 */
-	UFUNCTION()
-	void RelayDiscordMessageToGame(const FString& Username, const FString& Message);
+	void FetchBaselineMessageId();
 
-	/** Send the Identify payload (op=2) to authenticate the bot. */
-	void SendIdentify();
+	/**
+	 * Repeating ticker body – calls PollNewMessages() every PollIntervalSeconds.
+	 * Returns true to keep ticking.
+	 */
+	bool PollTick(float DeltaTime);
 
-	/** Send a heartbeat (op=1) to keep the Gateway connection alive. */
-	void SendHeartbeat();
+	/**
+	 * GET /channels/{id}/messages?after={LastMessageId}&limit=100.
+	 * Processes each new message and updates LastMessageId.
+	 */
+	void PollNewMessages();
 
-	/** Send a plain text message to the configured Discord channel via the REST API. */
+	/**
+	 * Process the JSON array returned by the messages endpoint.
+	 * Fires OnDiscordMessageReceived for each qualifying message.
+	 * Returns the snowflake ID of the newest message seen (empty if none).
+	 */
+	FString ProcessMessageArray(const TArray<TSharedPtr<FJsonValue>>& Messages);
+
+	// ── REST API sending ──────────────────────────────────────────────────────
+
+	/** POST a plain text message to the configured Discord channel. */
 	void SendStatusMessageToDiscord(const FString& Message);
 
-	/** Serialise a JSON object and send it as a text WebSocket frame. */
-	void SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload);
-
-	// ── Heartbeat timer ───────────────────────────────────────────────────────
-
-	/** Timer callback – fires SendHeartbeat() at the interval Discord requested. */
-	bool HeartbeatTick(float DeltaTime);
-
-	FTSTicker::FDelegateHandle HeartbeatTickerHandle;
-	float HeartbeatIntervalSeconds{0.0f};
-
-	// ── Reconnect state ───────────────────────────────────────────────────────
-
-	/** One-shot ticker that fires the next reconnect attempt after back-off delay. */
-	FTSTicker::FDelegateHandle ReconnectTickerHandle;
-
-	/** Number of consecutive failed connection attempts (reset on success). */
-	int32 ReconnectAttemptCount{0};
-
-	/**
-	 * Set to true by Disconnect() so that OnWebSocketClosed / OnWebSocketError
-	 * do not trigger automatic reconnection.
-	 */
-	bool bUserDisconnected{false};
+	/** Build a common Bot-authorised HTTP request (verb + auth header). */
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> MakeApiRequest(
+		const FString& Verb, const FString& Url) const;
 
 	// ── Chat-manager binding ──────────────────────────────────────────────────
 
 	/**
-	 * Called by AFGChatManager::OnChatMessageAdded each time the server receives
-	 * a new chat message.  Forwards CMT_PlayerMessage entries to Discord and
-	 * advances NumSeenChatMessages so replayed messages are never re-forwarded.
+	 * Automatically relays an incoming Discord message to the Satisfactory
+	 * in-game chat via AFGChatManager::BroadcastChatMessage.
+	 * Bound to OnDiscordMessageReceived in Initialize().
+	 */
+	UFUNCTION()
+	void RelayDiscordMessageToGame(const FString& Username, const FString& Message);
+
+	/**
+	 * Called by AFGChatManager::OnChatMessageAdded each time a new in-game chat
+	 * message arrives.  Forwards CMT_PlayerMessage entries to Discord.
 	 */
 	UFUNCTION()
 	void OnNewChatMessage();
@@ -279,25 +215,41 @@ private:
 	UPROPERTY()
 	AFGChatManager* BoundChatManager{nullptr};
 
-	/** Index into the ChatManager's received-messages array up to which we have
-	 *  already inspected.  Prevents replaying messages that existed before the
-	 *  binding was established. */
+	/** Number of chat messages already inspected (prevents replay on rebind). */
 	int32 NumSeenChatMessages{0};
 
-	// ── Internal state ────────────────────────────────────────────────────────
+	// ── Polling state ─────────────────────────────────────────────────────────
 
-	/** The WebSocket connection to the Discord Gateway (UE built-in module). */
-	TSharedPtr<IWebSocket> WebSocket;
+	/** Repeating ticker that drives PollNewMessages(). */
+	FTSTicker::FDelegateHandle PollTickerHandle;
+
+	/**
+	 * Snowflake ID of the newest Discord message seen so far.
+	 * Passed as the `after` parameter on every poll so only new messages are
+	 * returned.  Empty until the baseline fetch completes.
+	 */
+	FString LastMessageId;
+
+	/**
+	 * True once the first REST poll has returned HTTP 200, confirming the bot
+	 * token is valid and the channel is reachable.
+	 */
+	bool bPollingActive{false};
+
+	/**
+	 * True once the baseline fetch has finished and regular polling has started.
+	 * Guards against ProcessMessageArray being called before the baseline is set.
+	 */
+	bool bBaselineEstablished{false};
+
+	// ── Shared state ──────────────────────────────────────────────────────────
 
 	/** Loaded configuration (populated in Initialize()). */
 	FDiscordBridgeConfig Config;
 
-	/** Last sequence number received from Discord (used in heartbeats). */
-	int32 LastSequenceNumber{-1};
-
-	/** true after the READY dispatch has been received from Discord. */
-	bool bGatewayReady{false};
-
-	/** Snowflake ID of the bot user; used to filter out self-sent messages. */
+	/**
+	 * Snowflake ID of this bot's own user account.
+	 * Populated by FetchBotUserId(); used to suppress echo of the bot's own posts.
+	 */
 	FString BotUserId;
 };

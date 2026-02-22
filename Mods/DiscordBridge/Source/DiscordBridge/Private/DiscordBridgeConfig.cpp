@@ -31,6 +31,19 @@ namespace
 		Cfg.GetBool(ConfigSection, *Key, Value);
 		return Value;
 	}
+
+	float GetIniFloatOrDefault(const FConfigFile& Cfg,
+	                           const FString& Key,
+	                           float Default)
+	{
+		FString Raw;
+		if (Cfg.GetString(ConfigSection, *Key, Raw))
+		{
+			float Parsed = FCString::Atof(*Raw);
+			return (Parsed > 0.0f) ? Parsed : Default;
+		}
+		return Default;
+	}
 } // anonymous namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +80,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (ConfigFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(ConfigFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+		Config.PollIntervalSeconds  = FMath::Max(1.0f,
+		                               GetIniFloatOrDefault(ConfigFile, TEXT("PollIntervalSeconds"),  Config.PollIntervalSeconds));
 
 		UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Loaded config from %s"), *FilePath);
 	}
@@ -94,7 +109,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Message posted to Discord when the server comes online. Leave empty to disable.\n")
 			TEXT("ServerOnlineMessage=:green_circle: Server is now **online**!\n")
 			TEXT("; Message posted to Discord when the server shuts down. Leave empty to disable.\n")
-			TEXT("ServerOfflineMessage=:red_circle: Server is now **offline**.\n");
+			TEXT("ServerOfflineMessage=:red_circle: Server is now **offline**.\n")
+			TEXT("; How often (seconds) to poll Discord for new messages. Min 1. Default 2.\n")
+			TEXT("; NOTE: Message Content Intent MUST be enabled in the Discord Developer\n")
+			TEXT(";       Portal (Bot -> Privileged Gateway Intents) so the REST API returns\n")
+			TEXT(";       non-empty message content.  Presence Intent and Server Members Intent\n")
+			TEXT(";       may also be enabled; they are harmless in REST-only polling mode.\n")
+			TEXT("PollIntervalSeconds=2\n");
 
 		// Ensure the Config directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(FilePath));

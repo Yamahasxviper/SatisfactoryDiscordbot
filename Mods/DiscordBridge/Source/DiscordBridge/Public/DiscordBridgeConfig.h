@@ -67,6 +67,14 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
 	/**
+	 * How often (in seconds) to poll the Discord REST API for new messages.
+	 * Lower values give faster message delivery but use more HTTP requests.
+	 * Discord allows up to 5 requests per second; the default of 2 s is safe.
+	 * Minimum enforced value: 1.0 s.
+	 */
+	float PollIntervalSeconds{ 2.0f };
+
+	/**
 	 * Loads configuration from Saved/Config/DiscordBridge.ini.
 	 * If the file does not exist it is created with default values and those
 	 * defaults are returned.

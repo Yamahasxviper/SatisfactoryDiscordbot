@@ -3,20 +3,17 @@
 #include "DiscordBridgeSubsystem.h"
 
 #include "Dom/JsonObject.h"
+#include "Dom/JsonValue.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonSerializer.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
-#include "WebSocketsModule.h"
-#include "IWebSocket.h"
 #include "FGChatManager.h"
 
-// Discord Gateway endpoint (v10, JSON encoding)
-static const FString DiscordGatewayUrl = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
-// Discord REST API base URL
-static const FString DiscordApiBase    = TEXT("https://discord.com/api/v10");
+// Discord REST API base URL (v10)
+static const FString DiscordApiBase = TEXT("https://discord.com/api/v10");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // USubsystem lifetime
@@ -24,9 +21,7 @@ static const FString DiscordApiBase    = TEXT("https://discord.com/api/v10");
 
 bool UDiscordBridgeSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-	// Only create this subsystem on dedicated servers.
-	// This prevents the bot from running on client or listen-server builds,
-	// meaning players do not need this mod (or SML) installed on their own machine.
+	// Run on dedicated servers only; clients never need the bridge running locally.
 	return IsRunningDedicatedServer();
 }
 
@@ -34,25 +29,20 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	// Wire up the Discord→game relay once here so it is never double-bound
-	// across reconnect cycles (Connect() may be called multiple times).
+	// Wire up the Discord→game relay once so it survives reconnect cycles.
 	OnDiscordMessageReceived.AddDynamic(this, &UDiscordBridgeSubsystem::RelayDiscordMessageToGame);
 
-	// Poll every second until AFGChatManager is spawned (it is an AFGSubsystem
-	// actor; it is not available during USubsystem::Initialize()).  Once found,
-	// bind OnNewChatMessage to its OnChatMessageAdded delegate so player chat
-	// messages are forwarded to Discord without requiring any funchook.
+	// Poll for AFGChatManager once per second until it becomes available, then
+	// bind OnNewChatMessage so in-game chat is forwarded to Discord.
 	ChatManagerBindTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
 		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
 		{
 			UWorld* World = GetWorld();
-			if (!World) return true; // keep trying
+			if (!World) return true;
 
 			AFGChatManager* CM = AFGChatManager::Get(World);
-			if (!CM) return true; // keep trying
+			if (!CM) return true;
 
-			// Record the current message count so we don't replay messages
-			// that existed before we connected.
 			TArray<FChatMessageStruct> Existing;
 			CM->GetReceivedChatMessages(Existing);
 			NumSeenChatMessages = Existing.Num();
@@ -65,7 +55,6 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		}),
 		1.0f);
 
-	// Load (or auto-create) the JSON config file from Configs/DiscordBridge.cfg.
 	Config = FDiscordBridgeConfig::LoadOrCreate();
 
 	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
@@ -81,11 +70,9 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UDiscordBridgeSubsystem::Deinitialize()
 {
-	// Stop the ChatManager-bind polling ticker (no-op if it already stopped).
 	FTSTicker::GetCoreTicker().RemoveTicker(ChatManagerBindTickerHandle);
 	ChatManagerBindTickerHandle.Reset();
 
-	// Unbind from the ChatManager delegate if we managed to bind earlier.
 	if (IsValid(BoundChatManager))
 	{
 		BoundChatManager->OnChatMessageAdded.RemoveDynamic(this, &UDiscordBridgeSubsystem::OnNewChatMessage);
@@ -97,557 +84,385 @@ void UDiscordBridgeSubsystem::Deinitialize()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Connection management
+// Connection management (REST-poll lifecycle)
 // ─────────────────────────────────────────────────────────────────────────────
 
 void UDiscordBridgeSubsystem::Connect()
 {
-	if (WebSocket.IsValid() && WebSocket->IsConnected())
+	if (bPollingActive)
 	{
-		return; // Already connected.
+		return;
 	}
 
-	bUserDisconnected    = false;
-	ReconnectAttemptCount = 0;
-
-	// Cancel any previously scheduled reconnect before creating a fresh socket.
-	FTSTicker::GetCoreTicker().RemoveTicker(ReconnectTickerHandle);
-	ReconnectTickerHandle.Reset();
-
-	CreateAndConnectWebSocket();
-}
-
-void UDiscordBridgeSubsystem::CreateAndConnectWebSocket()
-{
-	// Create a new IWebSocket via UE's built-in WebSockets module.
-	// The module handles SSL/TLS for wss:// URLs through its own backend
-	// (libwebsockets or similar), so no manual OpenSSL setup is required.
-	WebSocket = FWebSocketsModule::Get().CreateWebSocket(DiscordGatewayUrl, TEXT(""));
-
-	// Bind delegates using weak-lambda captures so stale callbacks are silently
-	// skipped if this subsystem is garbage-collected before the socket fires.
-	WebSocket->OnConnected().AddWeakLambda(this, [this]()
-	{
-		OnWebSocketConnected();
-	});
-
-	WebSocket->OnMessage().AddWeakLambda(this, [this](const FString& Message)
-	{
-		OnWebSocketMessage(Message);
-	});
-
-	WebSocket->OnClosed().AddWeakLambda(this,
-		[this](int32 StatusCode, const FString& Reason, bool bWasClean)
-	{
-		OnWebSocketClosed(StatusCode, Reason, bWasClean);
-	});
-
-	WebSocket->OnConnectionError().AddWeakLambda(this, [this](const FString& ErrorMessage)
-	{
-		OnWebSocketError(ErrorMessage);
-	});
-
-	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Connecting to Discord Gateway…"));
-	WebSocket->Connect();
-}
-
-void UDiscordBridgeSubsystem::ScheduleReconnect()
-{
-	++ReconnectAttemptCount;
-
-	// Exponential back-off: 2 s, 4 s, 8 s, … capped at 30 s.
-	const float Delay = FMath::Min(
-		2.0f * FMath::Pow(2.0f, static_cast<float>(ReconnectAttemptCount - 1)),
-		30.0f);
-
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Reconnecting to Discord Gateway in %.1f s (attempt %d)…"),
-	       Delay, ReconnectAttemptCount);
+	       TEXT("DiscordBridge: Starting Discord REST poll (interval %.1f s)."),
+	       Config.PollIntervalSeconds);
 
-	FTSTicker::GetCoreTicker().RemoveTicker(ReconnectTickerHandle);
-	ReconnectTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
-		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
-		{
-			if (!bUserDisconnected)
-			{
-				// Drop the old (closed) socket reference and open a new connection.
-				WebSocket.Reset();
-				CreateAndConnectWebSocket();
-			}
-			return false; // one-shot
-		}),
-		Delay);
+	// Step 1 – fetch own user ID so we can suppress echo of the bot's own posts.
+	// Step 2 (baseline) starts inside the FetchBotUserId callback.
+	FetchBotUserId();
 }
 
 void UDiscordBridgeSubsystem::Disconnect()
 {
-	// Mark as user-initiated so reconnect logic is suppressed.
-	bUserDisconnected = true;
+	FTSTicker::GetCoreTicker().RemoveTicker(PollTickerHandle);
+	PollTickerHandle.Reset();
 
-	// Cancel any pending reconnect timer.
-	FTSTicker::GetCoreTicker().RemoveTicker(ReconnectTickerHandle);
-	ReconnectTickerHandle.Reset();
+	const bool bWasActive = bPollingActive;
+	bPollingActive        = false;
+	bBaselineEstablished  = false;
+	LastMessageId.Empty();
 
-	// Stop heartbeat ticker.
-	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
-	HeartbeatTickerHandle.Reset();
-
-	// Signal offline status and post the server-offline notification while
-	// the WebSocket is still open so Discord receives both before we close.
-	if (bGatewayReady)
+	if (bWasActive)
 	{
-		// Setting presence to "invisible" makes the bot appear offline to
-		// users immediately, without waiting for Discord to detect the
-		// WebSocket disconnection.
-		SendUpdatePresence(TEXT("invisible"));
-
+		// Post server-offline message before we stop.
 		if (!Config.ServerOfflineMessage.IsEmpty())
 		{
 			SendStatusMessageToDiscord(Config.ServerOfflineMessage);
 		}
-	}
-
-	bGatewayReady      = false;
-	LastSequenceNumber = -1;
-	BotUserId.Empty();
-
-	if (WebSocket.IsValid())
-	{
-		WebSocket->Close(1000, TEXT("Client shutting down"));
-		WebSocket.Reset();
+		OnDiscordDisconnected.Broadcast(TEXT("Polling stopped."));
 	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WebSocket event handlers (game thread)
+// Step 1 – fetch bot user ID
 // ─────────────────────────────────────────────────────────────────────────────
 
-void UDiscordBridgeSubsystem::OnWebSocketConnected()
+void UDiscordBridgeSubsystem::FetchBotUserId()
 {
-	// Reset the back-off counter – this connection attempt succeeded.
-	ReconnectAttemptCount = 0;
-	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: WebSocket connection established. Awaiting Hello…"));
-	// Discord will send op=10 (Hello) next; we send Identify in response.
-}
+	const FString Url = FString::Printf(TEXT("%s/users/@me"), *DiscordApiBase);
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeApiRequest(TEXT("GET"), Url);
 
-void UDiscordBridgeSubsystem::OnWebSocketMessage(const FString& RawJson)
-{
-	HandleGatewayPayload(RawJson);
-}
-
-void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString& Reason,
-                                                  bool /*bWasClean*/)
-{
-	UE_LOG(LogTemp, Warning,
-	       TEXT("DiscordBridge: Gateway connection closed (code=%d, reason='%s')."),
-	       StatusCode, *Reason);
-
-	// Detect Discord-specific close codes that indicate a permanent error.
-	// For these codes reconnecting with the same credentials will never succeed.
-	bool bTerminal = false;
-	switch (StatusCode)
-	{
-	case 4004:
-		UE_LOG(LogTemp, Error,
-		       TEXT("DiscordBridge: Authentication failed (4004). "
-		            "Verify BotToken in Saved/Config/DiscordBridge.ini. "
-		            "Auto-reconnect disabled."));
-		bTerminal = true;
-		break;
-	case 4010:
-		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Invalid shard sent (4010). Auto-reconnect disabled."));
-		bTerminal = true;
-		break;
-	case 4011:
-		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Sharding required (4011). Auto-reconnect disabled."));
-		bTerminal = true;
-		break;
-	case 4012:
-		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Invalid Gateway API version (4012). Auto-reconnect disabled."));
-		bTerminal = true;
-		break;
-	case 4013:
-		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Invalid intent(s) (4013). Auto-reconnect disabled."));
-		bTerminal = true;
-		break;
-	case 4014:
-		UE_LOG(LogTemp, Error,
-		       TEXT("DiscordBridge: Disallowed intent(s) (4014). "
-		            "Enable all three Privileged Gateway Intents "
-		            "(Presence, Server Members, Message Content) "
-		            "in the Discord Developer Portal. Auto-reconnect disabled."));
-		bTerminal = true;
-		break;
-	default:
-		break;
-	}
-
-	// Cancel heartbeat; it will be restarted on the next successful connection.
-	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
-	HeartbeatTickerHandle.Reset();
-
-	const bool bWasReady = bGatewayReady;
-	bGatewayReady = false;
-
-	if (bWasReady)
-	{
-		OnDiscordDisconnected.Broadcast(
-			FString::Printf(TEXT("Connection closed (code %d): %s"), StatusCode, *Reason));
-	}
-
-	// Schedule a reconnect unless the close was user-initiated or terminal.
-	if (!bUserDisconnected && !bTerminal)
-	{
-		ScheduleReconnect();
-	}
-}
-
-void UDiscordBridgeSubsystem::OnWebSocketError(const FString& ErrorMessage)
-{
-	UE_LOG(LogTemp, Error, TEXT("DiscordBridge: WebSocket error: %s"), *ErrorMessage);
-
-	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
-	HeartbeatTickerHandle.Reset();
-
-	if (bGatewayReady)
-	{
-		bGatewayReady = false;
-		OnDiscordDisconnected.Broadcast(FString::Printf(TEXT("WebSocket error: %s"), *ErrorMessage));
-	}
-
-	// Schedule a reconnect unless Disconnect() was called.
-	if (!bUserDisconnected)
-	{
-		ScheduleReconnect();
-	}
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Discord Gateway protocol
-// ─────────────────────────────────────────────────────────────────────────────
-
-void UDiscordBridgeSubsystem::HandleGatewayPayload(const FString& RawJson)
-{
-	TSharedPtr<FJsonObject> Root;
-	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(RawJson);
-	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscordBridge: Failed to parse Gateway JSON: %s"), *RawJson);
-		return;
-	}
-
-	const int32 OpCode = Root->GetIntegerField(TEXT("op"));
-
-	switch (OpCode)
-	{
-	case EDiscordGatewayOpcode::Dispatch:
-	{
-		// Update the sequence number first; it is used in heartbeats.
-		// TryGetNumberField only accepts double& in UE5's FJsonObject API.
-		double Seq = -1.0;
-		if (Root->TryGetNumberField(TEXT("s"), Seq))
+	Request->OnProcessRequestComplete().BindWeakLambda(
+		this,
+		[this](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
 		{
-			LastSequenceNumber = static_cast<int32>(Seq);
+			if (bConnected && Resp.IsValid() && Resp->GetResponseCode() == 200)
+			{
+				TSharedPtr<FJsonObject> UserObj;
+				TSharedRef<TJsonReader<>> Reader =
+					TJsonReaderFactory<>::Create(Resp->GetContentAsString());
+				if (FJsonSerializer::Deserialize(Reader, UserObj) && UserObj.IsValid())
+				{
+					UserObj->TryGetStringField(TEXT("id"), BotUserId);
+				}
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Bot user ID: %s"), *BotUserId);
+			}
+			else
+			{
+				const int32 Code = (Resp.IsValid()) ? Resp->GetResponseCode() : 0;
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Could not fetch bot user ID (HTTP %d). "
+				            "Self-message filtering will fall back to the bot flag."), Code);
+			}
+
+			// Proceed to step 2 regardless – a missing user ID is not fatal.
+			FetchBaselineMessageId();
+		});
+
+	Request->ProcessRequest();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 2 – establish the baseline message ID
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::FetchBaselineMessageId()
+{
+	// Fetch the single most-recent message so we know where history ends.
+	// Any message with a snowflake older than or equal to this ID already existed
+	// before the server started and must NOT be relayed to in-game chat.
+	const FString Url = FString::Printf(
+		TEXT("%s/channels/%s/messages?limit=1"), *DiscordApiBase, *Config.ChannelId);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeApiRequest(TEXT("GET"), Url);
+
+	Request->OnProcessRequestComplete().BindWeakLambda(
+		this,
+		[this](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
+		{
+			if (bConnected && Resp.IsValid() && Resp->GetResponseCode() == 200)
+			{
+				TArray<TSharedPtr<FJsonValue>> Messages;
+				TSharedRef<TJsonReader<>> Reader =
+					TJsonReaderFactory<>::Create(Resp->GetContentAsString());
+				if (FJsonSerializer::Deserialize(Reader, Messages) && Messages.Num() > 0)
+				{
+					const TSharedPtr<FJsonObject>* MsgPtr = nullptr;
+					if (Messages[0]->TryGetObject(MsgPtr) && MsgPtr)
+					{
+						(*MsgPtr)->TryGetStringField(TEXT("id"), LastMessageId);
+					}
+				}
+
+				if (LastMessageId.IsEmpty())
+				{
+					// Channel has no messages yet – use a snowflake for "right now"
+					// so we only process messages posted after server start.
+					// Discord epoch: 2015-01-01T00:00:00.000Z = 1420070400000 ms
+					static constexpr int64 DiscordEpochMs = 1420070400000LL;
+					const int64 NowMs =
+						FDateTime::UtcNow().ToUnixTimestamp() * 1000LL;
+					LastMessageId = FString::Printf(
+						TEXT("%lld"), (NowMs - DiscordEpochMs) << 22);
+				}
+
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Baseline message ID = %s"), *LastMessageId);
+			}
+			else
+			{
+				const int32 Code = (Resp.IsValid()) ? Resp->GetResponseCode() : 0;
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Baseline fetch returned HTTP %d – "
+				            "polling will start from now."), Code);
+
+				// Same fallback: synthesise a "now" snowflake.
+				static constexpr int64 DiscordEpochMs = 1420070400000LL;
+				const int64 NowMs =
+					FDateTime::UtcNow().ToUnixTimestamp() * 1000LL;
+				LastMessageId = FString::Printf(
+					TEXT("%lld"), (NowMs - DiscordEpochMs) << 22);
+			}
+
+			bBaselineEstablished = true;
+			bPollingActive       = true;
+
+			// Send server-online notification now that we know the token is valid.
+			if (!Config.ServerOnlineMessage.IsEmpty())
+			{
+				SendStatusMessageToDiscord(Config.ServerOnlineMessage);
+			}
+
+			// Signal Blueprint listeners that the bridge is live.
+			OnDiscordConnected.Broadcast();
+
+			// Start the repeating poll ticker.
+			PollTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+				FTickerDelegate::CreateUObject(this, &UDiscordBridgeSubsystem::PollTick),
+				Config.PollIntervalSeconds);
+
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Polling started (every %.1f s)."),
+			       Config.PollIntervalSeconds);
+		});
+
+	Request->ProcessRequest();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Repeating poll
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool UDiscordBridgeSubsystem::PollTick(float /*DeltaTime*/)
+{
+	if (bBaselineEstablished)
+	{
+		PollNewMessages();
+	}
+	return true; // keep ticking
+}
+
+void UDiscordBridgeSubsystem::PollNewMessages()
+{
+	// GET /channels/{id}/messages?after={last_id}&limit=100
+	// Discord returns messages newer than last_id in ascending (oldest-first) order.
+	const FString Url = FString::Printf(
+		TEXT("%s/channels/%s/messages?after=%s&limit=100"),
+		*DiscordApiBase, *Config.ChannelId, *LastMessageId);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeApiRequest(TEXT("GET"), Url);
+
+	Request->OnProcessRequestComplete().BindWeakLambda(
+		this,
+		[this](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
+		{
+			if (!bConnected || !Resp.IsValid())
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Poll HTTP request failed (network error)."));
+				return;
+			}
+
+			const int32 Code = Resp->GetResponseCode();
+			if (Code == 401)
+			{
+				UE_LOG(LogTemp, Error,
+				       TEXT("DiscordBridge: Poll returned 401 Unauthorized. "
+				            "Verify BotToken in Saved/Config/DiscordBridge.ini. "
+				            "Stopping poll."));
+				Disconnect();
+				return;
+			}
+			if (Code == 403)
+			{
+				UE_LOG(LogTemp, Error,
+				       TEXT("DiscordBridge: Poll returned 403 Forbidden. "
+				            "Ensure the bot has 'Read Message History' permission "
+				            "and Message Content Intent is enabled. Stopping poll."));
+				Disconnect();
+				return;
+			}
+			if (Code != 200)
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Poll returned HTTP %d: %s"),
+				       Code, *Resp->GetContentAsString());
+				return; // transient error – retry next tick
+			}
+
+			TArray<TSharedPtr<FJsonValue>> Messages;
+			TSharedRef<TJsonReader<>> Reader =
+				TJsonReaderFactory<>::Create(Resp->GetContentAsString());
+			if (!FJsonSerializer::Deserialize(Reader, Messages))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("DiscordBridge: Failed to parse poll response JSON."));
+				return;
+			}
+
+			const FString NewestId = ProcessMessageArray(Messages);
+			if (!NewestId.IsEmpty())
+			{
+				LastMessageId = NewestId;
+			}
+		});
+
+	Request->ProcessRequest();
+}
+
+FString UDiscordBridgeSubsystem::ProcessMessageArray(
+	const TArray<TSharedPtr<FJsonValue>>& Messages)
+{
+	// Messages arrive in ascending snowflake order (oldest → newest).
+	// We process all of them in order and track the largest ID seen.
+	FString NewestId;
+
+	for (const TSharedPtr<FJsonValue>& MsgVal : Messages)
+	{
+		const TSharedPtr<FJsonObject>* MsgPtr = nullptr;
+		if (!MsgVal.IsValid() || !MsgVal->TryGetObject(MsgPtr) || !MsgPtr)
+		{
+			continue;
+		}
+		const TSharedPtr<FJsonObject>& Msg = *MsgPtr;
+
+		// Always track the newest ID regardless of whether we process the message.
+		FString MsgId;
+		Msg->TryGetStringField(TEXT("id"), MsgId);
+		if (!MsgId.IsEmpty())
+		{
+			NewestId = MsgId;
 		}
 
-		FString EventType;
-		Root->TryGetStringField(TEXT("t"), EventType);
+		// ── Author filtering ──────────────────────────────────────────────────
 
-		const TSharedPtr<FJsonObject>* DataPtr = nullptr;
-		Root->TryGetObjectField(TEXT("d"), DataPtr);
-
-		HandleDispatch(EventType, LastSequenceNumber,
-		               DataPtr ? *DataPtr : MakeShared<FJsonObject>());
-		break;
-	}
-	case EDiscordGatewayOpcode::Hello:
-	{
-		const TSharedPtr<FJsonObject>* DataPtr = nullptr;
-		if (Root->TryGetObjectField(TEXT("d"), DataPtr) && DataPtr)
+		const TSharedPtr<FJsonObject>* AuthorPtr = nullptr;
+		if (!Msg->TryGetObjectField(TEXT("author"), AuthorPtr) || !AuthorPtr)
 		{
-			HandleHello(*DataPtr);
+			continue;
 		}
-		break;
-	}
-	case EDiscordGatewayOpcode::HeartbeatAck:
-		HandleHeartbeatAck();
-		break;
+		const TSharedPtr<FJsonObject>& Author = *AuthorPtr;
 
-	case EDiscordGatewayOpcode::Heartbeat:
-		// Server explicitly requested a heartbeat right now.
-		SendHeartbeat();
-		break;
-
-	case EDiscordGatewayOpcode::Reconnect:
-		HandleReconnect();
-		break;
-
-	case EDiscordGatewayOpcode::InvalidSession:
-	{
-		bool bResumable = false;
-		Root->TryGetBoolField(TEXT("d"), bResumable);
-		HandleInvalidSession(bResumable);
-		break;
-	}
-	default:
-		UE_LOG(LogTemp, VeryVerbose,
-		       TEXT("DiscordBridge: Unhandled opcode %d"), OpCode);
-		break;
-	}
-}
-
-void UDiscordBridgeSubsystem::HandleHello(const TSharedPtr<FJsonObject>& DataObj)
-{
-	// Discord sends the heartbeat interval in milliseconds.
-	double HeartbeatMs = 41250.0; // sensible default
-	DataObj->TryGetNumberField(TEXT("heartbeat_interval"), HeartbeatMs);
-	HeartbeatIntervalSeconds = static_cast<float>(HeartbeatMs) / 1000.0f;
-
-	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Hello received. Heartbeat interval: %.2f s"),
-	       HeartbeatIntervalSeconds);
-
-	// Start heartbeating with a random jitter so that all bots don't hammer the
-	// Gateway simultaneously on mass-reconnects (Discord "thundering herd" concern).
-	// Strategy: one-shot ticker after a random [0, interval] delay fires the first
-	// heartbeat and then installs the regular repeating ticker.
-	// HeartbeatTickerHandle tracks whichever ticker is active so Disconnect() can
-	// always cancel it with a single RemoveTicker() call.
-	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
-
-	const float JitterSeconds = FMath::FRandRange(0.0f, HeartbeatIntervalSeconds);
-	HeartbeatTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
-		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
+		// Skip self-sent messages (bot's own posts) to prevent echo loops.
+		FString AuthorId;
+		Author->TryGetStringField(TEXT("id"), AuthorId);
+		if (!BotUserId.IsEmpty() && AuthorId == BotUserId)
 		{
-			SendHeartbeat();
-			// Replace the one-shot handle with the regular repeating ticker.
-			HeartbeatTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
-				FTickerDelegate::CreateUObject(this, &UDiscordBridgeSubsystem::HeartbeatTick),
-				HeartbeatIntervalSeconds);
-			return false; // one-shot – do not repeat
-		}),
-		JitterSeconds);
-
-	// Send Identify so Discord authenticates us.
-	SendIdentify();
-}
-
-void UDiscordBridgeSubsystem::HandleDispatch(const FString& EventType, int32 Sequence,
-                                              const TSharedPtr<FJsonObject>& DataObj)
-{
-	if (EventType == TEXT("READY"))
-	{
-		HandleReady(DataObj);
-	}
-	else if (EventType == TEXT("MESSAGE_CREATE"))
-	{
-		HandleMessageCreate(DataObj);
-	}
-	// Other events (PRESENCE_UPDATE, GUILD_MEMBER_ADD, …) are received because of
-	// the intents we request but are not processed by this bridge.
-}
-
-void UDiscordBridgeSubsystem::HandleHeartbeatAck()
-{
-	UE_LOG(LogTemp, VeryVerbose, TEXT("DiscordBridge: Heartbeat acknowledged."));
-}
-
-void UDiscordBridgeSubsystem::HandleReconnect()
-{
-	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Server requested reconnect."));
-	// Close the current socket; ScheduleReconnect() in OnWebSocketClosed will
-	// re-open it via CreateAndConnectWebSocket() after the back-off delay.
-	if (WebSocket.IsValid())
-	{
-		WebSocket->Close(1000, TEXT("Reconnect requested by server"));
-	}
-}
-
-void UDiscordBridgeSubsystem::HandleInvalidSession(bool bResumable)
-{
-	UE_LOG(LogTemp, Warning,
-	       TEXT("DiscordBridge: Invalid session (resumable=%s). Re-identifying in 2s…"),
-	       bResumable ? TEXT("true") : TEXT("false"));
-
-	// Per Discord spec, wait 1–5 seconds before re-identifying.
-	// Use a one-shot FTSTicker so the game thread is never blocked.
-	FTSTicker::GetCoreTicker().AddTicker(
-		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
-		{
-			SendIdentify();
-			return false; // one-shot – do not repeat
-		}),
-		2.0f);
-}
-
-void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj)
-{
-	// Extract the bot user ID so we can filter out self-sent messages.
-	const TSharedPtr<FJsonObject>* UserPtr = nullptr;
-	if (DataObj->TryGetObjectField(TEXT("user"), UserPtr) && UserPtr)
-	{
-		(*UserPtr)->TryGetStringField(TEXT("id"), BotUserId);
-	}
-
-	bGatewayReady = true;
-
-	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Gateway ready. Bot user ID: %s"), *BotUserId);
-
-	// Set bot presence to Online so Discord shows it as available.
-	SendUpdatePresence(TEXT("online"));
-
-	// Post the server-online notification message, if configured.
-	if (!Config.ServerOnlineMessage.IsEmpty())
-	{
-		SendStatusMessageToDiscord(Config.ServerOnlineMessage);
-	}
-
-	OnDiscordConnected.Broadcast();
-}
-
-void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>& DataObj)
-{
-	// Only process messages from the configured channel.
-	FString ChannelId;
-	if (!DataObj->TryGetStringField(TEXT("channel_id"), ChannelId) ||
-	    ChannelId != Config.ChannelId)
-	{
-		return;
-	}
-
-	// Extract the author object.
-	const TSharedPtr<FJsonObject>* AuthorPtr = nullptr;
-	if (!DataObj->TryGetObjectField(TEXT("author"), AuthorPtr) || !AuthorPtr)
-	{
-		return;
-	}
-	const TSharedPtr<FJsonObject>& Author = *AuthorPtr;
-
-	// Optionally ignore bot messages (including our own) to prevent echo loops.
-	if (Config.bIgnoreBotMessages)
-	{
-		bool bIsBot = false;
-		Author->TryGetBoolField(TEXT("bot"), bIsBot);
-		if (bIsBot)
-		{
-			return;
+			continue;
 		}
+
+		// Optionally skip all bot-flagged accounts.
+		if (Config.bIgnoreBotMessages)
+		{
+			bool bIsBot = false;
+			Author->TryGetBoolField(TEXT("bot"), bIsBot);
+			if (bIsBot)
+			{
+				continue;
+			}
+		}
+
+		// ── Content ───────────────────────────────────────────────────────────
+
+		FString Content;
+		Msg->TryGetStringField(TEXT("content"), Content);
+		if (Content.IsEmpty())
+		{
+			// Embed-only or attachment-only messages, or Message Content Intent
+			// is not enabled on the bot account (content will be empty string).
+			continue;
+		}
+
+		// ── Display name ──────────────────────────────────────────────────────
+		// Prefer global_name (Discord username 2.0 display name), fall back to username.
+
+		FString Username;
+		if (!Author->TryGetStringField(TEXT("global_name"), Username) || Username.IsEmpty())
+		{
+			Author->TryGetStringField(TEXT("username"), Username);
+		}
+
+		UE_LOG(LogTemp, Log,
+		       TEXT("DiscordBridge: [%s] %s"), *Username, *Content);
+
+		OnDiscordMessageReceived.Broadcast(Username, Content);
 	}
-	// Always ignore this bot's own messages regardless of the config flag.
-	FString AuthorId;
-	Author->TryGetStringField(TEXT("id"), AuthorId);
-	if (!BotUserId.IsEmpty() && AuthorId == BotUserId)
-	{
-		return;
-	}
 
-	// Prefer the global_name (display name) introduced in Discord username 2.0,
-	// fall back to the classic username.
-	FString Username;
-	if (!Author->TryGetStringField(TEXT("global_name"), Username) || Username.IsEmpty())
-	{
-		Author->TryGetStringField(TEXT("username"), Username);
-	}
-
-	FString Content;
-	DataObj->TryGetStringField(TEXT("content"), Content);
-
-	if (Content.IsEmpty())
-	{
-		return; // Embeds-only or attachment-only messages; skip.
-	}
-
-	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: [%s] %s"), *Username, *Content);
-
-	OnDiscordMessageReceived.Broadcast(Username, Content);
+	return NewestId;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sending Gateway payloads
+// REST API – sending
 // ─────────────────────────────────────────────────────────────────────────────
 
-void UDiscordBridgeSubsystem::SendIdentify()
+void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName,
+                                                        const FString& Message)
 {
-	// Build the connection properties object.
-	// The "os" property is informational; Discord uses it to identify the client
-	// platform.  Use the actual compile-time platform so it is accurate for both
-	// the Windows and Linux dedicated-server Alpakit targets.
-#if PLATFORM_WINDOWS
-	static const FString DiscordOs = TEXT("windows");
-#elif PLATFORM_LINUX
-	static const FString DiscordOs = TEXT("linux");
-#else
-	static const FString DiscordOs = TEXT("unknown");
-#endif
-	TSharedPtr<FJsonObject> Props = MakeShared<FJsonObject>();
-	Props->SetStringField(TEXT("os"),      DiscordOs);
-	Props->SetStringField(TEXT("browser"), TEXT("satisfactory_discord_bridge"));
-	Props->SetStringField(TEXT("device"),  TEXT("satisfactory_discord_bridge"));
-
-	// Set the initial presence so the bot appears online immediately upon
-	// authentication, before a separate UpdatePresence op is sent.
-	TSharedPtr<FJsonObject> InitialPresence = MakeShared<FJsonObject>();
-	InitialPresence->SetField(TEXT("since"), MakeShared<FJsonValueNull>());
-	InitialPresence->SetArrayField(TEXT("activities"), TArray<TSharedPtr<FJsonValue>>());
-	InitialPresence->SetStringField(TEXT("status"), TEXT("online"));
-	InitialPresence->SetBoolField(TEXT("afk"), false);
-
-	// Build the Identify data object.
-	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
-	Data->SetStringField(TEXT("token"),   Config.BotToken);
-	Data->SetNumberField(TEXT("intents"), EDiscordGatewayIntent::All);
-	Data->SetObjectField(TEXT("properties"), Props);
-	Data->SetObjectField(TEXT("presence"), InitialPresence);
-
-	// Wrap in the Gateway payload envelope.
-	TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
-	Payload->SetNumberField(TEXT("op"), EDiscordGatewayOpcode::Identify);
-	Payload->SetObjectField(TEXT("d"),  Data);
-
-	SendGatewayPayload(Payload);
-
-	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Identify sent (intents=%d)."),
-	       EDiscordGatewayIntent::All);
-}
-
-void UDiscordBridgeSubsystem::SendHeartbeat()
-{
-	TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
-	Payload->SetNumberField(TEXT("op"), EDiscordGatewayOpcode::Heartbeat);
-
-	// The heartbeat data field must be the last received sequence number, or
-	// a JSON null if no dispatch has been received yet.
-	if (LastSequenceNumber >= 0)
+	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
 	{
-		Payload->SetNumberField(TEXT("d"), LastSequenceNumber);
-	}
-	else
-	{
-		Payload->SetField(TEXT("d"), MakeShared<FJsonValueNull>());
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: Cannot send – BotToken or ChannelId not configured."));
+		return;
 	}
 
-	SendGatewayPayload(Payload);
-}
+	FString FormattedContent = Config.GameToDiscordFormat;
+	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *PlayerName);
+	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
 
-void UDiscordBridgeSubsystem::SendUpdatePresence(const FString& Status)
-{
-	// Build the presence data object (Discord Gateway op=3).
-	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
-	Data->SetField(TEXT("since"),      MakeShared<FJsonValueNull>());
-	Data->SetArrayField(TEXT("activities"), TArray<TSharedPtr<FJsonValue>>());
-	Data->SetStringField(TEXT("status"), Status);
-	Data->SetBoolField(TEXT("afk"),    false);
+	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("content"), FormattedContent);
 
-	TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
-	Payload->SetNumberField(TEXT("op"), EDiscordGatewayOpcode::UpdatePresence);
-	Payload->SetObjectField(TEXT("d"),  Data);
+	FString BodyString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
+	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
 
-	SendGatewayPayload(Payload);
+	const FString Url = FString::Printf(
+		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
 
-	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Presence updated to '%s'."), *Status);
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeApiRequest(TEXT("POST"), Url);
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetContentAsString(BodyString);
+
+	Request->OnProcessRequestComplete().BindWeakLambda(
+		this,
+		[PlayerName](FHttpRequestPtr, FHttpResponsePtr Resp, bool bConnected)
+		{
+			if (!bConnected || !Resp.IsValid())
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: HTTP send failed for player '%s'."), *PlayerName);
+				return;
+			}
+			if (Resp->GetResponseCode() < 200 || Resp->GetResponseCode() >= 300)
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Discord REST API returned %d: %s"),
+				       Resp->GetResponseCode(), *Resp->GetContentAsString());
+			}
+		});
+
+	Request->ProcessRequest();
 }
 
 void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
@@ -667,24 +482,18 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 	const FString Url = FString::Printf(
 		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
 
-	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
-		FHttpModule::Get().CreateRequest();
-
-	Request->SetURL(Url);
-	Request->SetVerb(TEXT("POST"));
-	Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
-	Request->SetHeader(TEXT("Authorization"),
-	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeApiRequest(TEXT("POST"), Url);
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
 	Request->SetContentAsString(BodyString);
 
 	Request->OnProcessRequestComplete().BindWeakLambda(
 		this,
-		[Message](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
+		[Message](FHttpRequestPtr, FHttpResponsePtr Resp, bool bConnected)
 		{
 			if (!bConnected || !Resp.IsValid())
 			{
 				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: HTTP request failed for status message '%s'."),
+				       TEXT("DiscordBridge: HTTP send failed for status message '%s'."),
 				       *Message);
 				return;
 			}
@@ -699,28 +508,16 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 	Request->ProcessRequest();
 }
 
-void UDiscordBridgeSubsystem::SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload)
+TSharedRef<IHttpRequest, ESPMode::ThreadSafe>
+UDiscordBridgeSubsystem::MakeApiRequest(const FString& Verb, const FString& Url) const
 {
-	if (!WebSocket.IsValid() || !WebSocket->IsConnected())
-	{
-		return;
-	}
-
-	FString JsonString;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
-	FJsonSerializer::Serialize(Payload.ToSharedRef(), Writer);
-
-	WebSocket->Send(JsonString);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Heartbeat timer
-// ─────────────────────────────────────────────────────────────────────────────
-
-bool UDiscordBridgeSubsystem::HeartbeatTick(float /*DeltaTime*/)
-{
-	SendHeartbeat();
-	return true; // keep ticking
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
+		FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Authorization"),
+	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
+	return Request;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -734,79 +531,16 @@ void UDiscordBridgeSubsystem::OnNewChatMessage()
 	TArray<FChatMessageStruct> Messages;
 	BoundChatManager->GetReceivedChatMessages(Messages);
 
-	// Forward only the messages that arrived since the last call and were sent
-	// by a player (CMT_PlayerMessage).  CMT_SystemMessage entries include our
-	// own Discord-relay messages; skipping them prevents an echo loop.
 	for (int32 i = NumSeenChatMessages; i < Messages.Num(); ++i)
 	{
 		const FChatMessageStruct& Msg = Messages[i];
 		if (Msg.MessageType == EFGChatMessageType::CMT_PlayerMessage)
 		{
-			SendGameMessageToDiscord(Msg.MessageSender.ToString(), Msg.MessageText.ToString());
+			SendGameMessageToDiscord(Msg.MessageSender.ToString(),
+			                        Msg.MessageText.ToString());
 		}
 	}
 	NumSeenChatMessages = Messages.Num();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName,
-                                                        const FString& Message)
-{
-	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: Cannot send message – BotToken or ChannelId not configured."));
-		return;
-	}
-
-	// Apply the configurable format string.
-	FString FormattedContent = Config.GameToDiscordFormat;
-	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *PlayerName);
-	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
-
-	// Build the JSON body: {"content": "…"}
-	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
-	Body->SetStringField(TEXT("content"), FormattedContent);
-
-	FString BodyString;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
-	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
-
-	// POST to the Discord REST API.
-	const FString Url = FString::Printf(
-		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
-
-	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
-		FHttpModule::Get().CreateRequest();
-
-	Request->SetURL(Url);
-	Request->SetVerb(TEXT("POST"));
-	Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
-	Request->SetHeader(TEXT("Authorization"),
-	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
-	Request->SetContentAsString(BodyString);
-
-	Request->OnProcessRequestComplete().BindWeakLambda(
-		this,
-		[PlayerName](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
-		{
-			if (!bConnected || !Resp.IsValid())
-			{
-				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: HTTP request failed for player '%s'."),
-				       *PlayerName);
-				return;
-			}
-			if (Resp->GetResponseCode() < 200 || Resp->GetResponseCode() >= 300)
-			{
-				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: Discord REST API returned %d: %s"),
-				       Resp->GetResponseCode(), *Resp->GetContentAsString());
-			}
-		});
-
-	Request->ProcessRequest();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -820,7 +554,7 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	if (!World)
 	{
 		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: No world available – cannot relay Discord message to game chat."));
+		       TEXT("DiscordBridge: No world – cannot relay Discord message to game chat."));
 		return;
 	}
 
@@ -828,11 +562,10 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	if (!ChatManager)
 	{
 		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: ChatManager not found – cannot relay Discord message to game chat."));
+		       TEXT("DiscordBridge: ChatManager not found – cannot relay Discord message."));
 		return;
 	}
 
-	// Apply the configurable format string (DiscordToGameFormat).
 	FString FormattedMessage = Config.DiscordToGameFormat;
 	FormattedMessage = FormattedMessage.Replace(TEXT("{Username}"), *Username);
 	FormattedMessage = FormattedMessage.Replace(TEXT("{Message}"),  *Message);
@@ -847,3 +580,4 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: Relayed to game chat: [%s] %s"), *Username, *Message);
 }
+

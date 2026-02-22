@@ -20,23 +20,15 @@ public class DiscordBridge : ModuleRules
 			// Required by all Alpakit C++ mods so UBT can resolve engine headers at mod compile time.
 			"DummyHeaders",
 			// FactoryGame – provides AFGChatManager, AFGPlayerController, etc.
-			// Declared explicitly even though it is transitively available through SML.
 			"FactoryGame",
 			// SML runtime dependency – ensures correct module load ordering.
 			"SML",
-			// Unreal Engine built-in WebSocket module – available in Satisfactory's custom
-			// UE build.  Replaces the former SMLWebSocket plugin so DiscordBridge no longer
-			// requires a separate companion mod.  Provides IWebSocket / FWebSocketsModule.
-			"WebSockets",
 			// Unreal HTTP module – confirmed present in Satisfactory's custom UE build.
-			// Verified: FactoryGame.Build.cs lists "HTTP" in PublicDependencyModuleNames,
-			// which makes it transitively available to every SML-dependent mod.
+			// Used for both Discord REST API polling (receiving messages) and posting.
+			// Verified: FactoryGame.Build.cs lists "HTTP" in PublicDependencyModuleNames.
 			"HTTP",
 			// Unreal JSON serialisation module (FJsonObject / TJsonReader / TJsonWriter /
 			// FJsonSerializer) – confirmed present in Satisfactory's custom UE build.
-			// Verified: FactoryGame.Build.cs and SML.Build.cs both list "Json" as a
-			// public dependency.  Note: "JsonUtilities" (FJsonObjectConverter) is NOT
-			// listed here because this module does not use UStruct-to-JSON conversion.
 			"Json",
 		});
 	}
