@@ -475,8 +475,18 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 void UDiscordBridgeSubsystem::SendIdentify()
 {
 	// Build the connection properties object.
+	// The "os" property is informational; Discord uses it to identify the client
+	// platform.  Use the actual compile-time platform so it is accurate for both
+	// the Windows and Linux dedicated-server Alpakit targets.
+#if PLATFORM_WINDOWS
+	static const FString DiscordOs = TEXT("windows");
+#elif PLATFORM_LINUX
+	static const FString DiscordOs = TEXT("linux");
+#else
+	static const FString DiscordOs = TEXT("unknown");
+#endif
 	TSharedPtr<FJsonObject> Props = MakeShared<FJsonObject>();
-	Props->SetStringField(TEXT("os"),      TEXT("windows"));
+	Props->SetStringField(TEXT("os"),      DiscordOs);
 	Props->SetStringField(TEXT("browser"), TEXT("satisfactory_discord_bridge"));
 	Props->SetStringField(TEXT("device"),  TEXT("satisfactory_discord_bridge"));
 
