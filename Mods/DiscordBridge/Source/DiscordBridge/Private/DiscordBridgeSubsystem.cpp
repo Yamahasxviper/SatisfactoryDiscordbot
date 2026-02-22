@@ -145,8 +145,9 @@ void UDiscordBridgeSubsystem::Disconnect()
 		}
 	}
 
-	bGatewayReady      = false;
-	LastSequenceNumber = -1;
+	bGatewayReady        = false;
+	bPendingHeartbeatAck = false;
+	LastSequenceNumber   = -1;
 	BotUserId.Empty();
 
 	if (WebSocketClient)
@@ -228,6 +229,7 @@ void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString&
 	// Cancel heartbeat; it will be restarted on the next successful connection.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	HeartbeatTickerHandle.Reset();
+	bPendingHeartbeatAck = false;
 
 	const bool bWasReady = bGatewayReady;
 	bGatewayReady = false;
@@ -245,6 +247,7 @@ void UDiscordBridgeSubsystem::OnWebSocketError(const FString& ErrorMessage)
 
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	HeartbeatTickerHandle.Reset();
+	bPendingHeartbeatAck = false;
 
 	if (bGatewayReady)
 	{
@@ -262,6 +265,7 @@ void UDiscordBridgeSubsystem::OnWebSocketReconnecting(int32 AttemptNumber, float
 	// Reset Gateway state; we'll re-identify once the WebSocket reconnects.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	HeartbeatTickerHandle.Reset();
+	bPendingHeartbeatAck = false;
 	bGatewayReady = false;
 }
 
@@ -357,6 +361,7 @@ void UDiscordBridgeSubsystem::HandleHello(const TSharedPtr<FJsonObject>& DataObj
 	// HeartbeatTickerHandle tracks whichever ticker is active so Disconnect() can
 	// always cancel it with a single RemoveTicker() call.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+	bPendingHeartbeatAck = false;
 
 	const float JitterSeconds = FMath::FRandRange(0.0f, HeartbeatIntervalSeconds);
 	HeartbeatTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
@@ -393,6 +398,7 @@ void UDiscordBridgeSubsystem::HandleDispatch(const FString& EventType, int32 Seq
 void UDiscordBridgeSubsystem::HandleHeartbeatAck()
 {
 	UE_LOG(LogTemp, VeryVerbose, TEXT("DiscordBridge: Heartbeat acknowledged."));
+	bPendingHeartbeatAck = false;
 }
 
 void UDiscordBridgeSubsystem::HandleReconnect()
@@ -566,6 +572,33 @@ void UDiscordBridgeSubsystem::SendIdentify()
 
 void UDiscordBridgeSubsystem::SendHeartbeat()
 {
+	// Zombie-connection detection (per Discord Gateway documentation):
+	// If the previous heartbeat was never acknowledged, the connection is a
+	// zombie – packets are being sent locally but not reaching Discord.
+	// Discord has already marked the bot offline.  Close the WebSocket with a
+	// non-1000 code so USMLWebSocketClient's auto-reconnect triggers a fresh
+	// connection and re-identification.
+	if (bPendingHeartbeatAck)
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: Heartbeat not acknowledged – zombie connection detected. "
+		            "Closing to trigger reconnect."));
+
+		// Cancel the heartbeat ticker before closing so we don't send more
+		// heartbeats on a dead socket.
+		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+		HeartbeatTickerHandle.Reset();
+		bPendingHeartbeatAck = false;
+
+		if (WebSocketClient)
+		{
+			// Non-1000 close code signals USMLWebSocketClient that this was
+			// not a user-initiated close, so it will attempt to reconnect.
+			WebSocketClient->Close(1001, TEXT("Zombie connection – no heartbeat ack"));
+		}
+		return;
+	}
+
 	TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
 	Payload->SetNumberField(TEXT("op"), EDiscordGatewayOpcode::Heartbeat);
 
@@ -581,6 +614,7 @@ void UDiscordBridgeSubsystem::SendHeartbeat()
 	}
 
 	SendGatewayPayload(Payload);
+	bPendingHeartbeatAck = true;
 }
 
 void UDiscordBridgeSubsystem::SendUpdatePresence(const FString& Status)

@@ -283,6 +283,14 @@ private:
 	/** true after the READY dispatch has been received from Discord. */
 	bool bGatewayReady{false};
 
+	/**
+	 * true when a heartbeat has been sent and we are waiting for the server's
+	 * op=11 HeartbeatAck.  If this flag is still true when the next heartbeat
+	 * is due, the connection is a zombie (Discord's term) and must be closed so
+	 * that USMLWebSocketClient's auto-reconnect can re-establish it.
+	 */
+	bool bPendingHeartbeatAck{false};
+
 	/** Snowflake ID of the bot user; used to filter out self-sent messages. */
 	FString BotUserId;
 };
