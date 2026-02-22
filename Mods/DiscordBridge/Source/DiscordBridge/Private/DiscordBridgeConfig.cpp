@@ -81,6 +81,11 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(ConfigFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
 
+		// Trim leading/trailing whitespace from credential fields to prevent
+		// subtle mismatches when operators accidentally include spaces.
+		Config.BotToken  = Config.BotToken.TrimStartAndEnd();
+		Config.ChannelId = Config.ChannelId.TrimStartAndEnd();
+
 		bLoadedFromMod = true;
 		UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Loaded config from %s"), *ModFilePath);
 	}
@@ -141,11 +146,11 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 		if (Config.BotToken.IsEmpty())
 		{
-			Config.BotToken = GetIniStringOrDefault(BackupFile, TEXT("BotToken"), TEXT(""));
+			Config.BotToken = GetIniStringOrDefault(BackupFile, TEXT("BotToken"), TEXT("")).TrimStartAndEnd();
 		}
 		if (Config.ChannelId.IsEmpty())
 		{
-			Config.ChannelId = GetIniStringOrDefault(BackupFile, TEXT("ChannelId"), TEXT(""));
+			Config.ChannelId = GetIniStringOrDefault(BackupFile, TEXT("ChannelId"), TEXT("")).TrimStartAndEnd();
 		}
 
 		// Restore all other user-customised settings from the backup so that
