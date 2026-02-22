@@ -410,10 +410,24 @@ void UDiscordBridgeSubsystem::HandleHeartbeatAck()
 void UDiscordBridgeSubsystem::HandleReconnect()
 {
 	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Server requested reconnect."));
-	// Close and let USMLWebSocketClient's auto-reconnect handle the rest.
+
+	// Reset Gateway state; we'll re-identify once the WebSocket reconnects.
+	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+	HeartbeatTickerHandle.Reset();
+	bPendingHeartbeatAck = false;
+	bGatewayReady        = false;
+	LastSequenceNumber   = -1;
+	BotUserId.Empty();
+
+	// Restart the WebSocket connection by calling Connect() on the existing
+	// client.  Do NOT call Close() here: Close() → EnqueueClose() sets
+	// bUserInitiatedClose = true inside FSMLWebSocketRunnable, which exits
+	// the reconnect loop permanently and leaves the bot offline.
+	// Connect() stops the current thread and starts a fresh runnable with
+	// auto-reconnect still enabled.
 	if (WebSocketClient)
 	{
-		WebSocketClient->Close(1000, TEXT("Reconnect requested by server"));
+		WebSocketClient->Connect(DiscordGatewayUrl, {}, {});
 	}
 }
 
