@@ -16,7 +16,7 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
-	"AcceptsAnyRemoteVersion": true,
+	"RequiredOnRemote": false,
 	"Modules": [
 		{
 			"Name": "SMLWebSocket",
