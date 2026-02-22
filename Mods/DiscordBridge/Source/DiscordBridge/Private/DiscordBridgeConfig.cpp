@@ -3,7 +3,6 @@
 #include "DiscordBridgeConfig.h"
 
 #include "HAL/PlatformFileManager.h"
-#include "Interfaces/IPluginManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -40,19 +39,13 @@ namespace
 
 FString FDiscordBridgeConfig::GetConfigFilePath()
 {
-	// Resolve the path to the plugin's own DefaultDiscordBridge.ini file.
+	// Store the live config in the project's Saved directory so Alpakit mod
+	// updates never overwrite the user's BotToken / ChannelId settings.
 	// On a deployed server this resolves to:
-	//   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
-	// This file is staged by Alpakit (via PluginSettings.ini → AdditionalNonUSFDirectories)
-	// and is directly editable by the server operator.
-	const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("DiscordBridge"));
-	if (Plugin.IsValid())
-	{
-		return FPaths::Combine(Plugin->GetBaseDir(), TEXT("Config"), TEXT("DefaultDiscordBridge.ini"));
-	}
-
-	// Fallback: use the SML convention so the mod still functions without a valid plugin entry.
-	return FPaths::Combine(FPaths::ProjectDir(), TEXT("Configs"), TEXT("DefaultDiscordBridge.ini"));
+	//   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
+	// Alpakit only stages files from the plugin's own directory tree; it never
+	// touches the Saved/ directory, so this file survives every mod upgrade.
+	return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("DiscordBridge.ini"));
 }
 
 FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()

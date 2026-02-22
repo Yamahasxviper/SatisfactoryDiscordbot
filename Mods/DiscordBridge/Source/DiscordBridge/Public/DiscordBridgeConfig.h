@@ -7,11 +7,18 @@
 /**
  * Configuration for the Discord Bridge mod.
  *
- * Values are read from the plugin's own INI config file:
+ * The live configuration is read from (and auto-created in):
+ *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
+ *
+ * This location is NEVER touched by Alpakit mod updates, so BotToken and
+ * ChannelId survive every upgrade.  An example with all settings and their
+ * defaults is shipped with the mod at:
  *   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
+ * (that file IS overwritten on updates – do not store credentials there).
  *
  * To enable the bot:
- *   1. Open  Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
+ *   1. Open  <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
+ *      (created automatically on first server start; or copy DefaultDiscordBridge.ini there).
  *   2. Set   BotToken  – the token from the Discord Developer Portal (Bot → Token).
  *            Treat this value as a password; do not share it.
  *   3. Set   ChannelId – the snowflake ID of the target text channel.
@@ -60,12 +67,12 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
 	/**
-	 * Loads configuration from the plugin's Config/DefaultDiscordBridge.ini file.
+	 * Loads configuration from Saved/Config/DiscordBridge.ini.
 	 * If the file does not exist it is created with default values and those
 	 * defaults are returned.
 	 */
 	static FDiscordBridgeConfig LoadOrCreate();
 
-	/** Returns the absolute path to the INI config file. */
+	/** Returns the absolute path to the live INI config file (in Saved/Config/). */
 	static FString GetConfigFilePath();
 };

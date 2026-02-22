@@ -34,9 +34,6 @@ public class DiscordBridge : ModuleRules
 			// public dependency.  Note: "JsonUtilities" (FJsonObjectConverter) is NOT
 			// listed here because this module does not use UStruct-to-JSON conversion.
 			"Json",
-			// Projects module – provides IPluginManager so we can locate the plugin's
-			// own directory at runtime (used to resolve the config file path).
-			"Projects",
 		});
 	}
 }
