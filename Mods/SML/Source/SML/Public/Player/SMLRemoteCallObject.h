@@ -27,6 +27,10 @@ public:
     UFUNCTION(BlueprintCallable, Reliable, Client)
     void SendChatMessage(const FString& Message, const FLinearColor& Color);
 
+    /** Sends a chat message to the player with an explicit sender name, shown as a player message */
+    UFUNCTION(BlueprintCallable, Reliable, Client)
+    void SendChatMessageWithSender(const FString& Message, const FLinearColor& Color, const FString& Sender);
+
     /** Called client side to process chat command on server */
     UFUNCTION(BlueprintCallable, Reliable, Server, WithValidation = HandleChatCommand_Validate)
     void HandleChatCommand(const FString& CommandLine);
