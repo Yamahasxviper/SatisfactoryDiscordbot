@@ -93,7 +93,7 @@ namespace EDiscordGatewayIntent
  *  1. Create a Discord application and bot in the Discord Developer Portal.
  *  2. Enable all three Privileged Gateway Intents on the Bot page.
  *  3. Invite the bot to your server with "Send Messages" + "Read Message History".
- *  4. Fill in BotToken and ChannelId in Mods/DiscordBridge/Config/DiscordBridge.cfg
+ *  4. Fill in BotToken and ChannelId in Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
  *     (auto-created on first server start) and restart the server.
  *  5. Optionally customise GameToDiscordFormat and DiscordToGameFormat.
  *  6. In Blueprint, bind to OnDiscordMessageReceived and call

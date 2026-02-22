@@ -70,7 +70,7 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		UE_LOG(LogTemp, Warning,
 		       TEXT("DiscordBridge: BotToken or ChannelId is not configured. "
-		            "Edit Saved/Config/DiscordBridge.ini to enable the bridge."));
+		            "Edit Mods/DiscordBridge/Config/DefaultDiscordBridge.ini to enable the bridge."));
 		return;
 	}
 
@@ -186,7 +186,7 @@ void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString&
 	case 4004:
 		UE_LOG(LogTemp, Error,
 		       TEXT("DiscordBridge: Authentication failed (4004). "
-		            "Verify BotToken in Saved/Config/DiscordBridge.ini. "
+		            "Verify BotToken in Mods/DiscordBridge/Config/DefaultDiscordBridge.ini. "
 		            "Auto-reconnect disabled."));
 		bTerminal = true;
 		break;

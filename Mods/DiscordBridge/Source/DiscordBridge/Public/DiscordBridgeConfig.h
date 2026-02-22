@@ -7,18 +7,21 @@
 /**
  * Configuration for the Discord Bridge mod.
  *
- * The live configuration is read from (and auto-created in):
- *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
- *
- * This location is NEVER touched by Alpakit mod updates, so BotToken and
- * ChannelId survive every upgrade.  An example with all settings and their
- * defaults is shipped with the mod at:
+ * PRIMARY config (edit this one):
  *   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
- * (that file IS overwritten on updates – do not store credentials there).
+ * This file ships with the mod and is the one server operators should fill in.
+ * It is overwritten by Alpakit/SMM mod updates, but the mod automatically
+ * saves a backup before each session so credentials can be restored.
+ *
+ * BACKUP config (auto-managed, survives mod updates):
+ *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
+ * Written automatically whenever BotToken and ChannelId are loaded from the
+ * primary config.  If the primary file is reset by a mod update, the mod falls
+ * back to this backup so the bridge keeps working until the operator copies
+ * their credentials back into the primary config.
  *
  * To enable the bot:
- *   1. Open  <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
- *      (created automatically on first server start; or copy DefaultDiscordBridge.ini there).
+ *   1. Open  <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
  *   2. Set   BotToken  – the token from the Discord Developer Portal (Bot → Token).
  *            Treat this value as a password; do not share it.
  *   3. Set   ChannelId – the snowflake ID of the target text channel.
@@ -67,12 +70,17 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
 	/**
-	 * Loads configuration from Saved/Config/DiscordBridge.ini.
-	 * If the file does not exist it is created with default values and those
-	 * defaults are returned.
+	 * Loads configuration from the primary mod-folder INI, falling back to the
+	 * Saved/Config backup when credentials are missing.  If the primary file does
+	 * not exist it is created with default values.  When credentials are
+	 * successfully loaded from the primary, an up-to-date backup is written to
+	 * the Saved/Config location so they survive the next mod update.
 	 */
 	static FDiscordBridgeConfig LoadOrCreate();
 
-	/** Returns the absolute path to the live INI config file (in Saved/Config/). */
-	static FString GetConfigFilePath();
+	/** Returns the absolute path to the primary INI config file (mod folder). */
+	static FString GetModConfigFilePath();
+
+	/** Returns the absolute path to the backup INI config file (Saved/Config/). */
+	static FString GetBackupConfigFilePath();
 };
