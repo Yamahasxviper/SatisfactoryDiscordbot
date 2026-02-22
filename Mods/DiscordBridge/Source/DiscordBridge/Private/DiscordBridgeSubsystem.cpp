@@ -74,6 +74,12 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		return;
 	}
 
+	// Log active format strings so operators can verify they were loaded correctly.
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: GameToDiscordFormat = \"%s\""), *Config.GameToDiscordFormat);
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: DiscordToGameFormat = \"%s\""), *Config.DiscordToGameFormat);
+
 	Connect();
 }
 
@@ -506,17 +512,26 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 			Author->TryGetStringField(TEXT("username"), Username);
 		}
 	}
+	// Final safety fallback: every Discord user has a username, but guard against
+	// unexpected API responses that omit all name fields.
+	if (Username.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: Could not extract display name from Discord message author; using 'Discord User'."));
+		Username = TEXT("Discord User");
+	}
 
 	FString Content;
 	DataObj->TryGetStringField(TEXT("content"), Content);
+	Content = Content.TrimStartAndEnd();
 
 	if (Content.IsEmpty())
 	{
-		return; // Embeds-only or attachment-only messages; skip.
+		return; // Embeds-only, sticker-only, or whitespace-only messages; skip.
 	}
 
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: [%s] %s"), *Username, *Content);
+	       TEXT("DiscordBridge: Discord message received from '%s': %s"), *Username, *Content);
 
 	OnDiscordMessageReceived.Broadcast(Username, Content);
 }
@@ -742,8 +757,21 @@ void UDiscordBridgeSubsystem::OnNewChatMessage()
 		const FChatMessageStruct& Msg = Messages[i];
 		if (Msg.MessageType == EFGChatMessageType::CMT_PlayerMessage)
 		{
-			const FString PlayerName = Msg.MessageSender.ToString();
-			const FString MessageText = Msg.MessageText.ToString();
+			const FString PlayerName  = Msg.MessageSender.ToString().TrimStartAndEnd();
+			const FString MessageText = Msg.MessageText.ToString().TrimStartAndEnd();
+
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Player message detected. Sender: '%s', Text: '%s'"),
+			       *PlayerName, *MessageText);
+
+			if (MessageText.IsEmpty())
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Skipping player message with empty text from '%s'."),
+				       *PlayerName);
+				continue;
+			}
+
 			SendGameMessageToDiscord(PlayerName, MessageText);
 		}
 	}
@@ -779,6 +807,9 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 		       *EffectivePlayerName);
 		return;
 	}
+
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: Sending to Discord: %s"), *FormattedContent);
 
 	// Build the JSON body: {"content": "…"}
 	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
@@ -871,5 +902,5 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	ChatManager->BroadcastChatMessage(ChatMsg);
 
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Relayed to game chat: [%s] %s"), *Username, *Message);
+	       TEXT("DiscordBridge: Relayed to game chat: %s"), *FormattedMessage);
 }
