@@ -36,6 +36,16 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	// across reconnect cycles (Connect() may be called multiple times).
 	OnDiscordMessageReceived.AddDynamic(this, &UDiscordBridgeSubsystem::RelayDiscordMessageToGame);
 
+	// Start a 1-second periodic ticker that tries to find AFGChatManager and
+	// bind to its OnChatMessageAdded delegate.  The ticker stops as soon as
+	// binding succeeds (TryBindToChatManager returns true).
+	ChatManagerBindTickHandle = FTSTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
+		{
+			return !TryBindToChatManager(); // false = stop ticking
+		}),
+		1.0f);
+
 	// Load (or auto-create) the JSON config file from Configs/DiscordBridge.cfg.
 	Config = FDiscordBridgeConfig::LoadOrCreate();
 
@@ -62,6 +72,19 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UDiscordBridgeSubsystem::Deinitialize()
 {
+	// Stop the chat-manager bind ticker if it is still running.
+	FTSTicker::GetCoreTicker().RemoveTicker(ChatManagerBindTickHandle);
+	ChatManagerBindTickHandle.Reset();
+
+	// Unbind from the chat manager's delegate so no stale callbacks fire
+	// after this subsystem is destroyed.
+	if (BoundChatManager.IsValid())
+	{
+		BoundChatManager->OnChatMessageAdded.RemoveDynamic(
+			this, &UDiscordBridgeSubsystem::OnGameChatMessageAdded);
+		BoundChatManager.Reset();
+	}
+
 	Disconnect();
 	Super::Deinitialize();
 }
@@ -701,6 +724,84 @@ bool UDiscordBridgeSubsystem::HeartbeatTick(float /*DeltaTime*/)
 {
 	SendHeartbeat();
 	return true; // keep ticking
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chat manager binding (Game → Discord)
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool UDiscordBridgeSubsystem::TryBindToChatManager()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	AFGChatManager* ChatMgr = AFGChatManager::Get(World);
+	if (!ChatMgr)
+	{
+		return false;
+	}
+
+	ChatMgr->OnChatMessageAdded.AddDynamic(this, &UDiscordBridgeSubsystem::OnGameChatMessageAdded);
+	BoundChatManager = ChatMgr;
+
+	// Snapshot the current messages so we only forward NEW ones going forward.
+	ChatMgr->GetReceivedChatMessages(LastKnownMessages);
+
+	UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Bound to AFGChatManager::OnChatMessageAdded."));
+	return true;
+}
+
+void UDiscordBridgeSubsystem::OnGameChatMessageAdded()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	AFGChatManager* ChatMgr = AFGChatManager::Get(World);
+	if (!ChatMgr)
+	{
+		return;
+	}
+
+	TArray<FChatMessageStruct> CurrentMessages;
+	ChatMgr->GetReceivedChatMessages(CurrentMessages);
+
+	// Identify messages present in CurrentMessages but absent from LastKnownMessages.
+	// Equality is determined by (ServerTimeStamp, MessageSender, MessageText) so
+	// that the diff is correct even when the rolling buffer wraps around.
+	for (const FChatMessageStruct& Msg : CurrentMessages)
+	{
+		if (Msg.MessageType != EFGChatMessageType::CMT_PlayerMessage)
+		{
+			continue;
+		}
+
+		bool bAlreadySeen = false;
+		for (const FChatMessageStruct& Known : LastKnownMessages)
+		{
+			if (Known.ServerTimeStamp == Msg.ServerTimeStamp &&
+				Known.MessageSender.EqualTo(Msg.MessageSender) &&
+				Known.MessageText.EqualTo(Msg.MessageText))
+			{
+				bAlreadySeen = true;
+				break;
+			}
+		}
+
+		if (!bAlreadySeen)
+		{
+			HandleIncomingChatMessage(
+				Msg.MessageSender.ToString().TrimStartAndEnd(),
+				Msg.MessageText.ToString().TrimStartAndEnd());
+		}
+	}
+
+	LastKnownMessages = CurrentMessages;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

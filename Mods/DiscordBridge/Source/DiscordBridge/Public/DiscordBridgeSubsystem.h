@@ -7,9 +7,8 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "SMLWebSocketClient.h"
 #include "DiscordBridgeConfig.h"
+#include "FGChatManager.h"
 #include "DiscordBridgeSubsystem.generated.h"
-
-class AFGChatManager;
 
 // ── Delegate declarations ─────────────────────────────────────────────────────
 
@@ -85,12 +84,12 @@ namespace EDiscordGatewayIntent
  *  • Discord → Game: MESSAGE_CREATE events on the configured channel fire
  *    OnDiscordMessageReceived so that Blueprint (or another C++ subsystem) can
  *    inject the message into the Satisfactory chat.
- *  • Game → Discord: AFGChatManager::AddChatMessageToReceived is intercepted via
- *    SML's NativeHookManager so that every CMT_PlayerMessage added to the server's
- *    chat history is forwarded to Discord through the REST API.  This avoids the
- *    timing fragility of the previous OnChatMessageAdded + GetReceivedChatMessages
- *    approach and works even when BroadcastChatMessage / Server_SendChatMessage_Impl
- *    are too short for funchook to patch.
+ *  • Game → Discord: AFGChatManager::OnChatMessageAdded is bound via a
+ *    periodic ticker so that every CMT_PlayerMessage added to the server's
+ *    chat history is forwarded to Discord through the REST API.  The delegate
+ *    approach avoids funchook entirely, which is necessary because
+ *    AddChatMessageToReceived, BroadcastChatMessage, and related functions are
+ *    all too short for funchook to patch in the shipped game binary.
  *
  * Setup
  * ─────
@@ -177,13 +176,9 @@ public:
 	bool IsConnected() const { return bGatewayReady; }
 
 	/**
-	 * Called by the native hook on AFGChatManager::AddChatMessageToReceived every
-	 * time a player-chat message lands in the server's history.  Forwards the
-	 * message to Discord and handles echo prevention for messages we relayed FROM
-	 * Discord.
-	 *
-	 * This is public so that the static hook lambda installed in
-	 * FDiscordBridgeModule::StartupModule() can call it without friendship.
+	 * Called by OnGameChatMessageAdded every time a player-chat message lands
+	 * in the server's history.  Forwards the message to Discord and handles
+	 * echo prevention for messages we relayed FROM Discord.
 	 *
 	 * @param PlayerName  Value of FChatMessageStruct::MessageSender (may be empty
 	 *                    if the game does not populate it server-side; falls back
@@ -209,6 +204,23 @@ private:
 
 	UFUNCTION()
 	void OnWebSocketReconnecting(int32 AttemptNumber, float DelaySeconds);
+
+	// ── Chat capture (Game → Discord) ─────────────────────────────────────────
+
+	/**
+	 * Bound to AFGChatManager::OnChatMessageAdded.  Diffs the current message
+	 * list against the previous snapshot and forwards any new CMT_PlayerMessage
+	 * entries to Discord.
+	 */
+	UFUNCTION()
+	void OnGameChatMessageAdded();
+
+	/**
+	 * Attempts to locate AFGChatManager in the current world and bind
+	 * OnGameChatMessageAdded to its OnChatMessageAdded delegate.
+	 * Returns true when binding succeeds; the caller's ticker stops on success.
+	 */
+	bool TryBindToChatManager();
 
 	// ── Discord Gateway protocol ──────────────────────────────────────────────
 
@@ -298,4 +310,21 @@ private:
 	 * so that the relayed CMT_PlayerMessage is not immediately echoed back to Discord.
 	 */
 	TSet<FString> PendingRelayedMessages;
+
+	// ── Chat manager binding ──────────────────────────────────────────────────
+
+	/**
+	 * Periodic ticker that attempts to bind to AFGChatManager::OnChatMessageAdded
+	 * once per second until the chat manager is available.  Cleared on success.
+	 */
+	FTSTicker::FDelegateHandle ChatManagerBindTickHandle;
+
+	/** Weak reference to the chat manager we bound to; used for cleanup. */
+	TWeakObjectPtr<AFGChatManager> BoundChatManager;
+
+	/**
+	 * Snapshot of mReceivedMessages taken when OnGameChatMessageAdded last ran.
+	 * Used to diff against the current message list and detect newly added entries.
+	 */
+	TArray<FChatMessageStruct> LastKnownMessages;
 };
