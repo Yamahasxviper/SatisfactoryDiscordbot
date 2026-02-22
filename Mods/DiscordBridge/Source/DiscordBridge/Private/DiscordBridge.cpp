@@ -5,42 +5,38 @@
 #include "Modules/ModuleManager.h"
 #include "Patching/NativeHookManager.h"
 #include "FGChatManager.h"
-#include "GameFramework/PlayerState.h"
 
 // Stored so the hook can be removed cleanly in ShutdownModule.
 static FDelegateHandle GChatHookHandle;
 
 void FDiscordBridgeModule::StartupModule()
 {
-	// Hook AFGChatManager::Multicast_BroadcastChatMessage_Implementation to forward
-	// player chat messages to Discord.  BroadcastChatMessage itself is too short for
-	// funchook to instrument ("Too short instructions"), so we hook the NetMulticast
-	// implementation instead.  On the server UE executes the _Implementation locally
-	// before replicating to clients, so every message is still captured exactly once.
+	// Hook AFGChatManager::AddChatMessageToReceived to forward player chat messages to
+	// Discord.  Both BroadcastChatMessage and Multicast_BroadcastChatMessage_Implementation
+	// are too short for funchook to instrument ("Too short instructions"), so we hook
+	// AddChatMessageToReceived instead.  This function has a larger body (TArray append)
+	// that funchook can safely instrument.  The sender name is carried directly in the
+	// FChatMessageStruct::MessageSender field, so no InstigatorController is needed.
 	// We filter to CMT_PlayerMessage only to avoid echo-looping our own Discord→game
 	// relay messages (which are posted as CMT_SystemMessage).
-	GChatHookHandle = SUBSCRIBE_UOBJECT_METHOD(AFGChatManager, Multicast_BroadcastChatMessage_Implementation,
-		([](auto& Call, AFGChatManager* Self,
-		    const FChatMessageStruct& NewMessage,
-		    APlayerController* InstigatorController)
+	GChatHookHandle = SUBSCRIBE_UOBJECT_METHOD(AFGChatManager, AddChatMessageToReceived,
+		([](auto& Call, AFGChatManager* Self, const FChatMessageStruct& inMessage)
 		{
 			// Call the original implementation first.
-			Call(Self, NewMessage, InstigatorController);
+			Call(Self, inMessage);
 
 			// Only forward player-typed messages to Discord.
-			if (NewMessage.MessageType != EFGChatMessageType::CMT_PlayerMessage) return;
-			if (!InstigatorController) return;
+			if (inMessage.MessageType != EFGChatMessageType::CMT_PlayerMessage) return;
 
-			UGameInstance* GameInstance = InstigatorController->GetGameInstance();
+			UGameInstance* GameInstance = Self->GetGameInstance();
 			if (!GameInstance) return;
 
 			UDiscordBridgeSubsystem* Bridge =
 				GameInstance->GetSubsystem<UDiscordBridgeSubsystem>();
 			if (!Bridge) return;
 
-			APlayerState* PS = InstigatorController->GetPlayerState<APlayerState>();
-			const FString PlayerName = PS ? PS->GetPlayerName() : TEXT("Unknown Player");
-			const FString MessageText = NewMessage.MessageText.ToString();
+			const FString PlayerName = inMessage.MessageSender.ToString();
+			const FString MessageText = inMessage.MessageText.ToString();
 
 			Bridge->SendGameMessageToDiscord(PlayerName, MessageText);
 		}));
@@ -48,7 +44,7 @@ void FDiscordBridgeModule::StartupModule()
 
 void FDiscordBridgeModule::ShutdownModule()
 {
-	UNSUBSCRIBE_UOBJECT_METHOD(AFGChatManager, Multicast_BroadcastChatMessage_Implementation, GChatHookHandle);
+	UNSUBSCRIBE_UOBJECT_METHOD(AFGChatManager, AddChatMessageToReceived, GChatHookHandle);
 }
 
 IMPLEMENT_MODULE(FDiscordBridgeModule, DiscordBridge)
