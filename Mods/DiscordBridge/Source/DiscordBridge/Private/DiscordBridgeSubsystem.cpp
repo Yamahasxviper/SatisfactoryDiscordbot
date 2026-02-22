@@ -9,6 +9,7 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "FGChatManager.h"
 
 // Discord Gateway endpoint (v10, JSON encoding)
 static const FString DiscordGatewayUrl = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
@@ -30,6 +31,10 @@ bool UDiscordBridgeSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+
+	// Wire up the Discord→game relay once here so it is never double-bound
+	// across reconnect cycles (Connect() may be called multiple times).
+	OnDiscordMessageReceived.AddDynamic(this, &UDiscordBridgeSubsystem::RelayDiscordMessageToGame);
 
 	// Load (or auto-create) the JSON config file from Configs/DiscordBridge.cfg.
 	Config = FDiscordBridgeConfig::LoadOrCreate();
@@ -133,6 +138,54 @@ void UDiscordBridgeSubsystem::OnWebSocketClosed(int32 StatusCode, const FString&
 	UE_LOG(LogTemp, Warning,
 	       TEXT("DiscordBridge: Gateway connection closed (code=%d, reason='%s')."),
 	       StatusCode, *Reason);
+
+	// Detect Discord-specific close codes that indicate a permanent error.
+	// For these codes reconnecting with the same credentials will never succeed,
+	// so we signal the WebSocket client to stop auto-reconnecting.
+	bool bTerminal = false;
+	switch (StatusCode)
+	{
+	case 4004:
+		UE_LOG(LogTemp, Error,
+		       TEXT("DiscordBridge: Authentication failed (4004). "
+		            "Verify BotToken in Saved/Config/DiscordBridge.ini. "
+		            "Auto-reconnect disabled."));
+		bTerminal = true;
+		break;
+	case 4010:
+		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Invalid shard sent (4010). Auto-reconnect disabled."));
+		bTerminal = true;
+		break;
+	case 4011:
+		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Sharding required (4011). Auto-reconnect disabled."));
+		bTerminal = true;
+		break;
+	case 4012:
+		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Invalid Gateway API version (4012). Auto-reconnect disabled."));
+		bTerminal = true;
+		break;
+	case 4013:
+		UE_LOG(LogTemp, Error, TEXT("DiscordBridge: Invalid intent(s) (4013). Auto-reconnect disabled."));
+		bTerminal = true;
+		break;
+	case 4014:
+		UE_LOG(LogTemp, Error,
+		       TEXT("DiscordBridge: Disallowed intent(s) (4014). "
+		            "Enable all three Privileged Gateway Intents "
+		            "(Presence, Server Members, Message Content) "
+		            "in the Discord Developer Portal. Auto-reconnect disabled."));
+		bTerminal = true;
+		break;
+	default:
+		break;
+	}
+
+	if (bTerminal && WebSocketClient)
+	{
+		// Calling Close() sets bUserInitiatedClose on the background thread,
+		// which causes the reconnect loop to exit without retrying.
+		WebSocketClient->Close(1000, FString::Printf(TEXT("Terminal Discord close code %d"), StatusCode));
+	}
 
 	// Cancel heartbeat; it will be restarted on the next successful connection.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
@@ -259,14 +312,26 @@ void UDiscordBridgeSubsystem::HandleHello(const TSharedPtr<FJsonObject>& DataObj
 	       TEXT("DiscordBridge: Hello received. Heartbeat interval: %.2f s"),
 	       HeartbeatIntervalSeconds);
 
-	// Start the heartbeat ticker. FTSTicker is engine-level and fires on the
-	// game thread regardless of whether a UWorld exists yet, which avoids the
-	// race condition where Hello arrives before the dedicated-server world is
-	// fully loaded and GetWorld() still returns null.
+	// Start heartbeating with a random jitter so that all bots don't hammer the
+	// Gateway simultaneously on mass-reconnects (Discord "thundering herd" concern).
+	// Strategy: one-shot ticker after a random [0, interval] delay fires the first
+	// heartbeat and then installs the regular repeating ticker.
+	// HeartbeatTickerHandle tracks whichever ticker is active so Disconnect() can
+	// always cancel it with a single RemoveTicker() call.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
+
+	const float JitterSeconds = FMath::FRandRange(0.0f, HeartbeatIntervalSeconds);
 	HeartbeatTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
-		FTickerDelegate::CreateUObject(this, &UDiscordBridgeSubsystem::HeartbeatTick),
-		HeartbeatIntervalSeconds);
+		FTickerDelegate::CreateWeakLambda(this, [this](float) -> bool
+		{
+			SendHeartbeat();
+			// Replace the one-shot handle with the regular repeating ticker.
+			HeartbeatTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+				FTickerDelegate::CreateUObject(this, &UDiscordBridgeSubsystem::HeartbeatTick),
+				HeartbeatIntervalSeconds);
+			return false; // one-shot – do not repeat
+		}),
+		JitterSeconds);
 
 	// Send Identify so Discord authenticates us.
 	SendIdentify();
@@ -613,4 +678,43 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 		});
 
 	Request->ProcessRequest();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Discord → Game chat relay
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
+                                                         const FString& Message)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: No world available – cannot relay Discord message to game chat."));
+		return;
+	}
+
+	AFGChatManager* ChatManager = AFGChatManager::Get(World);
+	if (!ChatManager)
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: ChatManager not found – cannot relay Discord message to game chat."));
+		return;
+	}
+
+	// Apply the configurable format string (DiscordToGameFormat).
+	FString FormattedMessage = Config.DiscordToGameFormat;
+	FormattedMessage = FormattedMessage.Replace(TEXT("{Username}"), *Username);
+	FormattedMessage = FormattedMessage.Replace(TEXT("{Message}"),  *Message);
+
+	FChatMessageStruct ChatMsg;
+	ChatMsg.MessageText   = FText::FromString(FormattedMessage);
+	ChatMsg.MessageType   = EFGChatMessageType::CMT_SystemMessage;
+	ChatMsg.MessageSender = FText::FromString(TEXT("Discord"));
+
+	ChatManager->BroadcastChatMessage(ChatMsg);
+
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: Relayed to game chat: [%s] %s"), *Username, *Message);
 }
