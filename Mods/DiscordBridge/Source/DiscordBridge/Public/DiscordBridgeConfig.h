@@ -7,23 +7,23 @@
 /**
  * Configuration for the Discord Bridge mod.
  *
- * Values are read from and written to
- *   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DiscordBridge.cfg  (JSON format)
+ * The live configuration is read from (and auto-created in):
+ *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
  *
- * The file is created automatically with defaults on the first server start.
+ * This location is NEVER touched by Alpakit mod updates, so BotToken and
+ * ChannelId survive every upgrade.  An example with all settings and their
+ * defaults is shipped with the mod at:
+ *   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridge.ini
+ * (that file IS overwritten on updates – do not store credentials there).
+ *
  * To enable the bot:
- *   1. Open  Mods/DiscordBridge/Config/DiscordBridge.cfg
- *   2. Set   "BotToken"  – the token from the Discord Developer Portal (Bot → Token).
+ *   1. Open  <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini
+ *      (created automatically on first server start; or copy DefaultDiscordBridge.ini there).
+ *   2. Set   BotToken  – the token from the Discord Developer Portal (Bot → Token).
  *            Treat this value as a password; do not share it.
- *   3. Set   "ChannelId" – the snowflake ID of the target text channel.
+ *   3. Set   ChannelId – the snowflake ID of the target text channel.
  *            Enable Developer Mode in Discord, right-click the channel, "Copy Channel ID".
  *   4. Restart the server.
- *
- * The config file lives inside the mod's own folder so it is easy to find.
- * Alpakit only packages files that exist in the source repository; because
- * DiscordBridge.cfg is auto-generated at runtime (and is gitignored), it is
- * never included in a packaged mod update and therefore persists across
- * upgrades without any special handling.
  *
  * Discord bot requirements
  * ────────────────────────
@@ -67,13 +67,12 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
 	/**
-	 * Loads configuration from the plugin's Config/DiscordBridge.cfg file.
+	 * Loads configuration from Saved/Config/DiscordBridge.ini.
 	 * If the file does not exist it is created with default values and those
-	 * defaults are returned.  If the file exists but contains invalid JSON,
-	 * the defaults are used in memory without overwriting the file.
+	 * defaults are returned.
 	 */
 	static FDiscordBridgeConfig LoadOrCreate();
 
-	/** Returns the absolute path to the JSON config file. */
+	/** Returns the absolute path to the live INI config file (in Saved/Config/). */
 	static FString GetConfigFilePath();
 };
