@@ -840,9 +840,12 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	// Apply the configurable format string (DiscordToGameFormat) to the message body.
 	// Use a fallback if the format is empty so the message is never silently
 	// dropped due to a misconfigured INI.
+	// {PlayerName} is supported as an alias for {Username} for consistency with
+	// the GameToDiscordFormat direction.
 	FString FormattedMessage = Config.DiscordToGameFormat;
-	FormattedMessage = FormattedMessage.Replace(TEXT("{Username}"), *Username);
-	FormattedMessage = FormattedMessage.Replace(TEXT("{Message}"),  *Message);
+	FormattedMessage = FormattedMessage.Replace(TEXT("{Username}"),   *Username);
+	FormattedMessage = FormattedMessage.Replace(TEXT("{PlayerName}"), *Username);
+	FormattedMessage = FormattedMessage.Replace(TEXT("{Message}"),    *Message);
 
 	if (FormattedMessage.IsEmpty())
 	{
@@ -854,8 +857,11 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	// Build the sender label that will appear in the chat name column using
 	// the configurable DiscordSenderFormat. Falls back to "[Discord] {Username}"
 	// if the format produces an empty string.
+	// {PlayerName} is supported as an alias for {Username} for consistency with
+	// the GameToDiscordFormat direction.
 	FString SenderLabel = Config.DiscordSenderFormat;
-	SenderLabel = SenderLabel.Replace(TEXT("{Username}"), *Username);
+	SenderLabel = SenderLabel.Replace(TEXT("{Username}"),   *Username);
+	SenderLabel = SenderLabel.Replace(TEXT("{PlayerName}"), *Username);
 	if (SenderLabel.IsEmpty())
 	{
 		SenderLabel = FString::Printf(TEXT("[Discord] %s"), *Username);
