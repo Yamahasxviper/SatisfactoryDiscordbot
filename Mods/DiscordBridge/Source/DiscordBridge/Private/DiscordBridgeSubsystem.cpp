@@ -484,12 +484,21 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 		return;
 	}
 
-	// Prefer the global_name (display name) introduced in Discord username 2.0,
-	// fall back to the classic username.
+	// Display name priority: server nickname > global display name > username.
+	// The member object is included in MESSAGE_CREATE events for guild messages
+	// when the GUILD_MEMBERS intent is enabled.
 	FString Username;
-	if (!Author->TryGetStringField(TEXT("global_name"), Username) || Username.IsEmpty())
+	const TSharedPtr<FJsonObject>* MemberPtr = nullptr;
+	if (DataObj->TryGetObjectField(TEXT("member"), MemberPtr) && MemberPtr)
 	{
-		Author->TryGetStringField(TEXT("username"), Username);
+		(*MemberPtr)->TryGetStringField(TEXT("nick"), Username);
+	}
+	if (Username.IsEmpty())
+	{
+		if (!Author->TryGetStringField(TEXT("global_name"), Username) || Username.IsEmpty())
+		{
+			Author->TryGetStringField(TEXT("username"), Username);
+		}
 	}
 
 	FString Content;
@@ -676,15 +685,32 @@ void UDiscordBridgeSubsystem::OnNewChatMessage()
 	TArray<FChatMessageStruct> Messages;
 	BoundChatManager->GetReceivedChatMessages(Messages);
 
-	// Forward only the messages that arrived since the last call and were sent
-	// by a player (CMT_PlayerMessage).  CMT_SystemMessage entries include our
-	// own Discord-relay messages; skipping them prevents an echo loop.
-	for (int32 i = NumSeenChatMessages; i < Messages.Num(); ++i)
+	if (Messages.Num() == 0) return;
+
+	// AFGChatManager keeps a rolling history bounded by mMaxNumMessagesInHistory
+	// (default 50).  Once the buffer is full, each new message evicts the oldest
+	// one, so Messages.Num() stays constant.  In that case NumSeenChatMessages
+	// equals Messages.Num() even though a new message was just added, and a
+	// naive "> NumSeenChatMessages" guard would silently drop every message after
+	// the 50th.  Detect this by falling back to the last element (the newest
+	// message) whenever the count has not grown.
+	//
+	// In the normal (non-full) case we process all entries from NumSeenChatMessages
+	// onward; in the rolling-buffer case we process only the last entry.
+	// Forward only CMT_PlayerMessage entries; CMT_SystemMessage entries include
+	// our own Discord-relay messages and skipping them prevents an echo loop.
+	const int32 StartIdx = (Messages.Num() > NumSeenChatMessages)
+	                       ? NumSeenChatMessages
+	                       : (Messages.Num() - 1);
+
+	for (int32 i = StartIdx; i < Messages.Num(); ++i)
 	{
 		const FChatMessageStruct& Msg = Messages[i];
 		if (Msg.MessageType == EFGChatMessageType::CMT_PlayerMessage)
 		{
-			SendGameMessageToDiscord(Msg.MessageSender.ToString(), Msg.MessageText.ToString());
+			const FString PlayerName = Msg.MessageSender.ToString();
+			const FString MessageText = Msg.MessageText.ToString();
+			SendGameMessageToDiscord(PlayerName, MessageText);
 		}
 	}
 	NumSeenChatMessages = Messages.Num();
@@ -703,9 +729,22 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	}
 
 	// Apply the configurable format string.
+	// Fall back to a plain "Name: Message" string when the format is empty so
+	// the message is never silently discarded due to a misconfigured INI.
+	const FString EffectivePlayerName = PlayerName.IsEmpty() ? TEXT("Unknown") : PlayerName;
+
 	FString FormattedContent = Config.GameToDiscordFormat;
-	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *PlayerName);
+	FormattedContent = FormattedContent.Replace(TEXT("{PlayerName}"), *EffectivePlayerName);
 	FormattedContent = FormattedContent.Replace(TEXT("{Message}"),    *Message);
+
+	if (FormattedContent.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: GameToDiscordFormat produced an empty string for player '%s'. "
+		            "Check the GameToDiscordFormat setting in DefaultDiscordBridge.ini."),
+		       *EffectivePlayerName);
+		return;
+	}
 
 	// Build the JSON body: {"content": "…"}
 	TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
@@ -731,13 +770,13 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 
 	Request->OnProcessRequestComplete().BindWeakLambda(
 		this,
-		[PlayerName](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
+		[EffectivePlayerName](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
 		{
 			if (!bConnected || !Resp.IsValid())
 			{
 				UE_LOG(LogTemp, Warning,
 				       TEXT("DiscordBridge: HTTP request failed for player '%s'."),
-				       *PlayerName);
+				       *EffectivePlayerName);
 				return;
 			}
 			if (Resp->GetResponseCode() < 200 || Resp->GetResponseCode() >= 300)
@@ -775,9 +814,20 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	}
 
 	// Apply the configurable format string (DiscordToGameFormat).
+	// Use a fallback if the format is empty so the message is never silently
+	// dropped due to a misconfigured INI.
 	FString FormattedMessage = Config.DiscordToGameFormat;
 	FormattedMessage = FormattedMessage.Replace(TEXT("{Username}"), *Username);
 	FormattedMessage = FormattedMessage.Replace(TEXT("{Message}"),  *Message);
+
+	if (FormattedMessage.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: DiscordToGameFormat produced an empty string for user '%s'. "
+		            "Check the DiscordToGameFormat setting in DefaultDiscordBridge.ini."),
+		       *Username);
+		return;
+	}
 
 	FChatMessageStruct ChatMsg;
 	ChatMsg.MessageText   = FText::FromString(FormattedMessage);
