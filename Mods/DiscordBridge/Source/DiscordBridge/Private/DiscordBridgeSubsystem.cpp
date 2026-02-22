@@ -38,7 +38,7 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		UE_LOG(LogTemp, Warning,
 		       TEXT("DiscordBridge: BotToken or ChannelId is not configured. "
-		            "Edit Mods/DiscordBridge/Config/DiscordBridge.cfg to enable the bridge."));
+		            "Edit Mods/DiscordBridge/Config/DefaultDiscordBridge.ini to enable the bridge."));
 		return;
 	}
 
