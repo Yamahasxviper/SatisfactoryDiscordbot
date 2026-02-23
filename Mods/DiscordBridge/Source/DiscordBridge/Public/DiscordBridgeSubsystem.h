@@ -277,6 +277,21 @@ private:
 	FTSTicker::FDelegateHandle HeartbeatTickerHandle;
 	float HeartbeatIntervalSeconds{0.0f};
 
+	// ── Player count presence ─────────────────────────────────────────────────
+
+	/**
+	 * Queries the current connected player count, formats it using
+	 * PlayerCountPresenceFormat, and sends a Discord presence update
+	 * (op=3) containing a "Watching" activity with the formatted text.
+	 * No-ops when the Gateway is not ready or the feature is disabled.
+	 */
+	void UpdatePlayerCountPresence();
+
+	/** Timer callback – fires UpdatePlayerCountPresence() at the configured interval. */
+	bool PlayerCountTick(float DeltaTime);
+
+	FTSTicker::FDelegateHandle PlayerCountTickerHandle;
+
 	// ── Internal state ────────────────────────────────────────────────────────
 
 	/** The WebSocket client connected to the Discord Gateway. */

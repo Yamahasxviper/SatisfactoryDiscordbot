@@ -9,6 +9,7 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "GameFramework/GameStateBase.h"
 #include "FGChatManager.h"
 
 // Discord Gateway endpoint (v10, JSON encoding)
@@ -124,6 +125,10 @@ void UDiscordBridgeSubsystem::Disconnect()
 	// Stop heartbeat ticker.
 	FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 	HeartbeatTickerHandle.Reset();
+
+	// Stop player count presence ticker.
+	FTSTicker::GetCoreTicker().RemoveTicker(PlayerCountTickerHandle);
+	PlayerCountTickerHandle.Reset();
 
 	// Signal offline status and post the server-offline notification while
 	// the WebSocket is still open so Discord receives both before we close.
@@ -451,8 +456,25 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: Gateway ready. Bot user ID: %s"), *BotUserId);
 
-	// Set bot presence to Online so Discord shows it as available.
-	SendUpdatePresence(TEXT("online"));
+	// Set bot presence. When the player-count feature is enabled, send the first
+	// update immediately and start the periodic refresh ticker.  Otherwise just
+	// set the bot to "online" with no activity.
+	FTSTicker::GetCoreTicker().RemoveTicker(PlayerCountTickerHandle);
+	PlayerCountTickerHandle.Reset();
+
+	if (Config.bShowPlayerCountInPresence)
+	{
+		UpdatePlayerCountPresence();
+
+		const float Interval = FMath::Max(Config.PlayerCountUpdateIntervalSeconds, 15.0f);
+		PlayerCountTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+			FTickerDelegate::CreateUObject(this, &UDiscordBridgeSubsystem::PlayerCountTick),
+			Interval);
+	}
+	else
+	{
+		SendUpdatePresence(TEXT("online"));
+	}
 
 	// Post the server-online notification message, if configured.
 	if (!Config.ServerOnlineMessage.IsEmpty())
@@ -724,6 +746,73 @@ bool UDiscordBridgeSubsystem::HeartbeatTick(float /*DeltaTime*/)
 {
 	SendHeartbeat();
 	return true; // keep ticking
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player count presence
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool UDiscordBridgeSubsystem::PlayerCountTick(float /*DeltaTime*/)
+{
+	UpdatePlayerCountPresence();
+	return true; // keep ticking
+}
+
+void UDiscordBridgeSubsystem::UpdatePlayerCountPresence()
+{
+	if (!bGatewayReady || !Config.bShowPlayerCountInPresence)
+	{
+		return;
+	}
+
+	// Count connected players using the game state's player array.
+	int32 PlayerCount = 0;
+	if (UWorld* World = GetWorld())
+	{
+		if (AGameStateBase* GS = World->GetGameState<AGameStateBase>())
+		{
+			PlayerCount = GS->PlayerArray.Num();
+		}
+	}
+
+	// Apply configured format placeholders.
+	FString ActivityText = Config.PlayerCountPresenceFormat;
+	ActivityText = ActivityText.Replace(TEXT("%PlayerCount%"), *FString::FromInt(PlayerCount));
+	ActivityText = ActivityText.Replace(TEXT("%ServerName%"),  *Config.ServerName);
+	ActivityText = ActivityText.TrimStartAndEnd();
+
+	// If the user left the format blank, fall back to just the player count number
+	// so Discord never receives an empty activity name.
+	if (ActivityText.IsEmpty())
+	{
+		ActivityText = FString::FromInt(PlayerCount);
+	}
+
+	// Build a Discord activity object using the configured activity type.
+	// Common types: 0=Playing, 2=Listening to, 3=Watching, 5=Competing in.
+	TSharedPtr<FJsonObject> Activity = MakeShared<FJsonObject>();
+	Activity->SetNumberField(TEXT("type"), Config.PlayerCountActivityType);
+	Activity->SetStringField(TEXT("name"), ActivityText);
+
+	TArray<TSharedPtr<FJsonValue>> Activities;
+	Activities.Add(MakeShared<FJsonValueObject>(Activity));
+
+	// Build the presence update payload (op=3).
+	TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
+	Data->SetField(TEXT("since"),      MakeShared<FJsonValueNull>());
+	Data->SetArrayField(TEXT("activities"), Activities);
+	Data->SetStringField(TEXT("status"), TEXT("online"));
+	Data->SetBoolField(TEXT("afk"),    false);
+
+	TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
+	Payload->SetNumberField(TEXT("op"), EDiscordGatewayOpcode::UpdatePresence);
+	Payload->SetObjectField(TEXT("d"),  Data);
+
+	SendGatewayPayload(Payload);
+
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: Player count presence updated (%d players) – activity: \"%s\""),
+	       PlayerCount, *ActivityText);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

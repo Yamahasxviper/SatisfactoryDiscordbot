@@ -81,6 +81,30 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/** Posted to Discord when the server shuts down. Leave empty to disable. */
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
+	// ── Player count presence ─────────────────────────────────────────────────
+
+	/** When true, the bot's Discord presence activity shows the current player count. */
+	bool bShowPlayerCountInPresence{ true };
+
+	/** The custom text shown in the bot's Discord presence.
+	 *  Type whatever you like.  Use %PlayerCount% to insert the live player count
+	 *  and %ServerName% to insert the configured server name.
+	 *  Example: "My Server with %PlayerCount% players" */
+	FString PlayerCountPresenceFormat{ TEXT("%PlayerCount% players online") };
+
+	/** How often (in seconds) to refresh the player count shown in the bot's presence.
+	 *  Must be at least 15 seconds; the default is 60 seconds. */
+	float PlayerCountUpdateIntervalSeconds{ 60.0f };
+
+	/** Discord activity type used when displaying the player count.
+	 *  Controls the verb shown before the activity text in Discord:
+	 *   0 = Playing         → "Playing <your text>"
+	 *   2 = Listening to    → "Listening to <your text>"
+	 *   3 = Watching        → "Watching <your text>"
+	 *   5 = Competing in    → "Competing in <your text>"
+	 *  Default: 0 (Playing). */
+	int32 PlayerCountActivityType{ 0 };
+
 	/**
 	 * Loads configuration from the primary mod-folder INI, falling back to the
 	 * Saved/Config backup when credentials are missing.  If the primary file does
