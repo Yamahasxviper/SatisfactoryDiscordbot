@@ -615,26 +615,33 @@ void UDiscordBridgeSubsystem::SendHeartbeat()
 	// Zombie-connection detection (per Discord Gateway documentation):
 	// If the previous heartbeat was never acknowledged, the connection is a
 	// zombie – packets are being sent locally but not reaching Discord.
-	// Discord has already marked the bot offline.  Close the WebSocket with a
-	// non-1000 code so USMLWebSocketClient's auto-reconnect triggers a fresh
-	// connection and re-identification.
+	// Discord has already marked the bot offline.  Force a fresh connection
+	// by calling Connect() so USMLWebSocketClient's auto-reconnect remains enabled.
 	if (bPendingHeartbeatAck)
 	{
 		UE_LOG(LogTemp, Warning,
 		       TEXT("DiscordBridge: Heartbeat not acknowledged – zombie connection detected. "
-		            "Closing to trigger reconnect."));
+		            "Reconnecting."));
 
-		// Cancel the heartbeat ticker before closing so we don't send more
-		// heartbeats on a dead socket.
+		// Cancel the heartbeat ticker before reconnecting so no further heartbeats
+		// are sent on the dead socket.  HandleHello will restart it on the new connection.
 		FTSTicker::GetCoreTicker().RemoveTicker(HeartbeatTickerHandle);
 		HeartbeatTickerHandle.Reset();
 		bPendingHeartbeatAck = false;
 
+		// Reset Gateway state; we'll re-identify once the WebSocket reconnects.
+		bGatewayReady      = false;
+		LastSequenceNumber = -1;
+		BotUserId.Empty();
+
 		if (WebSocketClient)
 		{
-			// Non-1000 close code signals USMLWebSocketClient that this was
-			// not a user-initiated close, so it will attempt to reconnect.
-			WebSocketClient->Close(1001, TEXT("Zombie connection – no heartbeat ack"));
+			// Use Connect() instead of Close() to force a fresh connection.
+			// Close() → EnqueueClose() sets bUserInitiatedClose = true inside
+			// FSMLWebSocketRunnable, which exits the reconnect loop permanently
+			// and leaves the bot offline.  Connect() stops the current thread
+			// and starts a new runnable with auto-reconnect still enabled.
+			WebSocketClient->Connect(DiscordGatewayUrl, {}, {});
 		}
 		return;
 	}
