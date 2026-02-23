@@ -25,6 +25,12 @@ public:
 	/** Returns active SML configuration. If not loaded, it will return empty struct */
 	FORCEINLINE static FSMLConfiguration GetSMLConfiguration() { return SMLConfigurationPrivate; }
 
+	/** Replaces the active in-memory SML configuration. Call SaveSMLConfiguration() afterwards to persist. */
+	FORCEINLINE static void SetSMLConfiguration(const FSMLConfiguration& NewConfig) { SMLConfigurationPrivate = NewConfig; }
+
+	/** Writes the current in-memory SML configuration to disk immediately. */
+	static void SaveSMLConfiguration();
+
 	/** Returns true if SCS, widget or blueprint hooking is allowed in this environment. Hooking is not allowed by default during commandlet execution to avoid modifying the original assets */
 	static bool IsAssetHookingAllowed();
 private:

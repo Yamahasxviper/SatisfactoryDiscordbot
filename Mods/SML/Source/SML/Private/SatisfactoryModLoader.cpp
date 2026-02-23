@@ -60,6 +60,27 @@ TMap<FName, FString> FSatisfactoryModLoader::GetExtraAttributes() {
     return OutExtraAttributes;
 }
 
+void FSatisfactoryModLoader::SaveSMLConfiguration() {
+    const FString ConfigLocation = UConfigManager::GetConfigurationFilePath(FConfigId{TEXT("SML")});
+
+    const TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+    FSMLConfiguration::WriteToJson(JsonObject, SMLConfigurationPrivate);
+
+    FString OutSerializedConfiguration;
+    const TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&OutSerializedConfiguration);
+    FJsonSerializer::Serialize(JsonObject, JsonWriter);
+
+    //Make sure configuration directory exists
+    FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(ConfigLocation));
+
+    //Write file onto the disk now
+    if (FFileHelper::SaveStringToFile(OutSerializedConfiguration, *ConfigLocation)) {
+        UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Successfully saved SML configuration"));
+    } else {
+        UE_LOG(LogSatisfactoryModLoader, Error, TEXT("Failed to save SML configuration to %s"), *ConfigLocation);
+    }
+}
+
 void FSatisfactoryModLoader::LoadSMLConfiguration(bool bAllowSave) {
     const FString ConfigLocation = UConfigManager::GetConfigurationFilePath(FConfigId{TEXT("SML")});
     IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
@@ -88,23 +109,8 @@ void FSatisfactoryModLoader::LoadSMLConfiguration(bool bAllowSave) {
         bShouldWriteConfiguration = true;
     }
 
-    if (bShouldWriteConfiguration) {
-        const TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-        FSMLConfiguration::WriteToJson(JsonObject, SMLConfigurationPrivate);
-
-        FString OutSerializedConfiguration;
-        const TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&OutSerializedConfiguration);
-        FJsonSerializer::Serialize(JsonObject, JsonWriter);
-
-        //Make sure configuration directory exists
-        FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(ConfigLocation));
-
-        //Write file onto the disk now
-        if (FFileHelper::SaveStringToFile(OutSerializedConfiguration, *ConfigLocation)) {
-            UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Successfully saved SML configuration"));
-        } else {
-            UE_LOG(LogSatisfactoryModLoader, Error, TEXT("Failed to save SML configuration to %s"), *ConfigLocation);
-        }
+    if (bShouldWriteConfiguration && bAllowSave) {
+        SaveSMLConfiguration();
     }
 }
 

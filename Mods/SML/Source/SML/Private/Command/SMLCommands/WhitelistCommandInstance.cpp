@@ -24,13 +24,29 @@ static void ExecutePrivilegedSubcommand(
 
     // /whitelist on
     if (SubCommand == TEXT("on")) {
-        Sender->SendChatMessage(TEXT("Whitelist is enabled in SML config. Restart the server for changes to take effect."));
+        if (Config.bEnableWhitelist) {
+            Sender->SendChatMessage(TEXT("Whitelist is already enabled."));
+        } else {
+            FSMLConfiguration Updated = Config;
+            Updated.bEnableWhitelist = true;
+            FSatisfactoryModLoader::SetSMLConfiguration(Updated);
+            FSatisfactoryModLoader::SaveSMLConfiguration();
+            Sender->SendChatMessage(TEXT("Whitelist enabled and saved to config."));
+        }
         return;
     }
 
     // /whitelist off
     if (SubCommand == TEXT("off")) {
-        Sender->SendChatMessage(TEXT("Set enableWhitelist=false in SML config and restart the server to disable the whitelist."));
+        if (!Config.bEnableWhitelist) {
+            Sender->SendChatMessage(TEXT("Whitelist is already disabled."));
+        } else {
+            FSMLConfiguration Updated = Config;
+            Updated.bEnableWhitelist = false;
+            FSatisfactoryModLoader::SetSMLConfiguration(Updated);
+            FSatisfactoryModLoader::SaveSMLConfiguration();
+            Sender->SendChatMessage(TEXT("Whitelist disabled and saved to config."));
+        }
         return;
     }
 
