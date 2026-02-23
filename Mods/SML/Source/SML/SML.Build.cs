@@ -22,7 +22,8 @@ public class SML : ModuleRules
             "Projects",
             "NetCore",
             "EnhancedInput",
-            "GameplayTags"
+            "GameplayTags",
+            "HTTP"
         });
         
         PrivateDependencyModuleNames.AddRange(new[] {

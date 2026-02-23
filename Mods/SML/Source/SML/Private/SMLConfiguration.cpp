@@ -5,7 +5,11 @@ FSMLConfiguration::FSMLConfiguration() :
     bEnableFunchookLogging(false),
     bEnableWhitelist(false),
     WhitelistRole(TEXT("admin")),
-    WhitelistChannel(TEXT("")) {
+    WhitelistChannel(TEXT("")),
+    DiscordBotToken(TEXT("")),
+    DiscordGuildId(TEXT("")),
+    DiscordWhitelistRoleId(TEXT("")),
+    DiscordWhitelistChannelId(TEXT("")) {
 }
 
 void FSMLConfiguration::ReadFromJson(const TSharedPtr<FJsonObject>& Json, FSMLConfiguration& OutConfiguration, bool* OutIsMissingSections) {
@@ -45,6 +49,30 @@ void FSMLConfiguration::ReadFromJson(const TSharedPtr<FJsonObject>& Json, FSMLCo
         bIsMissingSectionsInternal = true;
     }
 
+    if (Json->HasTypedField<EJson::String>(TEXT("discordBotToken"))) {
+        OutConfiguration.DiscordBotToken = Json->GetStringField(TEXT("discordBotToken"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
+    if (Json->HasTypedField<EJson::String>(TEXT("discordGuildId"))) {
+        OutConfiguration.DiscordGuildId = Json->GetStringField(TEXT("discordGuildId"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
+    if (Json->HasTypedField<EJson::String>(TEXT("discordWhitelistRoleId"))) {
+        OutConfiguration.DiscordWhitelistRoleId = Json->GetStringField(TEXT("discordWhitelistRoleId"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
+    if (Json->HasTypedField<EJson::String>(TEXT("discordWhitelistChannelId"))) {
+        OutConfiguration.DiscordWhitelistChannelId = Json->GetStringField(TEXT("discordWhitelistChannelId"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
     if (OutIsMissingSections) {
         *OutIsMissingSections = bIsMissingSectionsInternal;
     }
@@ -62,4 +90,9 @@ void FSMLConfiguration::WriteToJson(const TSharedPtr<FJsonObject>& OutJson, cons
     OutJson->SetBoolField(TEXT("enableWhitelist"), Configuration.bEnableWhitelist);
     OutJson->SetStringField(TEXT("whitelistRole"), Configuration.WhitelistRole);
     OutJson->SetStringField(TEXT("whitelistChannel"), Configuration.WhitelistChannel);
+
+    OutJson->SetStringField(TEXT("discordBotToken"), Configuration.DiscordBotToken);
+    OutJson->SetStringField(TEXT("discordGuildId"), Configuration.DiscordGuildId);
+    OutJson->SetStringField(TEXT("discordWhitelistRoleId"), Configuration.DiscordWhitelistRoleId);
+    OutJson->SetStringField(TEXT("discordWhitelistChannelId"), Configuration.DiscordWhitelistChannelId);
 }

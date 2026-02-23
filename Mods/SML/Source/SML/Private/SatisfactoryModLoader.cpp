@@ -8,6 +8,7 @@
 #include "Network/SMLConnection/SMLNetworkManager.h"
 #include "Player/SMLRemoteCallObject.h"
 #include "Player/SMLWhitelistManager.h"
+#include "Player/DiscordRoleChecker.h"
 #include "Patching/Patch/SaveMetadataPatch.h"
 #include "Player/PlayerCheatManagerHandler.h"
 #include "Util/DebuggerHelper.h"
@@ -206,6 +207,9 @@ void FSatisfactoryModLoader::PreInitializeModLoading() {
 
     // Load the persistent whitelist from disk so it is ready before any players join
     FSMLWhitelistManager::LoadWhitelist();
+
+    // Load Discord player↔ID links so they are available for role checks
+    FDiscordRoleChecker::LoadLinks();
     
     UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Pre-initialization finished!"));
 }

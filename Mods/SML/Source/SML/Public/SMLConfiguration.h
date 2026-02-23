@@ -35,6 +35,34 @@ public:
      * Set to an empty string to allow whitelist commands from any context.
      */
     FString WhitelistChannel;
+
+    // -------------------------------------------------------------------------
+    // Discord integration
+    // -------------------------------------------------------------------------
+
+    /**
+     * Discord bot token used to authenticate API calls.
+     * Obtain this from the Discord Developer Portal under your application's Bot page.
+     * Example: "Bot MTExxx.YYY.ZZZ"  (the "Bot " prefix is added automatically)
+     */
+    FString DiscordBotToken;
+
+    /**
+     * Discord guild (server) ID where role membership is checked.
+     */
+    FString DiscordGuildId;
+
+    /**
+     * Discord role ID whose members are authorised to manage the whitelist.
+     * Copy the role ID from Discord (Developer Mode → right-click role → Copy ID).
+     */
+    FString DiscordWhitelistRoleId;
+
+    /**
+     * Discord channel ID reserved for whitelist commands.
+     * When non-empty, the /whitelist link subcommand will tell players to use this channel.
+     */
+    FString DiscordWhitelistChannelId;
 public:
     /** Deserializes configuration from JSON object */
     static void ReadFromJson(const TSharedPtr<class FJsonObject>& Json, FSMLConfiguration& OutConfiguration, bool* OutIsMissingSections = NULL);
