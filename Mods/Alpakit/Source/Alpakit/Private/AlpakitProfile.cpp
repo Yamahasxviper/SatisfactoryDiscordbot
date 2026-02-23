@@ -84,7 +84,7 @@ FString FAlpakitProfile::MakeUATCommandLine() {
 	CommandLine += MakeUATPlatformArgs();
 
 	CommandLine += GIsEditor || FApp::IsEngineInstalled() ? TEXT(" -nocompileeditor") : TEXT("");
-	CommandLine += GIsEditor || FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT("");
+	CommandLine += FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT("");
 
 	CommandLine += bMergeArchive ? TEXT(" -merge") : TEXT("");
 
