@@ -86,10 +86,11 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/** When true, the bot's Discord presence activity shows the current player count. */
 	bool bShowPlayerCountInPresence{ true };
 
-	/** Format string for the presence activity text shown under the bot's status.
-	 *  Available placeholders: %PlayerCount%, %ServerName%.
-	 *  Example: "Satisfactory with %PlayerCount% players" */
-	FString PlayerCountPresenceFormat{ TEXT("Satisfactory with %PlayerCount% players") };
+	/** The custom text shown in the bot's Discord presence.
+	 *  Type whatever you like.  Use %PlayerCount% to insert the live player count
+	 *  and %ServerName% to insert the configured server name.
+	 *  Example: "My Server with %PlayerCount% players" */
+	FString PlayerCountPresenceFormat{ TEXT("%PlayerCount% players online") };
 
 	/** How often (in seconds) to refresh the player count shown in the bot's presence.
 	 *  Must be at least 15 seconds; the default is 60 seconds. */
@@ -97,10 +98,10 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 
 	/** Discord activity type used when displaying the player count.
 	 *  Controls the verb shown before the activity text in Discord:
-	 *   0 = Playing         → "Playing Satisfactory with 5 players"
-	 *   2 = Listening to    → "Listening to Satisfactory with 5 players"
-	 *   3 = Watching        → "Watching Satisfactory with 5 players"
-	 *   5 = Competing in    → "Competing in Satisfactory with 5 players"
+	 *   0 = Playing         → "Playing <your text>"
+	 *   2 = Listening to    → "Listening to <your text>"
+	 *   3 = Watching        → "Watching <your text>"
+	 *   5 = Competing in    → "Competing in <your text>"
 	 *  Default: 0 (Playing). */
 	int32 PlayerCountActivityType{ 0 };
 
