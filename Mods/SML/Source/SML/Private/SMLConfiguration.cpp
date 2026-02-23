@@ -2,7 +2,10 @@
 #include "Dom/JsonObject.h"
 
 FSMLConfiguration::FSMLConfiguration() :
-    bEnableFunchookLogging(false) {
+    bEnableFunchookLogging(false),
+    bEnableWhitelist(false),
+    WhitelistRole(TEXT("admin")),
+    WhitelistChannel(TEXT("")) {
 }
 
 void FSMLConfiguration::ReadFromJson(const TSharedPtr<FJsonObject>& Json, FSMLConfiguration& OutConfiguration, bool* OutIsMissingSections) {
@@ -24,6 +27,24 @@ void FSMLConfiguration::ReadFromJson(const TSharedPtr<FJsonObject>& Json, FSMLCo
         bIsMissingSectionsInternal = true;
     }
 
+    if (Json->HasTypedField<EJson::Boolean>(TEXT("enableWhitelist"))) {
+        OutConfiguration.bEnableWhitelist = Json->GetBoolField(TEXT("enableWhitelist"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
+    if (Json->HasTypedField<EJson::String>(TEXT("whitelistRole"))) {
+        OutConfiguration.WhitelistRole = Json->GetStringField(TEXT("whitelistRole"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
+    if (Json->HasTypedField<EJson::String>(TEXT("whitelistChannel"))) {
+        OutConfiguration.WhitelistChannel = Json->GetStringField(TEXT("whitelistChannel"));
+    } else {
+        bIsMissingSectionsInternal = true;
+    }
+
     if (OutIsMissingSections) {
         *OutIsMissingSections = bIsMissingSectionsInternal;
     }
@@ -37,4 +58,8 @@ void FSMLConfiguration::WriteToJson(const TSharedPtr<FJsonObject>& OutJson, cons
     OutJson->SetArrayField(TEXT("disabledChatCommands"), DisabledChatCommands);
 
     OutJson->SetBoolField(TEXT("enableFunchookLogging"), Configuration.bEnableFunchookLogging);
+
+    OutJson->SetBoolField(TEXT("enableWhitelist"), Configuration.bEnableWhitelist);
+    OutJson->SetStringField(TEXT("whitelistRole"), Configuration.WhitelistRole);
+    OutJson->SetStringField(TEXT("whitelistChannel"), Configuration.WhitelistChannel);
 }

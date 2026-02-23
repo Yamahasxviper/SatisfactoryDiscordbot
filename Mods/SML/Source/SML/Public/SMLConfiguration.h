@@ -17,6 +17,24 @@ public:
      * Whether to enable funchook logging
      */
     bool bEnableFunchookLogging;
+
+    /**
+     * Whether the server whitelist is enabled.
+     * When enabled, only players listed in the whitelist file may join the server.
+     */
+    bool bEnableWhitelist;
+
+    /**
+     * Role name required to manage the whitelist via in-game commands (e.g. "admin").
+     * Players whose name matches this role can add/remove whitelist entries.
+     */
+    FString WhitelistRole;
+
+    /**
+     * In-game chat channel name reserved for whitelist management commands.
+     * Set to an empty string to allow whitelist commands from any context.
+     */
+    FString WhitelistChannel;
 public:
     /** Deserializes configuration from JSON object */
     static void ReadFromJson(const TSharedPtr<class FJsonObject>& Json, FSMLConfiguration& OutConfiguration, bool* OutIsMissingSections = NULL);

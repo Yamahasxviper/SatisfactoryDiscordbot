@@ -7,6 +7,7 @@
 #include "Registry/RemoteCallObjectRegistry.h"
 #include "Network/SMLConnection/SMLNetworkManager.h"
 #include "Player/SMLRemoteCallObject.h"
+#include "Player/SMLWhitelistManager.h"
 #include "Patching/Patch/SaveMetadataPatch.h"
 #include "Player/PlayerCheatManagerHandler.h"
 #include "Util/DebuggerHelper.h"
@@ -202,6 +203,9 @@ void FSatisfactoryModLoader::PreInitializeModLoading() {
     if(SMLConfigurationPrivate.bEnableFunchookLogging) {
         funchook_set_debug_file(TCHAR_TO_ANSI(*(FPaths::ProjectLogDir() / TEXT("SML_funchook.log"))));
     }
+
+    // Load the persistent whitelist from disk so it is ready before any players join
+    FSMLWhitelistManager::LoadWhitelist();
     
     UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Pre-initialization finished!"));
 }
