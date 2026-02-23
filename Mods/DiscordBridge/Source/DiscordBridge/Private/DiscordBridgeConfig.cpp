@@ -43,6 +43,18 @@ namespace
 		}
 		return Default;
 	}
+
+	int32 GetIniIntOrDefault(const FConfigFile& Cfg,
+	                         const FString& Key,
+	                         int32 Default)
+	{
+		FString Value;
+		if (Cfg.GetString(ConfigSection, *Key, Value))
+		{
+			return FCString::Atoi(*Value);
+		}
+		return Default;
+	}
 } // anonymous namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,6 +109,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.bShowPlayerCountInPresence      = GetIniBoolOrDefault  (ConfigFile, TEXT("bShowPlayerCountInPresence"),      Config.bShowPlayerCountInPresence);
 		Config.PlayerCountPresenceFormat       = GetIniStringOrDefault(ConfigFile, TEXT("PlayerCountPresenceFormat"),       Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (ConfigFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
+		Config.PlayerCountActivityType         = GetIniIntOrDefault   (ConfigFile, TEXT("PlayerCountActivityType"),         Config.PlayerCountActivityType);
 
 		// Trim leading/trailing whitespace from credential fields to prevent
 		// subtle mismatches when operators accidentally include spaces.
@@ -139,10 +152,16 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; When True, the bot's Discord presence activity shows the current player count.\n")
 			TEXT("bShowPlayerCountInPresence=True\n")
 			TEXT("; Format for the presence activity text. Placeholders: %PlayerCount%, %ServerName%.\n")
-			TEXT("; Example: %PlayerCount% players online on %ServerName%\n")
-			TEXT("PlayerCountPresenceFormat=%PlayerCount% players online\n")
+			TEXT("; Example: Satisfactory with %PlayerCount% players\n")
+			TEXT("PlayerCountPresenceFormat=Satisfactory with %PlayerCount% players\n")
 			TEXT("; How often (in seconds) to refresh the player count in the bot's presence. Minimum: 15.\n")
-			TEXT("PlayerCountUpdateIntervalSeconds=60.0\n");
+			TEXT("PlayerCountUpdateIntervalSeconds=60.0\n")
+			TEXT("; Discord activity type that controls the verb shown before the presence text.\n")
+			TEXT("; 0 = Playing  (shows: Playing Satisfactory with 5 players)\n")
+			TEXT("; 2 = Listening to\n")
+			TEXT("; 3 = Watching\n")
+			TEXT("; 5 = Competing in\n")
+			TEXT("PlayerCountActivityType=0\n");
 
 		// Ensure the Config directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(ModFilePath));
@@ -195,6 +214,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.bShowPlayerCountInPresence       = GetIniBoolOrDefault  (BackupFile, TEXT("bShowPlayerCountInPresence"),       Config.bShowPlayerCountInPresence);
 		Config.PlayerCountPresenceFormat        = GetIniStringOrDefault(BackupFile, TEXT("PlayerCountPresenceFormat"),        Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (BackupFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
+		Config.PlayerCountActivityType          = GetIniIntOrDefault   (BackupFile, TEXT("PlayerCountActivityType"),          Config.PlayerCountActivityType);
 
 		if (!bHadToken || !bHadChannel)
 		{
@@ -227,7 +247,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("ServerOfflineMessage=%s\n")
 			TEXT("bShowPlayerCountInPresence=%s\n")
 			TEXT("PlayerCountPresenceFormat=%s\n")
-			TEXT("PlayerCountUpdateIntervalSeconds=%s\n"),
+			TEXT("PlayerCountUpdateIntervalSeconds=%s\n")
+			TEXT("PlayerCountActivityType=%d\n"),
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
@@ -240,7 +261,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.ServerOfflineMessage,
 			Config.bShowPlayerCountInPresence ? TEXT("True") : TEXT("False"),
 			*Config.PlayerCountPresenceFormat,
-			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds));
+			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds),
+			Config.PlayerCountActivityType);
 
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
 

@@ -780,9 +780,10 @@ void UDiscordBridgeSubsystem::UpdatePlayerCountPresence()
 	ActivityText = ActivityText.Replace(TEXT("%PlayerCount%"), *FString::FromInt(PlayerCount));
 	ActivityText = ActivityText.Replace(TEXT("%ServerName%"),  *Config.ServerName);
 
-	// Build a "Watching" activity object (Discord activity type 3).
+	// Build a Discord activity object using the configured activity type.
+	// Common types: 0=Playing, 2=Listening to, 3=Watching, 5=Competing in.
 	TSharedPtr<FJsonObject> Activity = MakeShared<FJsonObject>();
-	Activity->SetNumberField(TEXT("type"), 3); // 3 = Watching
+	Activity->SetNumberField(TEXT("type"), Config.PlayerCountActivityType);
 	Activity->SetStringField(TEXT("name"), ActivityText);
 
 	TArray<TSharedPtr<FJsonValue>> Activities;
