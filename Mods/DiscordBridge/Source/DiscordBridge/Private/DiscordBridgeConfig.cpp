@@ -31,6 +31,18 @@ namespace
 		Cfg.GetBool(ConfigSection, *Key, Value);
 		return Value;
 	}
+
+	float GetIniFloatOrDefault(const FConfigFile& Cfg,
+	                           const FString& Key,
+	                           float Default)
+	{
+		FString Value;
+		if (Cfg.GetString(ConfigSection, *Key, Value))
+		{
+			return FCString::Atof(*Value);
+		}
+		return Default;
+	}
 } // anonymous namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,6 +94,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (ConfigFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(ConfigFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+		Config.bShowPlayerCountInPresence      = GetIniBoolOrDefault  (ConfigFile, TEXT("bShowPlayerCountInPresence"),      Config.bShowPlayerCountInPresence);
+		Config.PlayerCountPresenceFormat       = GetIniStringOrDefault(ConfigFile, TEXT("PlayerCountPresenceFormat"),       Config.PlayerCountPresenceFormat);
+		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (ConfigFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 
 		// Trim leading/trailing whitespace from credential fields to prevent
 		// subtle mismatches when operators accidentally include spaces.
@@ -106,7 +121,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Snowflake ID of the Discord text channel to bridge with in-game chat.\n")
 			TEXT("; Enable Developer Mode in Discord, right-click a channel, then \"Copy Channel ID\".\n")
 			TEXT("ChannelId=\n")
-			TEXT("; Display name for this server. Used as %ServerName% in GameToDiscordFormat.\n")
+			TEXT("; Display name for this server. Used as %ServerName% in GameToDiscordFormat and PlayerCountPresenceFormat.\n")
 			TEXT("ServerName=\n")
 			TEXT("; Format for game -> Discord messages. Placeholders: %ServerName%, %PlayerName%, %Message%.\n")
 			TEXT("GameToDiscordFormat=**%PlayerName%**: %Message%\n")
@@ -120,7 +135,14 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Message posted to Discord when the server comes online. Leave empty to disable.\n")
 			TEXT("ServerOnlineMessage=:green_circle: Server is now **online**!\n")
 			TEXT("; Message posted to Discord when the server shuts down. Leave empty to disable.\n")
-			TEXT("ServerOfflineMessage=:red_circle: Server is now **offline**.\n");
+			TEXT("ServerOfflineMessage=:red_circle: Server is now **offline**.\n")
+			TEXT("; When True, the bot's Discord presence activity shows the current player count.\n")
+			TEXT("bShowPlayerCountInPresence=True\n")
+			TEXT("; Format for the presence activity text. Placeholders: %PlayerCount%, %ServerName%.\n")
+			TEXT("; Example: %PlayerCount% players online on %ServerName%\n")
+			TEXT("PlayerCountPresenceFormat=%PlayerCount% players online\n")
+			TEXT("; How often (in seconds) to refresh the player count in the bot's presence. Minimum: 15.\n")
+			TEXT("PlayerCountUpdateIntervalSeconds=60.0\n");
 
 		// Ensure the Config directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(ModFilePath));
@@ -170,6 +192,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (BackupFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(BackupFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(BackupFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
+		Config.bShowPlayerCountInPresence       = GetIniBoolOrDefault  (BackupFile, TEXT("bShowPlayerCountInPresence"),       Config.bShowPlayerCountInPresence);
+		Config.PlayerCountPresenceFormat        = GetIniStringOrDefault(BackupFile, TEXT("PlayerCountPresenceFormat"),        Config.PlayerCountPresenceFormat);
+		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (BackupFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 
 		if (!bHadToken || !bHadChannel)
 		{
@@ -199,7 +224,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("DiscordSenderFormat=%s\n")
 			TEXT("bIgnoreBotMessages=%s\n")
 			TEXT("ServerOnlineMessage=%s\n")
-			TEXT("ServerOfflineMessage=%s\n"),
+			TEXT("ServerOfflineMessage=%s\n")
+			TEXT("bShowPlayerCountInPresence=%s\n")
+			TEXT("PlayerCountPresenceFormat=%s\n")
+			TEXT("PlayerCountUpdateIntervalSeconds=%s\n"),
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
@@ -209,7 +237,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.DiscordSenderFormat,
 			Config.bIgnoreBotMessages ? TEXT("True") : TEXT("False"),
 			*Config.ServerOnlineMessage,
-			*Config.ServerOfflineMessage);
+			*Config.ServerOfflineMessage,
+			Config.bShowPlayerCountInPresence ? TEXT("True") : TEXT("False"),
+			*Config.PlayerCountPresenceFormat,
+			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds));
 
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
 

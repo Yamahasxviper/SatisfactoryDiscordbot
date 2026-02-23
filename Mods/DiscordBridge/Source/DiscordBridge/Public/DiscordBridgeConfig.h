@@ -81,6 +81,20 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/** Posted to Discord when the server shuts down. Leave empty to disable. */
 	FString ServerOfflineMessage{ TEXT(":red_circle: Server is now **offline**.") };
 
+	// ── Player count presence ─────────────────────────────────────────────────
+
+	/** When true, the bot's Discord presence activity shows the current player count. */
+	bool bShowPlayerCountInPresence{ true };
+
+	/** Format string for the presence activity text shown under the bot's status.
+	 *  Available placeholders: %PlayerCount%, %ServerName%.
+	 *  Example: "%PlayerCount% players online on %ServerName%" */
+	FString PlayerCountPresenceFormat{ TEXT("%PlayerCount% players online") };
+
+	/** How often (in seconds) to refresh the player count shown in the bot's presence.
+	 *  Must be at least 15 seconds; the default is 60 seconds. */
+	float PlayerCountUpdateIntervalSeconds{ 60.0f };
+
 	/**
 	 * Loads configuration from the primary mod-folder INI, falling back to the
 	 * Saved/Config backup when credentials are missing.  If the primary file does
