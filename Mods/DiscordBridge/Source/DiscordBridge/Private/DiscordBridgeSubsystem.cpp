@@ -779,6 +779,14 @@ void UDiscordBridgeSubsystem::UpdatePlayerCountPresence()
 	FString ActivityText = Config.PlayerCountPresenceFormat;
 	ActivityText = ActivityText.Replace(TEXT("%PlayerCount%"), *FString::FromInt(PlayerCount));
 	ActivityText = ActivityText.Replace(TEXT("%ServerName%"),  *Config.ServerName);
+	ActivityText = ActivityText.TrimStartAndEnd();
+
+	// If the user left the format blank, fall back to just the player count number
+	// so Discord never receives an empty activity name.
+	if (ActivityText.IsEmpty())
+	{
+		ActivityText = FString::FromInt(PlayerCount);
+	}
 
 	// Build a Discord activity object using the configured activity type.
 	// Common types: 0=Playing, 2=Listening to, 3=Watching, 5=Competing in.
