@@ -2,7 +2,7 @@
 #include "Command/CommandSender.h"
 #include "Player/DiscordRoleChecker.h"
 #include "Player/SMLWhitelistManager.h"
-#include "SatisfactoryModLoader.h"
+#include "Player/WhitelistConfig.h"
 
 AWhitelistCommandInstance::AWhitelistCommandInstance() {
     CommandName = TEXT("whitelist");
@@ -20,17 +20,17 @@ static void ExecutePrivilegedSubcommand(
     UCommandSender* Sender,
     const FString& SubCommand,
     const TArray<FString>& Arguments,
-    const FSMLConfiguration& Config) {
+    const FWhitelistConfig& Config) {
 
     // /whitelist on
     if (SubCommand == TEXT("on")) {
         if (Config.bEnableWhitelist) {
             Sender->SendChatMessage(TEXT("Whitelist is already enabled."));
         } else {
-            FSMLConfiguration Updated = Config;
+            FWhitelistConfig Updated = Config;
             Updated.bEnableWhitelist = true;
-            FSatisfactoryModLoader::SetSMLConfiguration(Updated);
-            FSatisfactoryModLoader::SaveSMLConfiguration();
+            FWhitelistConfigManager::SetConfig(Updated);
+            FWhitelistConfigManager::SaveConfig();
             Sender->SendChatMessage(TEXT("Whitelist enabled and saved to config."));
         }
         return;
@@ -41,10 +41,10 @@ static void ExecutePrivilegedSubcommand(
         if (!Config.bEnableWhitelist) {
             Sender->SendChatMessage(TEXT("Whitelist is already disabled."));
         } else {
-            FSMLConfiguration Updated = Config;
+            FWhitelistConfig Updated = Config;
             Updated.bEnableWhitelist = false;
-            FSatisfactoryModLoader::SetSMLConfiguration(Updated);
-            FSatisfactoryModLoader::SaveSMLConfiguration();
+            FWhitelistConfigManager::SetConfig(Updated);
+            FWhitelistConfigManager::SaveConfig();
             Sender->SendChatMessage(TEXT("Whitelist disabled and saved to config."));
         }
         return;
@@ -88,7 +88,7 @@ static void ExecutePrivilegedSubcommand(
 EExecutionStatus AWhitelistCommandInstance::ExecuteCommand_Implementation(
     UCommandSender* Sender, const TArray<FString>& Arguments, const FString& Label) {
 
-    const FSMLConfiguration Config = FSatisfactoryModLoader::GetSMLConfiguration();
+    const FWhitelistConfig Config = FWhitelistConfigManager::GetConfig();
     const FString SubCommand = Arguments[0].ToLower();
 
     // ------------------------------------------------------------------
@@ -157,8 +157,7 @@ EExecutionStatus AWhitelistCommandInstance::ExecuteCommand_Implementation(
         !Config.DiscordWhitelistRoleId.IsEmpty();
 
     if (!bDiscordConfigured) {
-        // Fall back to the plain WhitelistRole name check when Discord is not
-        // configured (allows operation without a Discord integration).
+        // Fall back to the plain WhitelistRole name check when Discord is not configured.
         const FString SenderName = Sender->GetSenderName();
         if (!Config.WhitelistRole.IsEmpty() &&
             !SenderName.Equals(Config.WhitelistRole, ESearchCase::IgnoreCase)) {
@@ -192,14 +191,14 @@ EExecutionStatus AWhitelistCommandInstance::ExecuteCommand_Implementation(
     Sender->SendChatMessage(TEXT("Verifying Discord role, please wait..."));
 
     // Capture everything needed for the callback by value
-    const FString BotToken       = Config.DiscordBotToken;
-    const FString GuildId        = Config.DiscordGuildId;
-    const FString RoleId         = Config.DiscordWhitelistRoleId;
-    const FString CapturedSub    = SubCommand;
-    const TArray<FString> Args   = Arguments;
-    const FSMLConfiguration Cfg  = Config;
+    const FString BotToken    = Config.DiscordBotToken;
+    const FString GuildId     = Config.DiscordGuildId;
+    const FString RoleId      = Config.DiscordWhitelistRoleId;
+    const FString CapturedSub = SubCommand;
+    const TArray<FString> Args = Arguments;
+    const FWhitelistConfig Cfg = Config;
 
-    // Use a TWeakObjectPtr so the callback is safe if the sender is destroyed
+    // Use a TWeakObjectPtr so the callback is safe if the sender disconnects
     // before the HTTP response arrives.
     TWeakObjectPtr<UCommandSender> WeakSender(Sender);
 

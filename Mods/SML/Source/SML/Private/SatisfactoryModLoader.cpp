@@ -8,6 +8,7 @@
 #include "Network/SMLConnection/SMLNetworkManager.h"
 #include "Player/SMLRemoteCallObject.h"
 #include "Player/SMLWhitelistManager.h"
+#include "Player/WhitelistConfig.h"
 #include "Player/DiscordRoleChecker.h"
 #include "Patching/Patch/SaveMetadataPatch.h"
 #include "Player/PlayerCheatManagerHandler.h"
@@ -60,27 +61,6 @@ TMap<FName, FString> FSatisfactoryModLoader::GetExtraAttributes() {
     return OutExtraAttributes;
 }
 
-void FSatisfactoryModLoader::SaveSMLConfiguration() {
-    const FString ConfigLocation = UConfigManager::GetConfigurationFilePath(FConfigId{TEXT("SML")});
-
-    const TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-    FSMLConfiguration::WriteToJson(JsonObject, SMLConfigurationPrivate);
-
-    FString OutSerializedConfiguration;
-    const TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&OutSerializedConfiguration);
-    FJsonSerializer::Serialize(JsonObject, JsonWriter);
-
-    //Make sure configuration directory exists
-    FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(ConfigLocation));
-
-    //Write file onto the disk now
-    if (FFileHelper::SaveStringToFile(OutSerializedConfiguration, *ConfigLocation)) {
-        UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Successfully saved SML configuration"));
-    } else {
-        UE_LOG(LogSatisfactoryModLoader, Error, TEXT("Failed to save SML configuration to %s"), *ConfigLocation);
-    }
-}
-
 void FSatisfactoryModLoader::LoadSMLConfiguration(bool bAllowSave) {
     const FString ConfigLocation = UConfigManager::GetConfigurationFilePath(FConfigId{TEXT("SML")});
     IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
@@ -110,7 +90,22 @@ void FSatisfactoryModLoader::LoadSMLConfiguration(bool bAllowSave) {
     }
 
     if (bShouldWriteConfiguration && bAllowSave) {
-        SaveSMLConfiguration();
+        const TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+        FSMLConfiguration::WriteToJson(JsonObject, SMLConfigurationPrivate);
+
+        FString OutSerializedConfiguration;
+        const TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&OutSerializedConfiguration);
+        FJsonSerializer::Serialize(JsonObject, JsonWriter);
+
+        //Make sure configuration directory exists
+        FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(ConfigLocation));
+
+        //Write file onto the disk now
+        if (FFileHelper::SaveStringToFile(OutSerializedConfiguration, *ConfigLocation)) {
+            UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Successfully saved SML configuration"));
+        } else {
+            UE_LOG(LogSatisfactoryModLoader, Error, TEXT("Failed to save SML configuration to %s"), *ConfigLocation);
+        }
     }
 }
 
@@ -211,7 +206,10 @@ void FSatisfactoryModLoader::PreInitializeModLoading() {
         funchook_set_debug_file(TCHAR_TO_ANSI(*(FPaths::ProjectLogDir() / TEXT("SML_funchook.log"))));
     }
 
-    // Load the persistent whitelist from disk so it is ready before any players join
+    // Load the dedicated whitelist config (Configs/SML_WhitelistConfig.json)
+    FWhitelistConfigManager::LoadConfig();
+
+    // Load the persistent whitelist player list from disk
     FSMLWhitelistManager::LoadWhitelist();
 
     // Load Discord player↔ID links so they are available for role checks
