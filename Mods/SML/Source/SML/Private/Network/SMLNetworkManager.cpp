@@ -5,7 +5,11 @@
 #include "Engine/NetConnection.h"
 #include "Network/NetworkHandler.h"
 #include "Player/SMLRemoteCallObject.h"
+#include "Player/SMLWhitelistManager.h"
+#include "Player/WhitelistConfig.h"
 #include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameSession.h"
+#include "GameFramework/PlayerState.h"
 #include "ModLoading/ModLoadingLibrary.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
 #include "Serialization/JsonSerializer.h"
@@ -83,6 +87,29 @@ void FSMLNetworkManager::HandleGameModePostLogin(AGameModeBase* GameMode, APlaye
         	const FConnectionMetadata ConnectionMetadata = GModConnectionMetadata.GetAndRemoveAnnotation( NetConnection );
         	
             RemoteCallObject->ClientInstalledMods.Append(ConnectionMetadata.InstalledRemoteMods);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Whitelist enforcement
+    // If the whitelist is enabled, kick any player whose name is not listed.
+    // Local (listen-server host) players are never kicked.
+    // ------------------------------------------------------------------
+    const FWhitelistConfig WLConfig = FWhitelistConfigManager::GetConfig();
+    if (WLConfig.bEnableWhitelist && !Controller->IsLocalController()) {
+        const APlayerState* PS = Controller->GetPlayerState<APlayerState>();
+        const FString PlayerName = PS ? PS->GetPlayerName() : FString();
+
+        if (!FSMLWhitelistManager::IsPlayerWhitelisted(PlayerName)) {
+            UE_LOG(LogTemp, Warning,
+                TEXT("SML Whitelist: Kicking non-whitelisted player '%s'"), *PlayerName);
+
+            const FText KickReason = FText::FromString(
+                TEXT("You are not on this server's whitelist. Contact an admin to be added."));
+
+            if (GameMode->GameSession) {
+                GameMode->GameSession->KickPlayer(Controller, KickReason);
+            }
         }
     }
 }
