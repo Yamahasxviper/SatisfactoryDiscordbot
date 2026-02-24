@@ -364,3 +364,4 @@ private:
 	 *  Populated from the first entry in the READY event's guilds array.
 	 *  Required for Discord REST role-management calls. */
 	FString GuildId;
+};
