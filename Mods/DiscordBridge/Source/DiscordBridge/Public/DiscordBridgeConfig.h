@@ -91,14 +91,40 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * Default: "!whitelist"
 	 *
 	 * Supported commands (type in the bridged Discord channel):
-	 *   !whitelist on              – enable the whitelist
-	 *   !whitelist off             – disable the whitelist
-	 *   !whitelist add <name>      – add a player
-	 *   !whitelist remove <name>   – remove a player
-	 *   !whitelist list            – list all whitelisted players
-	 *   !whitelist status          – show current enabled/disabled state
+	 *   !whitelist on                       – enable the whitelist
+	 *   !whitelist off                      – disable the whitelist
+	 *   !whitelist add <name>               – add a player
+	 *   !whitelist remove <name>            – remove a player
+	 *   !whitelist list                     – list all whitelisted players
+	 *   !whitelist status                   – show current enabled/disabled state
+	 *   !whitelist role add <discord_id>    – grant WhitelistRoleId to a Discord user
+	 *   !whitelist role remove <discord_id> – revoke WhitelistRoleId from a Discord user
 	 */
 	FString WhitelistCommandPrefix{ TEXT("!whitelist") };
+
+	/**
+	 * Snowflake ID of the Discord role used to identify whitelisted members.
+	 * Leave empty to disable Discord role integration.
+	 *
+	 * When set:
+	 *  • Messages received on WhitelistChannelId are relayed to the game only
+	 *    when the sender holds this role.
+	 *  • The `!whitelist role add/remove <user_id>` commands assign or revoke
+	 *    this role via the Discord REST API (bot must have Manage Roles permission).
+	 */
+	FString WhitelistRoleId;
+
+	/**
+	 * Snowflake ID of a dedicated Discord channel for whitelisted members.
+	 * Leave empty to disable the whitelist-only channel.
+	 *
+	 * When set:
+	 *  • In-game messages from players on the server whitelist are posted to
+	 *    this channel in addition to the main ChannelId.
+	 *  • Discord messages sent to this channel are relayed to the game only
+	 *    when the sender holds WhitelistRoleId (if that field is non-empty).
+	 */
+	FString WhitelistChannelId;
 
 	// ── Player count presence ─────────────────────────────────────────────────
 

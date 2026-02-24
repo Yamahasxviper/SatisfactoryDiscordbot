@@ -163,6 +163,7 @@ void UDiscordBridgeSubsystem::Disconnect()
 	bPendingHeartbeatAck = false;
 	LastSequenceNumber   = -1;
 	BotUserId.Empty();
+	GuildId.Empty();
 
 	if (WebSocketClient)
 	{
@@ -426,6 +427,7 @@ void UDiscordBridgeSubsystem::HandleReconnect()
 	bGatewayReady        = false;
 	LastSequenceNumber   = -1;
 	BotUserId.Empty();
+	GuildId.Empty();
 
 	// Restart the WebSocket connection by calling Connect() on the existing
 	// client.  Do NOT call Close() here: Close() → EnqueueClose() sets
@@ -465,10 +467,23 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 		(*UserPtr)->TryGetStringField(TEXT("id"), BotUserId);
 	}
 
+	// Extract the guild (server) ID from the first entry in the guilds array.
+	// This is needed for Discord REST role-management API calls.
+	const TArray<TSharedPtr<FJsonValue>>* GuildsArray = nullptr;
+	if (DataObj->TryGetArrayField(TEXT("guilds"), GuildsArray) && GuildsArray && GuildsArray->Num() > 0)
+	{
+		const TSharedPtr<FJsonObject>* FirstGuild = nullptr;
+		if ((*GuildsArray)[0]->TryGetObject(FirstGuild) && FirstGuild)
+		{
+			(*FirstGuild)->TryGetStringField(TEXT("id"), GuildId);
+		}
+	}
+
 	bGatewayReady = true;
 
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Gateway ready. Bot user ID: %s"), *BotUserId);
+	       TEXT("DiscordBridge: Gateway ready. Bot user ID: %s, Guild ID: %s"),
+	       *BotUserId, *GuildId);
 
 	// Set bot presence. When the player-count feature is enabled, send the first
 	// update immediately and start the periodic refresh ticker.  Otherwise just
@@ -501,10 +516,18 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 
 void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>& DataObj)
 {
-	// Only process messages from the configured channel.
-	FString ChannelId;
-	if (!DataObj->TryGetStringField(TEXT("channel_id"), ChannelId) ||
-	    ChannelId != Config.ChannelId)
+	// Accept messages from the main channel OR the dedicated whitelist channel.
+	FString MsgChannelId;
+	if (!DataObj->TryGetStringField(TEXT("channel_id"), MsgChannelId))
+	{
+		return;
+	}
+
+	const bool bIsMainChannel      = (MsgChannelId == Config.ChannelId);
+	const bool bIsWhitelistChannel = (!Config.WhitelistChannelId.IsEmpty() &&
+	                                  MsgChannelId == Config.WhitelistChannelId);
+
+	if (!bIsMainChannel && !bIsWhitelistChannel)
 	{
 		return;
 	}
@@ -560,6 +583,36 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 		Username = TEXT("Discord User");
 	}
 
+	// For the dedicated whitelist channel: only relay to game when the sender
+	// holds the configured whitelist role (if WhitelistRoleId is set).
+	if (bIsWhitelistChannel && !Config.WhitelistRoleId.IsEmpty())
+	{
+		bool bHasRole = false;
+		if (MemberPtr)
+		{
+			const TArray<TSharedPtr<FJsonValue>>* Roles = nullptr;
+			if ((*MemberPtr)->TryGetArrayField(TEXT("roles"), Roles) && Roles)
+			{
+				for (const TSharedPtr<FJsonValue>& RoleVal : *Roles)
+				{
+					FString RoleId;
+					if (RoleVal->TryGetString(RoleId) && RoleId == Config.WhitelistRoleId)
+					{
+						bHasRole = true;
+						break;
+					}
+				}
+			}
+		}
+		if (!bHasRole)
+		{
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Ignoring whitelist-channel message from '%s' – sender lacks whitelist role."),
+			       *Username);
+			return;
+		}
+	}
+
 	FString Content;
 	DataObj->TryGetStringField(TEXT("content"), Content);
 	Content = Content.TrimStartAndEnd();
@@ -570,7 +623,8 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	}
 
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Discord message received from '%s': %s"), *Username, *Content);
+	       TEXT("DiscordBridge: Discord message received from '%s' (channel %s): %s"),
+	       *Username, *MsgChannelId, *Content);
 
 	// Check whether this message is a whitelist management command.
 	if (!Config.WhitelistCommandPrefix.IsEmpty() &&
@@ -578,7 +632,7 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	{
 		// Extract everything after the prefix as the sub-command (trimmed).
 		const FString SubCommand = Content.Mid(Config.WhitelistCommandPrefix.Len()).TrimStartAndEnd();
-		HandleWhitelistCommand(SubCommand, Username);
+		HandleWhitelistCommand(SubCommand, Username, AuthorId);
 		return; // Do not relay whitelist commands to in-game chat.
 	}
 
@@ -657,6 +711,7 @@ void UDiscordBridgeSubsystem::SendHeartbeat()
 		bGatewayReady      = false;
 		LastSequenceNumber = -1;
 		BotUserId.Empty();
+		GuildId.Empty();
 
 		if (WebSocketClient)
 		{
@@ -992,40 +1047,56 @@ void UDiscordBridgeSubsystem::SendGameMessageToDiscord(const FString& PlayerName
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
 	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
 
-	// POST to the Discord REST API.
-	const FString Url = FString::Printf(
-		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
+	// Helper lambda to POST the formatted content to a given Discord channel.
+	auto PostToChannel = [this, BodyString, FormattedContent, EffectivePlayerName](const FString& TargetChannelId)
+	{
+		const FString Url = FString::Printf(
+			TEXT("%s/channels/%s/messages"), *DiscordApiBase, *TargetChannelId);
 
-	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
-		FHttpModule::Get().CreateRequest();
+		TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
+			FHttpModule::Get().CreateRequest();
 
-	Request->SetURL(Url);
-	Request->SetVerb(TEXT("POST"));
-	Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
-	Request->SetHeader(TEXT("Authorization"),
-	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
-	Request->SetContentAsString(BodyString);
+		Request->SetURL(Url);
+		Request->SetVerb(TEXT("POST"));
+		Request->SetHeader(TEXT("Content-Type"),  TEXT("application/json"));
+		Request->SetHeader(TEXT("Authorization"),
+		                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
+		Request->SetContentAsString(BodyString);
 
-	Request->OnProcessRequestComplete().BindWeakLambda(
-		this,
-		[EffectivePlayerName](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
-		{
-			if (!bConnected || !Resp.IsValid())
+		Request->OnProcessRequestComplete().BindWeakLambda(
+			this,
+			[EffectivePlayerName](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
 			{
-				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: HTTP request failed for player '%s'."),
-				       *EffectivePlayerName);
-				return;
-			}
-			if (Resp->GetResponseCode() < 200 || Resp->GetResponseCode() >= 300)
-			{
-				UE_LOG(LogTemp, Warning,
-				       TEXT("DiscordBridge: Discord REST API returned %d: %s"),
-				       Resp->GetResponseCode(), *Resp->GetContentAsString());
-			}
-		});
+				if (!bConnected || !Resp.IsValid())
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: HTTP request failed for player '%s'."),
+					       *EffectivePlayerName);
+					return;
+				}
+				if (Resp->GetResponseCode() < 200 || Resp->GetResponseCode() >= 300)
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Discord REST API returned %d: %s"),
+					       Resp->GetResponseCode(), *Resp->GetContentAsString());
+				}
+			});
 
-	Request->ProcessRequest();
+		Request->ProcessRequest();
+	};
+
+	// POST to the main chat channel.
+	PostToChannel(Config.ChannelId);
+
+	// When a dedicated whitelist channel is configured, also post there for
+	// players who are on the whitelist (so whitelisted members have their own
+	// channel view of whitelisted player activity).
+	if (!Config.WhitelistChannelId.IsEmpty() &&
+	    Config.WhitelistChannelId != Config.ChannelId &&
+	    FWhitelistManager::IsWhitelisted(EffectivePlayerName))
+	{
+		PostToChannel(Config.WhitelistChannelId);
+	}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1137,7 +1208,9 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 	}
 }
 
-void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername)
+void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand,
+                                                      const FString& DiscordUsername,
+                                                      const FString& AuthorId)
 {
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: Whitelist command from '%s': '%s'"), *DiscordUsername, *SubCommand);
@@ -1215,11 +1288,116 @@ void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand, 
 			? TEXT(":white_check_mark: Whitelist is currently **ENABLED**.")
 			: TEXT(":no_entry_sign: Whitelist is currently **disabled**.");
 	}
+	else if (Verb == TEXT("role"))
+	{
+		// Sub-sub-command: role add <discord_user_id> / role remove <discord_user_id>
+		FString RoleVerb, TargetUserId;
+		if (!Arg.Split(TEXT(" "), &RoleVerb, &TargetUserId, ESearchCase::IgnoreCase))
+		{
+			RoleVerb     = Arg.TrimStartAndEnd();
+			TargetUserId = TEXT("");
+		}
+		RoleVerb     = RoleVerb.TrimStartAndEnd().ToLower();
+		TargetUserId = TargetUserId.TrimStartAndEnd();
+
+		if (Config.WhitelistRoleId.IsEmpty())
+		{
+			Response = TEXT(":warning: `WhitelistRoleId` is not configured in `DefaultDiscordBridge.ini`. "
+			                "Set it to the snowflake ID of the whitelist role.");
+		}
+		else if (GuildId.IsEmpty())
+		{
+			Response = TEXT(":warning: Guild ID not yet available. Try again in a moment.");
+		}
+		else if (TargetUserId.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!whitelist role add <discord_user_id>` "
+			                "or `!whitelist role remove <discord_user_id>`");
+		}
+		else if (RoleVerb == TEXT("add"))
+		{
+			ModifyDiscordRole(TargetUserId, /*bGrant=*/true);
+			Response = FString::Printf(
+				TEXT(":green_circle: Granting whitelist role to Discord user `%s`…"), *TargetUserId);
+		}
+		else if (RoleVerb == TEXT("remove"))
+		{
+			ModifyDiscordRole(TargetUserId, /*bGrant=*/false);
+			Response = FString::Printf(
+				TEXT(":red_circle: Revoking whitelist role from Discord user `%s`…"), *TargetUserId);
+		}
+		else
+		{
+			Response = TEXT(":question: Usage: `!whitelist role add <discord_user_id>` "
+			                "or `!whitelist role remove <discord_user_id>`");
+		}
+	}
 	else
 	{
-		Response = TEXT(":question: Unknown whitelist command. Available: `on`, `off`, `add <name>`, `remove <name>`, `list`, `status`.");
+		Response = TEXT(":question: Unknown whitelist command. Available: `on`, `off`, "
+		                "`add <name>`, `remove <name>`, `list`, `status`, "
+		                "`role add <discord_id>`, `role remove <discord_id>`.");
 	}
 
 	// Send the response back to Discord.
 	SendStatusMessageToDiscord(Response);
+}
+
+void UDiscordBridgeSubsystem::ModifyDiscordRole(const FString& UserId, bool bGrant)
+{
+	if (Config.WhitelistRoleId.IsEmpty() || GuildId.IsEmpty() || Config.BotToken.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge: ModifyDiscordRole: missing WhitelistRoleId, GuildId, or BotToken."));
+		return;
+	}
+
+	// PUT  = grant the role
+	// DELETE = revoke the role
+	const FString Verb = bGrant ? TEXT("PUT") : TEXT("DELETE");
+	const FString Url = FString::Printf(
+		TEXT("%s/guilds/%s/members/%s/roles/%s"),
+		*DiscordApiBase, *GuildId, *UserId, *Config.WhitelistRoleId);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
+		FHttpModule::Get().CreateRequest();
+
+	Request->SetURL(Url);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Authorization"),
+	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
+	// PUT with empty body still needs a Content-Type header to avoid 411.
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetContentAsString(TEXT(""));
+
+	const bool bGrantCopy = bGrant;
+	const FString UserIdCopy = UserId;
+	Request->OnProcessRequestComplete().BindWeakLambda(
+		this,
+		[bGrantCopy, UserIdCopy](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
+		{
+			if (!bConnected || !Resp.IsValid())
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Role %s request failed for user '%s'."),
+				       bGrantCopy ? TEXT("grant") : TEXT("revoke"), *UserIdCopy);
+				return;
+			}
+			// 204 No Content is the success response for both PUT and DELETE role endpoints.
+			if (Resp->GetResponseCode() != 204)
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: Role %s for user '%s' returned HTTP %d: %s"),
+				       bGrantCopy ? TEXT("grant") : TEXT("revoke"), *UserIdCopy,
+				       Resp->GetResponseCode(), *Resp->GetContentAsString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Role %s succeeded for user '%s'."),
+				       bGrantCopy ? TEXT("grant") : TEXT("revoke"), *UserIdCopy);
+			}
+		});
+
+	Request->ProcessRequest();
 }
