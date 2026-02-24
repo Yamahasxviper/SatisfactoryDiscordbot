@@ -1,0 +1,58 @@
+#pragma once
+#include "CoreMinimal.h"
+
+/**
+ * Manages the server whitelist.
+ *
+ * Config is stored at <ProjectSavedDir>/ServerWhitelist.json.
+ * The file is created with defaults on first use and written to disk
+ * immediately on every change so changes survive server restarts.
+ *
+ * No SML dependency — uses only UE4 Json + FFileHelper.
+ *
+ * Example file:
+ *   {
+ *     "enabled": false,
+ *     "players": ["Alice", "Bob"]
+ *   }
+ */
+class SERVERWHITELIST_API FServerWhitelistManager
+{
+public:
+	/** Load (or create) the whitelist file from disk. Call once at startup. */
+	static void Load();
+
+	/** Persist the current state to disk immediately. */
+	static void Save();
+
+	/** Returns true if the whitelist is currently active. */
+	static bool IsEnabled();
+
+	/** Enable or disable the whitelist and save. */
+	static void SetEnabled(bool bEnabled);
+
+	/**
+	 * Returns true if the given player name is on the whitelist.
+	 * Comparison is case-insensitive.
+	 */
+	static bool IsWhitelisted(const FString& PlayerName);
+
+	/**
+	 * Adds a player and saves. Returns false if already listed.
+	 */
+	static bool AddPlayer(const FString& PlayerName);
+
+	/**
+	 * Removes a player and saves. Returns false if not found.
+	 */
+	static bool RemovePlayer(const FString& PlayerName);
+
+	/** Returns a copy of the current whitelist. */
+	static TArray<FString> GetAll();
+
+private:
+	static FString GetFilePath();
+
+	static bool bEnabled;
+	static TArray<FString> Players; // stored lower-case for comparison
+};
