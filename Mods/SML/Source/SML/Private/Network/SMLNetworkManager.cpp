@@ -8,7 +8,6 @@
 #include "Player/SMLWhitelistManager.h"
 #include "Player/WhitelistConfig.h"
 #include "GameFramework/GameModeBase.h"
-#include "GameFramework/GameSession.h"
 #include "GameFramework/PlayerState.h"
 #include "ModLoading/ModLoadingLibrary.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
@@ -92,8 +91,12 @@ void FSMLNetworkManager::HandleGameModePostLogin(AGameModeBase* GameMode, APlaye
 
     // ------------------------------------------------------------------
     // Whitelist enforcement
-    // If the whitelist is enabled, kick any player whose name is not listed.
-    // Local (listen-server host) players are never kicked.
+    // If the whitelist is enabled, close the connection of any remote player
+    // whose name is not listed.  Uses the same CloseWithFailureMessage path
+    // that SML uses to reject clients with missing mods — the client receives
+    // the reason string before the connection is closed, so they see a clear
+    // error rather than a generic disconnect.
+    // Local (listen-server host) controllers are never checked.
     // ------------------------------------------------------------------
     const FWhitelistConfig WLConfig = FWhitelistConfigManager::GetConfig();
     if (WLConfig.bEnableWhitelist && !Controller->IsLocalController()) {
@@ -102,13 +105,12 @@ void FSMLNetworkManager::HandleGameModePostLogin(AGameModeBase* GameMode, APlaye
 
         if (!FSMLWhitelistManager::IsPlayerWhitelisted(PlayerName)) {
             UE_LOG(LogTemp, Warning,
-                TEXT("SML Whitelist: Kicking non-whitelisted player '%s'"), *PlayerName);
+                TEXT("SML Whitelist: Rejecting non-whitelisted player '%s'"), *PlayerName);
 
-            const FText KickReason = FText::FromString(
-                TEXT("You are not on this server's whitelist. Contact an admin to be added."));
-
-            if (GameMode->GameSession) {
-                GameMode->GameSession->KickPlayer(Controller, KickReason);
+            UNetConnection* NetConnection = Cast<UNetConnection>(Controller->Player);
+            if (NetConnection) {
+                UModNetworkHandler::CloseWithFailureMessage(NetConnection,
+                    TEXT("You are not on this server's whitelist. Contact an admin to be added."));
             }
         }
     }
