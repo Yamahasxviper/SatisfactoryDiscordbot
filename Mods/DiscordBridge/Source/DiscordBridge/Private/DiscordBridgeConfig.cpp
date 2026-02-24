@@ -111,6 +111,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (ConfigFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType         = GetIniIntOrDefault   (ConfigFile, TEXT("PlayerCountActivityType"),         Config.PlayerCountActivityType);
 		Config.WhitelistCommandPrefix          = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistCommandPrefix"),          Config.WhitelistCommandPrefix);
+		Config.WhitelistRoleId                 = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistRoleId"),                 Config.WhitelistRoleId);
+		Config.WhitelistChannelId              = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistChannelId"),              Config.WhitelistChannelId);
+		Config.WhitelistKickDiscordMessage     = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickDiscordMessage"),     Config.WhitelistKickDiscordMessage);
 
 		// Trim leading/trailing whitespace from credential fields to prevent
 		// subtle mismatches when operators accidentally include spaces.
@@ -240,13 +243,38 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Prefix that triggers whitelist commands when typed in the bridged channel.\n")
 			TEXT("; Set to empty to disable Discord-based whitelist management entirely.\n")
 			TEXT("; Available commands:\n")
-			TEXT(";   !whitelist on             - enable the whitelist\n")
-			TEXT(";   !whitelist off            - disable the whitelist\n")
-			TEXT(";   !whitelist add <name>     - add a player\n")
-			TEXT(";   !whitelist remove <name>  - remove a player\n")
-			TEXT(";   !whitelist list           - list all whitelisted players\n")
-			TEXT(";   !whitelist status         - show current enabled/disabled state\n")
-			TEXT("WhitelistCommandPrefix=!whitelist\n");
+			TEXT(";   !whitelist on                       - enable the whitelist\n")
+			TEXT(";   !whitelist off                      - disable the whitelist\n")
+			TEXT(";   !whitelist add <name>               - add a player by in-game name\n")
+			TEXT(";   !whitelist remove <name>            - remove a player by in-game name\n")
+			TEXT(";   !whitelist list                     - list all whitelisted players\n")
+			TEXT(";   !whitelist status                   - show current enabled/disabled state\n")
+			TEXT(";   !whitelist role add <discord_id>    - grant WhitelistRoleId to a Discord user\n")
+			TEXT(";   !whitelist role remove <discord_id> - revoke WhitelistRoleId from a Discord user\n")
+			TEXT("WhitelistCommandPrefix=!whitelist\n")
+			TEXT(";\n")
+			TEXT("; Snowflake ID of the Discord role assigned to whitelisted members.\n")
+			TEXT("; Leave empty to disable Discord role integration.\n")
+			TEXT("; When set, the bot checks this role before relaying messages from\n")
+			TEXT("; WhitelistChannelId to the game, and the role add/remove commands\n")
+			TEXT("; manage this role via the Discord REST API (bot needs Manage Roles permission).\n")
+			TEXT("; To get the role ID: Discord Settings -> Advanced -> Developer Mode,\n")
+			TEXT("; then right-click the role in Server Settings -> Roles and choose Copy Role ID.\n")
+			TEXT("WhitelistRoleId=\n")
+			TEXT(";\n")
+			TEXT("; Snowflake ID of a dedicated Discord channel for whitelisted members.\n")
+			TEXT("; Leave empty to disable the whitelist-only channel.\n")
+			TEXT("; When set:\n")
+			TEXT(";   - In-game messages from whitelisted players are ALSO posted here.\n")
+			TEXT(";   - Messages from this channel are relayed to game only when the sender\n")
+			TEXT(";     holds WhitelistRoleId (if WhitelistRoleId is configured).\n")
+			TEXT("; Get the channel ID the same way as ChannelId above.\n")
+			TEXT("WhitelistChannelId=\n")
+			TEXT(";\n")
+			TEXT("; Message posted to Discord when a non-whitelisted player is kicked.\n")
+			TEXT("; Leave empty to disable this notification.\n")
+			TEXT("; Placeholder: %PlayerName% - in-game name of the kicked player.\n")
+			TEXT("WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n");
 
 		// Ensure the Config directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(ModFilePath));
@@ -301,6 +329,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (BackupFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType          = GetIniIntOrDefault   (BackupFile, TEXT("PlayerCountActivityType"),          Config.PlayerCountActivityType);
 		Config.WhitelistCommandPrefix           = GetIniStringOrDefault(BackupFile, TEXT("WhitelistCommandPrefix"),           Config.WhitelistCommandPrefix);
+		Config.WhitelistRoleId                  = GetIniStringOrDefault(BackupFile, TEXT("WhitelistRoleId"),                  Config.WhitelistRoleId);
+		Config.WhitelistChannelId               = GetIniStringOrDefault(BackupFile, TEXT("WhitelistChannelId"),               Config.WhitelistChannelId);
+		Config.WhitelistKickDiscordMessage      = GetIniStringOrDefault(BackupFile, TEXT("WhitelistKickDiscordMessage"),      Config.WhitelistKickDiscordMessage);
 
 		if (!bHadToken || !bHadChannel)
 		{
@@ -335,7 +366,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("PlayerCountPresenceFormat=%s\n")
 			TEXT("PlayerCountUpdateIntervalSeconds=%s\n")
 			TEXT("PlayerCountActivityType=%d\n")
-			TEXT("WhitelistCommandPrefix=%s\n"),
+			TEXT("WhitelistCommandPrefix=%s\n")
+			TEXT("WhitelistRoleId=%s\n")
+			TEXT("WhitelistChannelId=%s\n")
+			TEXT("WhitelistKickDiscordMessage=%s\n"),
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
@@ -350,7 +384,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.PlayerCountPresenceFormat,
 			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds),
 			Config.PlayerCountActivityType,
-			*Config.WhitelistCommandPrefix);
+			*Config.WhitelistCommandPrefix,
+			*Config.WhitelistRoleId,
+			*Config.WhitelistChannelId,
+			*Config.WhitelistKickDiscordMessage);
 
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
 

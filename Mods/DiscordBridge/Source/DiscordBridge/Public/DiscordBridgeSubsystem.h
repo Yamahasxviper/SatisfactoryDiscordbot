@@ -346,7 +346,21 @@ private:
 	void OnPostLogin(AGameModeBase* GameMode, APlayerController* Controller);
 
 	/** Handle a whitelist management command received from Discord. */
-	void HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername);
+	void HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername,
+	                            const FString& AuthorId);
+
+	/**
+	 * Assign or revoke the configured WhitelistRoleId from a Discord user via
+	 * the REST API.  No-op when WhitelistRoleId or GuildId is empty.
+	 *
+	 * @param UserId  Discord snowflake of the target member.
+	 * @param bGrant  true = grant the role, false = revoke it.
+	 */
+	void ModifyDiscordRole(const FString& UserId, bool bGrant);
 
 	FDelegateHandle PostLoginHandle;
-};
+
+	/** Snowflake ID of the guild (server) the bot is connected to.
+	 *  Populated from the first entry in the READY event's guilds array.
+	 *  Required for Discord REST role-management calls. */
+	FString GuildId;
