@@ -126,6 +126,20 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 */
 	FString WhitelistChannelId;
 
+	/**
+	 * Message posted to the main Discord channel whenever the whitelist kicks
+	 * a player who tried to join.  Leave empty to disable the notification.
+	 *
+	 * Available placeholder:
+	 *   %PlayerName%  – in-game name of the player who was kicked.
+	 *
+	 * Example:
+	 *   WhitelistKickDiscordMessage=:boot: **%PlayerName%** is not whitelisted and was kicked.
+	 */
+	FString WhitelistKickDiscordMessage{
+		TEXT(":boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.")
+	};
+
 	// ── Player count presence ─────────────────────────────────────────────────
 
 	/** When true, the bot's Discord presence activity shows the current player count. */

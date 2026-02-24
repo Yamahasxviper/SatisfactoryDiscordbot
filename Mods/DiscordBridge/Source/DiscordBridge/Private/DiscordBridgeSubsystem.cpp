@@ -1192,6 +1192,16 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 	const APlayerState* PS = Controller->GetPlayerState<APlayerState>();
 	const FString PlayerName = PS ? PS->GetPlayerName() : FString();
 
+	// If the player name is empty (PlayerState not yet populated), do not kick.
+	// An empty name cannot meaningfully be checked against the whitelist and
+	// an incorrect kick here would disconnect a legitimate player.
+	if (PlayerName.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge Whitelist: player joined with an empty name – skipping whitelist check."));
+		return;
+	}
+
 	if (FWhitelistManager::IsWhitelisted(PlayerName))
 	{
 		return;
@@ -1205,6 +1215,14 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 		GameMode->GameSession->KickPlayer(
 			Controller,
 			FText::FromString(TEXT("You are not on this server's whitelist. Contact the server admin to be added.")));
+	}
+
+	// Notify Discord so admins can see the kick in the bridge channel.
+	if (!Config.WhitelistKickDiscordMessage.IsEmpty())
+	{
+		FString Notice = Config.WhitelistKickDiscordMessage;
+		Notice = Notice.Replace(TEXT("%PlayerName%"), *PlayerName);
+		SendStatusMessageToDiscord(Notice);
 	}
 }
 
