@@ -1,4 +1,4 @@
-#include "ServerWhitelistManager.h"
+#include "WhitelistManager.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "HAL/PlatformFileManager.h"
@@ -8,19 +8,19 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogServerWhitelist, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogWhitelistManager, Log, All);
 
 // ---------------------------------------------------------------------------
 // Static member definitions
 // ---------------------------------------------------------------------------
-bool          FServerWhitelistManager::bEnabled = false;
-TArray<FString> FServerWhitelistManager::Players;
+bool          FWhitelistManager::bEnabled = false;
+TArray<FString> FWhitelistManager::Players;
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-FString FServerWhitelistManager::GetFilePath()
+FString FWhitelistManager::GetFilePath()
 {
 	return FPaths::ProjectSavedDir() / TEXT("ServerWhitelist.json");
 }
@@ -29,13 +29,13 @@ FString FServerWhitelistManager::GetFilePath()
 // Public API
 // ---------------------------------------------------------------------------
 
-void FServerWhitelistManager::Load()
+void FWhitelistManager::Load()
 {
 	const FString FilePath = GetFilePath();
 
 	if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FilePath))
 	{
-		UE_LOG(LogServerWhitelist, Display,
+		UE_LOG(LogWhitelistManager, Display,
 			TEXT("Whitelist file not found — creating default at %s"), *FilePath);
 		Save();
 		return;
@@ -44,7 +44,7 @@ void FServerWhitelistManager::Load()
 	FString RawJson;
 	if (!FFileHelper::LoadFileToString(RawJson, *FilePath))
 	{
-		UE_LOG(LogServerWhitelist, Error,
+		UE_LOG(LogWhitelistManager, Error,
 			TEXT("Failed to read whitelist from %s"), *FilePath);
 		return;
 	}
@@ -53,7 +53,7 @@ void FServerWhitelistManager::Load()
 	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(RawJson);
 	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
 	{
-		UE_LOG(LogServerWhitelist, Warning,
+		UE_LOG(LogWhitelistManager, Warning,
 			TEXT("Whitelist JSON is malformed — resetting to defaults"));
 		bEnabled = false;
 		Players.Empty();
@@ -78,13 +78,13 @@ void FServerWhitelistManager::Load()
 		}
 	}
 
-	UE_LOG(LogServerWhitelist, Display,
+	UE_LOG(LogWhitelistManager, Display,
 		TEXT("Whitelist loaded: %s, %d player(s)"),
 		bEnabled ? TEXT("ENABLED") : TEXT("disabled"),
 		Players.Num());
 }
 
-void FServerWhitelistManager::Save()
+void FWhitelistManager::Save()
 {
 	const FString FilePath = GetFilePath();
 	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(FilePath));
@@ -105,31 +105,31 @@ void FServerWhitelistManager::Save()
 
 	if (!FFileHelper::SaveStringToFile(OutJson, *FilePath))
 	{
-		UE_LOG(LogServerWhitelist, Error,
+		UE_LOG(LogWhitelistManager, Error,
 			TEXT("Failed to save whitelist to %s"), *FilePath);
 		return;
 	}
-	UE_LOG(LogServerWhitelist, Display,
+	UE_LOG(LogWhitelistManager, Display,
 		TEXT("Whitelist saved to %s"), *FilePath);
 }
 
-bool FServerWhitelistManager::IsEnabled()
+bool FWhitelistManager::IsEnabled()
 {
 	return bEnabled;
 }
 
-void FServerWhitelistManager::SetEnabled(bool bNewEnabled)
+void FWhitelistManager::SetEnabled(bool bNewEnabled)
 {
 	bEnabled = bNewEnabled;
 	Save();
 }
 
-bool FServerWhitelistManager::IsWhitelisted(const FString& PlayerName)
+bool FWhitelistManager::IsWhitelisted(const FString& PlayerName)
 {
 	return Players.Contains(PlayerName.ToLower());
 }
 
-bool FServerWhitelistManager::AddPlayer(const FString& PlayerName)
+bool FWhitelistManager::AddPlayer(const FString& PlayerName)
 {
 	const FString Lower = PlayerName.ToLower();
 	if (Players.Contains(Lower))
@@ -141,7 +141,7 @@ bool FServerWhitelistManager::AddPlayer(const FString& PlayerName)
 	return true;
 }
 
-bool FServerWhitelistManager::RemovePlayer(const FString& PlayerName)
+bool FWhitelistManager::RemovePlayer(const FString& PlayerName)
 {
 	const int32 Removed = Players.Remove(PlayerName.ToLower());
 	if (Removed > 0)
@@ -152,7 +152,7 @@ bool FServerWhitelistManager::RemovePlayer(const FString& PlayerName)
 	return false;
 }
 
-TArray<FString> FServerWhitelistManager::GetAll()
+TArray<FString> FWhitelistManager::GetAll()
 {
 	return Players;
 }

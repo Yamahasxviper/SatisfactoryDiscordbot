@@ -83,6 +83,25 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 
 	// ── Player count presence ─────────────────────────────────────────────────
 
+	// ── Whitelist ─────────────────────────────────────────────────────────────
+
+	/**
+	 * Prefix that triggers whitelist management commands from Discord.
+	 * Set to an empty string to disable Discord-based whitelist management.
+	 * Default: "!whitelist"
+	 *
+	 * Supported commands (type in the bridged Discord channel):
+	 *   !whitelist on              – enable the whitelist
+	 *   !whitelist off             – disable the whitelist
+	 *   !whitelist add <name>      – add a player
+	 *   !whitelist remove <name>   – remove a player
+	 *   !whitelist list            – list all whitelisted players
+	 *   !whitelist status          – show current enabled/disabled state
+	 */
+	FString WhitelistCommandPrefix{ TEXT("!whitelist") };
+
+	// ── Player count presence ─────────────────────────────────────────────────
+
 	/** When true, the bot's Discord presence activity shows the current player count. */
 	bool bShowPlayerCountInPresence{ true };
 

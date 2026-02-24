@@ -8,6 +8,8 @@
 #include "SMLWebSocketClient.h"
 #include "DiscordBridgeConfig.h"
 #include "FGChatManager.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerController.h"
 #include "DiscordBridgeSubsystem.generated.h"
 
 // ── Delegate declarations ─────────────────────────────────────────────────────
@@ -334,4 +336,17 @@ private:
 	 * Used to diff against the current message list and detect newly added entries.
 	 */
 	TArray<FChatMessageStruct> LastKnownMessages;
+
+	// ── Whitelist enforcement ─────────────────────────────────────────────────
+
+	/**
+	 * Bound to FGameModeEvents::GameModePostLoginEvent.
+	 * Kicks any player that is not on the whitelist when the whitelist is enabled.
+	 */
+	void OnPostLogin(AGameModeBase* GameMode, APlayerController* Controller);
+
+	/** Handle a whitelist management command received from Discord. */
+	void HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername);
+
+	FDelegateHandle PostLoginHandle;
 };

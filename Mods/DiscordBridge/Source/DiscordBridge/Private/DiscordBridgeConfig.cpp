@@ -110,6 +110,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.PlayerCountPresenceFormat       = GetIniStringOrDefault(ConfigFile, TEXT("PlayerCountPresenceFormat"),       Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (ConfigFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType         = GetIniIntOrDefault   (ConfigFile, TEXT("PlayerCountActivityType"),         Config.PlayerCountActivityType);
+		Config.WhitelistCommandPrefix          = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistCommandPrefix"),          Config.WhitelistCommandPrefix);
 
 		// Trim leading/trailing whitespace from credential fields to prevent
 		// subtle mismatches when operators accidentally include spaces.
@@ -231,7 +232,21 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT(";   2 = Listening to    ->  Listening to <your text here>\n")
 			TEXT(";   3 = Watching        ->  Watching <your text here>\n")
 			TEXT(";   5 = Competing in    ->  Competing in <your text here>\n")
-			TEXT("PlayerCountActivityType=0\n");
+			TEXT("PlayerCountActivityType=0\n")
+			TEXT("\n")
+			TEXT("; -- WHITELIST ----------------------------------------------------------------\n")
+			TEXT("; Controls the built-in server whitelist, manageable via Discord commands.\n")
+			TEXT(";\n")
+			TEXT("; Prefix that triggers whitelist commands when typed in the bridged channel.\n")
+			TEXT("; Set to empty to disable Discord-based whitelist management entirely.\n")
+			TEXT("; Available commands:\n")
+			TEXT(";   !whitelist on             - enable the whitelist\n")
+			TEXT(";   !whitelist off            - disable the whitelist\n")
+			TEXT(";   !whitelist add <name>     - add a player\n")
+			TEXT(";   !whitelist remove <name>  - remove a player\n")
+			TEXT(";   !whitelist list           - list all whitelisted players\n")
+			TEXT(";   !whitelist status         - show current enabled/disabled state\n")
+			TEXT("WhitelistCommandPrefix=!whitelist\n");
 
 		// Ensure the Config directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(ModFilePath));
@@ -285,6 +300,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.PlayerCountPresenceFormat        = GetIniStringOrDefault(BackupFile, TEXT("PlayerCountPresenceFormat"),        Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (BackupFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType          = GetIniIntOrDefault   (BackupFile, TEXT("PlayerCountActivityType"),          Config.PlayerCountActivityType);
+		Config.WhitelistCommandPrefix           = GetIniStringOrDefault(BackupFile, TEXT("WhitelistCommandPrefix"),           Config.WhitelistCommandPrefix);
 
 		if (!bHadToken || !bHadChannel)
 		{
@@ -318,7 +334,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("bShowPlayerCountInPresence=%s\n")
 			TEXT("PlayerCountPresenceFormat=%s\n")
 			TEXT("PlayerCountUpdateIntervalSeconds=%s\n")
-			TEXT("PlayerCountActivityType=%d\n"),
+			TEXT("PlayerCountActivityType=%d\n")
+			TEXT("WhitelistCommandPrefix=%s\n"),
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
@@ -332,7 +349,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			Config.bShowPlayerCountInPresence ? TEXT("True") : TEXT("False"),
 			*Config.PlayerCountPresenceFormat,
 			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds),
-			Config.PlayerCountActivityType);
+			Config.PlayerCountActivityType,
+			*Config.WhitelistCommandPrefix);
 
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
 

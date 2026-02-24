@@ -10,7 +10,10 @@
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/GameSession.h"
+#include "GameFramework/PlayerState.h"
 #include "FGChatManager.h"
+#include "WhitelistManager.h"
 
 // Discord Gateway endpoint (v10, JSON encoding)
 static const FString DiscordGatewayUrl = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
@@ -32,6 +35,13 @@ bool UDiscordBridgeSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+
+	// Load the whitelist from disk so it is ready before any player joins.
+	FWhitelistManager::Load();
+
+	// Subscribe to PostLogin to enforce the whitelist on each player join.
+	PostLoginHandle = FGameModeEvents::GameModePostLoginEvent.AddUObject(
+		this, &UDiscordBridgeSubsystem::OnPostLogin);
 
 	// Wire up the Discord→game relay once here so it is never double-bound
 	// across reconnect cycles (Connect() may be called multiple times).
@@ -76,6 +86,10 @@ void UDiscordBridgeSubsystem::Deinitialize()
 	// Stop the chat-manager bind ticker if it is still running.
 	FTSTicker::GetCoreTicker().RemoveTicker(ChatManagerBindTickHandle);
 	ChatManagerBindTickHandle.Reset();
+
+	// Remove the whitelist PostLogin listener.
+	FGameModeEvents::GameModePostLoginEvent.Remove(PostLoginHandle);
+	PostLoginHandle.Reset();
 
 	// Unbind from the chat manager's delegate so no stale callbacks fire
 	// after this subsystem is destroyed.
@@ -557,6 +571,16 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: Discord message received from '%s': %s"), *Username, *Content);
+
+	// Check whether this message is a whitelist management command.
+	if (!Config.WhitelistCommandPrefix.IsEmpty() &&
+	    Content.StartsWith(Config.WhitelistCommandPrefix, ESearchCase::IgnoreCase))
+	{
+		// Extract everything after the prefix as the sub-command (trimmed).
+		const FString SubCommand = Content.Mid(Config.WhitelistCommandPrefix.Len()).TrimStartAndEnd();
+		HandleWhitelistCommand(SubCommand, Username);
+		return; // Do not relay whitelist commands to in-game chat.
+	}
 
 	OnDiscordMessageReceived.Broadcast(Username, Content);
 }
@@ -1076,4 +1100,126 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: Relayed to game chat – sender: '%s', text: '%s'"),
 	       *SenderLabel, *FormattedMessage);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Whitelist enforcement
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerController* Controller)
+{
+	if (!Controller || Controller->IsLocalController())
+	{
+		return;
+	}
+
+	if (!FWhitelistManager::IsEnabled())
+	{
+		return;
+	}
+
+	const APlayerState* PS = Controller->GetPlayerState<APlayerState>();
+	const FString PlayerName = PS ? PS->GetPlayerName() : FString();
+
+	if (FWhitelistManager::IsWhitelisted(PlayerName))
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning,
+	       TEXT("DiscordBridge Whitelist: kicking non-whitelisted player '%s'"), *PlayerName);
+
+	if (GameMode && GameMode->GameSession)
+	{
+		GameMode->GameSession->KickPlayer(
+			Controller,
+			FText::FromString(TEXT("You are not on this server's whitelist. Contact the server admin to be added.")));
+	}
+}
+
+void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername)
+{
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: Whitelist command from '%s': '%s'"), *DiscordUsername, *SubCommand);
+
+	FString Response;
+
+	// Split sub-command into verb + optional argument.
+	FString Verb, Arg;
+	if (!SubCommand.Split(TEXT(" "), &Verb, &Arg, ESearchCase::IgnoreCase))
+	{
+		Verb = SubCommand.TrimStartAndEnd();
+		Arg  = TEXT("");
+	}
+	Verb = Verb.TrimStartAndEnd().ToLower();
+	Arg  = Arg.TrimStartAndEnd();
+
+	if (Verb == TEXT("on"))
+	{
+		FWhitelistManager::SetEnabled(true);
+		Response = TEXT(":white_check_mark: Whitelist **enabled**. Only whitelisted players can join.");
+	}
+	else if (Verb == TEXT("off"))
+	{
+		FWhitelistManager::SetEnabled(false);
+		Response = TEXT(":no_entry_sign: Whitelist **disabled**. All players can join freely.");
+	}
+	else if (Verb == TEXT("add"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!whitelist add <PlayerName>`");
+		}
+		else if (FWhitelistManager::AddPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT(":green_circle: **%s** has been added to the whitelist."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT(":yellow_circle: **%s** is already on the whitelist."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("remove"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!whitelist remove <PlayerName>`");
+		}
+		else if (FWhitelistManager::RemovePlayer(Arg))
+		{
+			Response = FString::Printf(TEXT(":red_circle: **%s** has been removed from the whitelist."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT(":yellow_circle: **%s** was not on the whitelist."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("list"))
+	{
+		const TArray<FString> All = FWhitelistManager::GetAll();
+		const FString Status = FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled");
+		if (All.Num() == 0)
+		{
+			Response = FString::Printf(TEXT(":scroll: Whitelist is **%s**. No players listed."), *Status);
+		}
+		else
+		{
+			Response = FString::Printf(
+				TEXT(":scroll: Whitelist is **%s**. Players (%d): %s"),
+				*Status, All.Num(), *FString::Join(All, TEXT(", ")));
+		}
+	}
+	else if (Verb == TEXT("status"))
+	{
+		Response = FWhitelistManager::IsEnabled()
+			? TEXT(":white_check_mark: Whitelist is currently **ENABLED**.")
+			: TEXT(":no_entry_sign: Whitelist is currently **disabled**.");
+	}
+	else
+	{
+		Response = TEXT(":question: Unknown whitelist command. Available: `on`, `off`, `add <name>`, `remove <name>`, `list`, `status`.");
+	}
+
+	// Send the response back to Discord.
+	SendStatusMessageToDiscord(Response);
 }
