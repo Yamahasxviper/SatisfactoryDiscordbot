@@ -9,6 +9,7 @@
 #include "Player/SMLRemoteCallObject.h"
 #include "Player/SMLWhitelistManager.h"
 #include "Player/WhitelistConfig.h"
+#include "Player/WhitelistEnforcer.h"
 #include "Player/DiscordRoleChecker.h"
 #include "Patching/Patch/SaveMetadataPatch.h"
 #include "Player/PlayerCheatManagerHandler.h"
@@ -140,6 +141,9 @@ void FSatisfactoryModLoader::RegisterSubsystems() {
 
 	//Register version checker for remote connections
 	FSMLNetworkManager::RegisterMessageTypeAndHandlers();
+
+	// Register whitelist enforcement hook (AFGGameMode::PostLogin native hook)
+	FWhitelistEnforcer::RegisterHandler();
 
 	// Register static hooks for SCS hook manager if necessary
 	UWidgetBlueprintHookManager::RegisterStaticHooks();
