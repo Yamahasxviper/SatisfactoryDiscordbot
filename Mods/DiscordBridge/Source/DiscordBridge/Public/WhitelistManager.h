@@ -2,13 +2,13 @@
 #include "CoreMinimal.h"
 
 /**
- * Manages the server whitelist.
+ * Manages the server whitelist for the DiscordBridge mod.
  *
  * Config is stored at <ProjectSavedDir>/ServerWhitelist.json.
  * The file is created with defaults on first use and written to disk
  * immediately on every change so changes survive server restarts.
  *
- * No SML dependency — uses only UE4 Json + FFileHelper.
+ * No additional dependency beyond Core/Json — uses UE4 Json + FFileHelper.
  *
  * Example file:
  *   {
@@ -16,7 +16,7 @@
  *     "players": ["Alice", "Bob"]
  *   }
  */
-class SERVERWHITELIST_API FServerWhitelistManager
+class DISCORDBRIDGE_API FWhitelistManager
 {
 public:
 	/** Load (or create) the whitelist file from disk. Call once at startup. */
