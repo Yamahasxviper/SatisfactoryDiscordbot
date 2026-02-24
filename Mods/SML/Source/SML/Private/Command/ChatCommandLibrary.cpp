@@ -4,7 +4,6 @@
 #include "Command/SMLCommands/HelpCommandInstance.h"
 #include "Command/SMLCommands/InfoCommandInstance.h"
 #include "Command/SMLCommands/PlayerListCommandInstance.h"
-#include "Command/SMLCommands/WhitelistCommandInstance.h"
 #include "SatisfactoryModLoader.h"
 #include "Subsystem/SubsystemActorManager.h"
 #include "UnrealEngine.h"
@@ -46,7 +45,6 @@ void AChatCommandSubsystem::Init() {
 	RegisterCommand(TEXT("SML"), AHelpCommandInstance::StaticClass());
 	RegisterCommand(TEXT("SML"), AInfoCommandInstance::StaticClass());
 	RegisterCommand(TEXT("SML"), APlayerListCommandInstance::StaticClass());
-	RegisterCommand(TEXT("SML"), AWhitelistCommandInstance::StaticClass());
 }
 
 TArray<AFGPlayerController*> AChatCommandSubsystem::ParsePlayerName(UCommandSender* Caller, const FString& Name, UObject* WorldContext) {

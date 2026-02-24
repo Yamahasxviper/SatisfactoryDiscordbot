@@ -7,10 +7,6 @@
 #include "Registry/RemoteCallObjectRegistry.h"
 #include "Network/SMLConnection/SMLNetworkManager.h"
 #include "Player/SMLRemoteCallObject.h"
-#include "Player/SMLWhitelistManager.h"
-#include "Player/WhitelistConfig.h"
-#include "Player/WhitelistEnforcer.h"
-#include "Player/DiscordRoleChecker.h"
 #include "Patching/Patch/SaveMetadataPatch.h"
 #include "Player/PlayerCheatManagerHandler.h"
 #include "Util/DebuggerHelper.h"
@@ -142,9 +138,6 @@ void FSatisfactoryModLoader::RegisterSubsystems() {
 	//Register version checker for remote connections
 	FSMLNetworkManager::RegisterMessageTypeAndHandlers();
 
-	// Register whitelist enforcement hook (AFGGameMode::PostLogin native hook)
-	FWhitelistEnforcer::RegisterHandler();
-
 	// Register static hooks for SCS hook manager if necessary
 	UWidgetBlueprintHookManager::RegisterStaticHooks();
 	UBlueprintHookManager::RegisterStaticHooks();
@@ -210,15 +203,6 @@ void FSatisfactoryModLoader::PreInitializeModLoading() {
         funchook_set_debug_file(TCHAR_TO_ANSI(*(FPaths::ProjectLogDir() / TEXT("SML_funchook.log"))));
     }
 
-    // Load the dedicated whitelist config (Configs/SML_WhitelistConfig.json)
-    FWhitelistConfigManager::LoadConfig();
-
-    // Load the persistent whitelist player list from disk
-    FSMLWhitelistManager::LoadWhitelist();
-
-    // Load Discord player↔ID links so they are available for role checks
-    FDiscordRoleChecker::LoadLinks();
-    
     UE_LOG(LogSatisfactoryModLoader, Display, TEXT("Pre-initialization finished!"));
 }
 
