@@ -138,6 +138,81 @@ DiscordSenderFormat=[Satisfactory] %Username%
 
 ---
 
+### BAN SYSTEM
+
+Controls the built-in player ban system that can be managed from Discord.
+Bans are stored in `<ServerRoot>/FactoryGame/Saved/ServerBanlist.json` and
+persist across server restarts automatically.
+
+#### `BanSystemEnabled`
+
+Sets the initial ban-system state on the **first** server start (when
+`ServerBanlist.json` does not yet exist).  After the first start the
+enabled/disabled state is saved in `ServerBanlist.json` and survives restarts
+automatically — so `!ban on` / `!ban off` changes made from Discord truly
+persist.
+
+To force-reset back to this config value: delete `ServerBanlist.json` and
+restart the server.
+
+**Default:** `True` (banned players are kicked on join)
+
+---
+
+#### `BanCommandPrefix`
+
+The prefix that triggers ban management commands when typed in the bridged Discord channel.
+Set to an **empty string** to disable Discord-based ban management entirely.
+
+**Default:** `!ban`
+
+**Supported commands** (type these in the bridged Discord channel):
+
+| Command | Effect |
+|---------|--------|
+| `!ban on` | Enable the ban system — kicked on join (persists across restarts) |
+| `!ban off` | Disable the ban system — banned players can join freely (persists across restarts) |
+| `!ban add <name>` | Ban a player by in-game name |
+| `!ban remove <name>` | Unban a player by in-game name |
+| `!ban list` | List all banned players and current enabled/disabled state |
+| `!ban status` | Show whether the ban system is currently enabled or disabled |
+
+---
+
+#### `BanKickDiscordMessage`
+
+The message posted to the **main** Discord channel whenever a banned player attempts to join and is kicked.
+Leave **empty** to disable this notification.
+
+**Default:** `:hammer: **%PlayerName%** is banned from this server and was kicked.`
+
+| Placeholder | Replaced with |
+|-------------|---------------|
+| `%PlayerName%` | The in-game name of the banned player who was kicked |
+
+**Example:**
+
+```ini
+BanKickDiscordMessage=:no_entry: **%PlayerName%** is banned and was removed.
+```
+
+---
+
+#### `BanKickReason`
+
+The reason shown **in-game** to the player when they are kicked for being banned.
+This is the text the player sees in the disconnected / kicked screen.
+
+**Default:** `You are banned from this server.`
+
+**Example:**
+
+```ini
+BanKickReason=You have been banned. Contact the server admin to appeal.
+```
+
+---
+
 ### WHITELIST
 
 Controls the built-in server whitelist that can be managed from Discord.
@@ -324,6 +399,14 @@ bShowPlayerCountInPresence=False
 2. Confirm the whitelist is **enabled** (`!whitelist status` in the Discord channel).
 3. If using `WhitelistRoleId`, verify the bot has the **Manage Roles** permission on your Discord server.
 4. Players are only kicked on **join** – the whitelist is checked when a player connects, not while they are already in the game.
+
+### Ban commands are not recognised / banned players can still join
+
+1. Make sure `BanCommandPrefix` is set (default is `!ban`) and not empty.
+2. Run `!ban status` in the Discord channel to confirm the ban system is **enabled**. If it shows disabled, run `!ban on`.
+3. Remember that `BanSystemEnabled` in the config file is only applied on the **very first** server start (when `ServerBanlist.json` does not exist). After that, use `!ban on` / `!ban off` — the state is saved automatically in `ServerBanlist.json`.
+4. If you need to force the system back to the config-file value, stop the server, delete `<ServerRoot>/FactoryGame/Saved/ServerBanlist.json`, and restart.
+5. Players are only kicked on **join** — a ban takes effect the next time a banned player tries to connect, not while they are already in the game.
 
 ### Log verbosity
 
