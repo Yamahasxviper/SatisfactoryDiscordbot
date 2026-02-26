@@ -1480,88 +1480,88 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
                                                 const FString& DiscordUsername,
                                                 const FString& AuthorId)
 {
-UE_LOG(LogTemp, Log,
-       TEXT("DiscordBridge: Ban command from '%s': '%s'"), *DiscordUsername, *SubCommand);
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: Ban command from '%s': '%s'"), *DiscordUsername, *SubCommand);
 
-FString Response;
+	FString Response;
 
-// Split sub-command into verb + optional argument.
-FString Verb, Arg;
-if (!SubCommand.Split(TEXT(" "), &Verb, &Arg, ESearchCase::IgnoreCase))
-{
-Verb = SubCommand.TrimStartAndEnd();
-Arg  = TEXT("");
-}
-Verb = Verb.TrimStartAndEnd().ToLower();
-Arg  = Arg.TrimStartAndEnd();
+	// Split sub-command into verb + optional argument.
+	FString Verb, Arg;
+	if (!SubCommand.Split(TEXT(" "), &Verb, &Arg, ESearchCase::IgnoreCase))
+	{
+		Verb = SubCommand.TrimStartAndEnd();
+		Arg  = TEXT("");
+	}
+	Verb = Verb.TrimStartAndEnd().ToLower();
+	Arg  = Arg.TrimStartAndEnd();
 
-if (Verb == TEXT("on"))
-{
-FBanManager::SetEnabled(true);
-Response = TEXT(":hammer: Ban system **enabled**. Banned players will be kicked on join.");
-}
-else if (Verb == TEXT("off"))
-{
-FBanManager::SetEnabled(false);
-Response = TEXT(":unlock: Ban system **disabled**. Banned players can join freely.");
-}
-else if (Verb == TEXT("add"))
-{
-if (Arg.IsEmpty())
-{
-Response = TEXT(":warning: Usage: `!ban add <PlayerName>`");
-}
-else if (FBanManager::BanPlayer(Arg))
-{
-Response = FString::Printf(TEXT(":hammer: **%s** has been banned from the server."), *Arg);
-}
-else
-{
-Response = FString::Printf(TEXT(":yellow_circle: **%s** is already banned."), *Arg);
-}
-}
-else if (Verb == TEXT("remove"))
-{
-if (Arg.IsEmpty())
-{
-Response = TEXT(":warning: Usage: `!ban remove <PlayerName>`");
-}
-else if (FBanManager::UnbanPlayer(Arg))
-{
-Response = FString::Printf(TEXT(":white_check_mark: **%s** has been unbanned."), *Arg);
-}
-else
-{
-Response = FString::Printf(TEXT(":yellow_circle: **%s** was not on the ban list."), *Arg);
-}
-}
-else if (Verb == TEXT("list"))
-{
-const TArray<FString> All = FBanManager::GetAll();
-const FString Status = FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled");
-if (All.Num() == 0)
-{
-Response = FString::Printf(TEXT(":scroll: Ban system is **%s**. No players banned."), *Status);
-}
-else
-{
-Response = FString::Printf(
-TEXT(":scroll: Ban system is **%s**. Banned players (%d): %s"),
-*Status, All.Num(), *FString::Join(All, TEXT(", ")));
-}
-}
-else if (Verb == TEXT("status"))
-{
-Response = FBanManager::IsEnabled()
-? TEXT(":hammer: Ban system is currently **ENABLED**.")
-: TEXT(":unlock: Ban system is currently **disabled**.");
-}
-else
-{
-Response = TEXT(":question: Unknown ban command. Available: `on`, `off`, "
-                "`add <name>`, `remove <name>`, `list`, `status`.");
-}
+	if (Verb == TEXT("on"))
+	{
+		FBanManager::SetEnabled(true);
+		Response = TEXT(":hammer: Ban system **enabled**. Banned players will be kicked on join.");
+	}
+	else if (Verb == TEXT("off"))
+	{
+		FBanManager::SetEnabled(false);
+		Response = TEXT(":unlock: Ban system **disabled**. Banned players can join freely.");
+	}
+	else if (Verb == TEXT("add"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!ban add <PlayerName>`");
+		}
+		else if (FBanManager::BanPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT(":hammer: **%s** has been banned from the server."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT(":yellow_circle: **%s** is already banned."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("remove"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!ban remove <PlayerName>`");
+		}
+		else if (FBanManager::UnbanPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT(":white_check_mark: **%s** has been unbanned."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT(":yellow_circle: **%s** was not on the ban list."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("list"))
+	{
+		const TArray<FString> All = FBanManager::GetAll();
+		const FString Status = FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled");
+		if (All.Num() == 0)
+		{
+			Response = FString::Printf(TEXT(":scroll: Ban system is **%s**. No players banned."), *Status);
+		}
+		else
+		{
+			Response = FString::Printf(
+				TEXT(":scroll: Ban system is **%s**. Banned players (%d): %s"),
+				*Status, All.Num(), *FString::Join(All, TEXT(", ")));
+		}
+	}
+	else if (Verb == TEXT("status"))
+	{
+		Response = FBanManager::IsEnabled()
+			? TEXT(":hammer: Ban system is currently **ENABLED**.")
+			: TEXT(":unlock: Ban system is currently **disabled**.");
+	}
+	else
+	{
+		Response = TEXT(":question: Unknown ban command. Available: `on`, `off`, "
+		                "`add <name>`, `remove <name>`, `list`, `status`.");
+	}
 
-// Send the response back to Discord.
-SendStatusMessageToDiscord(Response);
+	// Send the response back to Discord.
+	SendStatusMessageToDiscord(Response);
 }
