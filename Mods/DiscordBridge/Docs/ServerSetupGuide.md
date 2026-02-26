@@ -138,6 +138,82 @@ DiscordSenderFormat=[Satisfactory] %Username%
 
 ---
 
+### WHITELIST
+
+Controls the built-in server whitelist that can be managed from Discord.
+
+#### `WhitelistCommandPrefix`
+
+The prefix that triggers whitelist management commands when typed in the bridged Discord channel.
+Set to an **empty string** to disable Discord-based whitelist management entirely.
+
+**Default:** `!whitelist`
+
+**Supported commands** (type these in the bridged Discord channel):
+
+| Command | Effect |
+|---------|--------|
+| `!whitelist on` | Enable the whitelist (only whitelisted players can join) |
+| `!whitelist off` | Disable the whitelist (all players can join) |
+| `!whitelist add <name>` | Add a player by in-game name |
+| `!whitelist remove <name>` | Remove a player by in-game name |
+| `!whitelist list` | List all whitelisted players |
+| `!whitelist status` | Show whether the whitelist is currently enabled or disabled |
+| `!whitelist role add <discord_id>` | Grant the `WhitelistRoleId` Discord role to a user |
+| `!whitelist role remove <discord_id>` | Revoke the `WhitelistRoleId` Discord role from a user |
+
+---
+
+#### `WhitelistRoleId`
+
+The snowflake ID of the Discord role used to identify whitelisted members.
+Leave **empty** to disable Discord role integration.
+
+**Default:** *(empty)*
+
+When set:
+- Discord messages sent to `WhitelistChannelId` are relayed to the game **only when the sender holds this role**.
+- The `!whitelist role add/remove <discord_id>` commands assign or revoke this role via the Discord REST API (the bot must have the **Manage Roles** permission on your server).
+
+**How to get the role ID:**
+Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then right-click the role in Server Settings → Roles and choose **Copy Role ID**.
+
+---
+
+#### `WhitelistChannelId`
+
+The snowflake ID of a dedicated Discord channel for whitelisted members.
+Leave **empty** to disable the whitelist-only channel.
+
+**Default:** *(empty)*
+
+When set:
+- In-game messages from players on the server whitelist are **also** posted to this channel (in addition to the main `ChannelId`).
+- Discord messages sent to this channel are relayed to the game **only when the sender holds `WhitelistRoleId`** (if `WhitelistRoleId` is configured).
+
+Get the channel ID the same way as `ChannelId` (right-click the channel in Discord with Developer Mode enabled → **Copy Channel ID**).
+
+---
+
+#### `WhitelistKickDiscordMessage`
+
+The message posted to the **main** Discord channel whenever a non-whitelisted player attempts to join and is kicked.
+Leave **empty** to disable this notification.
+
+**Default:** `:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.`
+
+| Placeholder | Replaced with |
+|-------------|---------------|
+| `%PlayerName%` | The in-game name of the player who was kicked |
+
+**Example:**
+
+```ini
+WhitelistKickDiscordMessage=:no_entry: **%PlayerName%** is not whitelisted and was removed from the server.
+```
+
+---
+
 ### BEHAVIOUR
 
 | Setting             | Type | Default | Description |
@@ -241,6 +317,13 @@ bShowPlayerCountInPresence=False
   automatically to `<ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini` each
   session and will be restored automatically. If you want to be safe, keep a
   separate copy of your `BotToken` and `ChannelId` somewhere secure.
+
+### Whitelist commands are not recognised / players are not being kicked
+
+1. Make sure `WhitelistCommandPrefix` is set (default is `!whitelist`) and not empty.
+2. Confirm the whitelist is **enabled** (`!whitelist status` in the Discord channel).
+3. If using `WhitelistRoleId`, verify the bot has the **Manage Roles** permission on your Discord server.
+4. Players are only kicked on **join** – the whitelist is checked when a player connects, not while they are already in the game.
 
 ### Log verbosity
 
