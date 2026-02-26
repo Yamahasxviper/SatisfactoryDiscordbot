@@ -147,6 +147,16 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 		TEXT(":boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.")
 	};
 
+	/**
+	 * Reason shown in-game to the player when they are kicked because they are
+	 * not on the whitelist.  This is the text the player sees in the "Disconnected"
+	 * screen.
+	 * Default: "You are not on this server's whitelist. Contact the server admin to be added."
+	 */
+	FString WhitelistKickReason{
+		TEXT("You are not on this server's whitelist. Contact the server admin to be added.")
+	};
+
 	// ── Ban system ────────────────────────────────────────────────────────────
 
 	/**
