@@ -317,6 +317,16 @@ private:
 	 */
 	bool bPendingHeartbeatAck{false};
 
+	/**
+	 * true after the ServerOnlineMessage has been sent for the current server
+	 * session.  Prevents the message from being re-sent on Discord Gateway
+	 * reconnects (which happen periodically and trigger a fresh READY event
+	 * even when the game server has not restarted).
+	 * Reset to false in Disconnect() so that a true server restart sends the
+	 * message again on the next connection.
+	 */
+	bool bServerOnlineMessageSent{false};
+
 	/** Snowflake ID of the bot user; used to filter out self-sent messages. */
 	FString BotUserId;
 
