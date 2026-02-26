@@ -14,6 +14,7 @@
 #include "GameFramework/PlayerState.h"
 #include "FGChatManager.h"
 #include "WhitelistManager.h"
+#include "BanManager.h"
 
 // Discord Gateway endpoint (v10, JSON encoding)
 static const FString DiscordGatewayUrl = TEXT("wss://gateway.discord.gg/?v=10&encoding=json");
@@ -67,6 +68,16 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: WhitelistEnabled (from config) = %s"),
 	       Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"));
+
+	// Load the ban list AFTER the config so we can pass BanSystemEnabled as the
+	// first-run default.  When ServerBanlist.json already exists its persisted
+	// enabled state is used as-is; BanSystemEnabled only applies on the very
+	// first server start (when no JSON file exists yet).
+	FBanManager::Load(Config.bBanSystemEnabled);
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: BanSystem active = %s (BanSystemEnabled config = %s)"),
+	       FBanManager::IsEnabled() ? TEXT("True") : TEXT("False"),
+	       Config.bBanSystemEnabled ? TEXT("True") : TEXT("False"));
 
 	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
 	{
@@ -644,6 +655,16 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 		return; // Do not relay whitelist commands to in-game chat.
 	}
 
+	// Check whether this message is a ban management command.
+	if (!Config.BanCommandPrefix.IsEmpty() &&
+	    Content.StartsWith(Config.BanCommandPrefix, ESearchCase::IgnoreCase))
+	{
+		// Extract everything after the prefix as the sub-command (trimmed).
+		const FString SubCommand = Content.Mid(Config.BanCommandPrefix.Len()).TrimStartAndEnd();
+		HandleBanCommand(SubCommand, Username, AuthorId);
+		return; // Do not relay ban commands to in-game chat.
+	}
+
 	OnDiscordMessageReceived.Broadcast(Username, Content);
 }
 
@@ -1182,7 +1203,7 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Whitelist enforcement
+// Whitelist and ban enforcement
 // ─────────────────────────────────────────────────────────────────────────────
 
 void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerController* Controller)
@@ -1192,21 +1213,48 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 		return;
 	}
 
-	if (!FWhitelistManager::IsEnabled())
-	{
-		return;
-	}
-
 	const APlayerState* PS = Controller->GetPlayerState<APlayerState>();
 	const FString PlayerName = PS ? PS->GetPlayerName() : FString();
 
 	// If the player name is empty (PlayerState not yet populated), do not kick.
-	// An empty name cannot meaningfully be checked against the whitelist and
-	// an incorrect kick here would disconnect a legitimate player.
+	// An empty name cannot meaningfully be checked against the whitelist/ban list
+	// and an incorrect kick here would disconnect a legitimate player.
 	if (PlayerName.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge Whitelist: player joined with an empty name – skipping whitelist check."));
+		       TEXT("DiscordBridge: player joined with an empty name – skipping whitelist/ban check."));
+		return;
+	}
+
+	// ── Ban check (takes priority over whitelist) ─────────────────────────────
+	if (FBanManager::IsEnabled() && FBanManager::IsBanned(PlayerName))
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge BanSystem: kicking banned player '%s'"), *PlayerName);
+
+		if (GameMode && GameMode->GameSession)
+		{
+			const FString KickReason = Config.BanKickReason.IsEmpty()
+				? TEXT("You are banned from this server.")
+				: Config.BanKickReason;
+			GameMode->GameSession->KickPlayer(
+				Controller,
+				FText::FromString(KickReason));
+		}
+
+		// Notify Discord so admins can see the ban kick in the bridge channel.
+		if (!Config.BanKickDiscordMessage.IsEmpty())
+		{
+			FString Notice = Config.BanKickDiscordMessage;
+			Notice = Notice.Replace(TEXT("%PlayerName%"), *PlayerName);
+			SendStatusMessageToDiscord(Notice);
+		}
+		return;
+	}
+
+	// ── Whitelist check ───────────────────────────────────────────────────────
+	if (!FWhitelistManager::IsEnabled())
+	{
 		return;
 	}
 
@@ -1426,4 +1474,98 @@ void UDiscordBridgeSubsystem::ModifyDiscordRole(const FString& UserId, bool bGra
 		});
 
 	Request->ProcessRequest();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ban system command handler
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
+                                                const FString& DiscordUsername,
+                                                const FString& AuthorId)
+{
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: Ban command from '%s': '%s'"), *DiscordUsername, *SubCommand);
+
+	FString Response;
+
+	// Split sub-command into verb + optional argument.
+	FString Verb, Arg;
+	if (!SubCommand.Split(TEXT(" "), &Verb, &Arg, ESearchCase::IgnoreCase))
+	{
+		Verb = SubCommand.TrimStartAndEnd();
+		Arg  = TEXT("");
+	}
+	Verb = Verb.TrimStartAndEnd().ToLower();
+	Arg  = Arg.TrimStartAndEnd();
+
+	if (Verb == TEXT("on"))
+	{
+		FBanManager::SetEnabled(true);
+		Response = TEXT(":hammer: Ban system **enabled**. Banned players will be kicked on join.");
+	}
+	else if (Verb == TEXT("off"))
+	{
+		FBanManager::SetEnabled(false);
+		Response = TEXT(":unlock: Ban system **disabled**. Banned players can join freely.");
+	}
+	else if (Verb == TEXT("add"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!ban add <PlayerName>`");
+		}
+		else if (FBanManager::BanPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT(":hammer: **%s** has been banned from the server."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT(":yellow_circle: **%s** is already banned."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("remove"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!ban remove <PlayerName>`");
+		}
+		else if (FBanManager::UnbanPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT(":white_check_mark: **%s** has been unbanned."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT(":yellow_circle: **%s** was not on the ban list."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("list"))
+	{
+		const TArray<FString> All = FBanManager::GetAll();
+		const FString Status = FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled");
+		if (All.Num() == 0)
+		{
+			Response = FString::Printf(TEXT(":scroll: Ban system is **%s**. No players banned."), *Status);
+		}
+		else
+		{
+			Response = FString::Printf(
+				TEXT(":scroll: Ban system is **%s**. Banned players (%d): %s"),
+				*Status, All.Num(), *FString::Join(All, TEXT(", ")));
+		}
+	}
+	else if (Verb == TEXT("status"))
+	{
+		Response = FBanManager::IsEnabled()
+			? TEXT(":hammer: Ban system is currently **ENABLED**.")
+			: TEXT(":unlock: Ban system is currently **disabled**.");
+	}
+	else
+	{
+		Response = TEXT(":question: Unknown ban command. Available: `on`, `off`, "
+		                "`add <name>`, `remove <name>`, `list`, `status`.");
+	}
+
+	// Send the response back to Discord.
+	SendStatusMessageToDiscord(Response);
 }

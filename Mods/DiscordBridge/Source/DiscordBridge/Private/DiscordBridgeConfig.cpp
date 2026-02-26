@@ -115,6 +115,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistChannelId              = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistChannelId"),              Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage     = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickDiscordMessage"),     Config.WhitelistKickDiscordMessage);
 		Config.bWhitelistEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("WhitelistEnabled"),               Config.bWhitelistEnabled);
+		Config.bBanSystemEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("BanSystemEnabled"),               Config.bBanSystemEnabled);
+		Config.BanCommandPrefix                = GetIniStringOrDefault(ConfigFile, TEXT("BanCommandPrefix"),                Config.BanCommandPrefix);
+		Config.BanKickDiscordMessage           = GetIniStringOrDefault(ConfigFile, TEXT("BanKickDiscordMessage"),           Config.BanKickDiscordMessage);
+		Config.BanKickReason                   = GetIniStringOrDefault(ConfigFile, TEXT("BanKickReason"),                   Config.BanKickReason);
 
 		// Trim leading/trailing whitespace from credential fields to prevent
 		// subtle mismatches when operators accidentally include spaces.
@@ -298,7 +302,42 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Message posted to Discord when a non-whitelisted player is kicked.\n")
 			TEXT("; Leave empty to disable this notification.\n")
 			TEXT("; Placeholder: %PlayerName% - in-game name of the kicked player.\n")
-			TEXT("WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n");
+			TEXT("WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n")
+			TEXT("\n")
+			TEXT("; -- BAN SYSTEM ---------------------------------------------------------------\n")
+			TEXT("; Controls the built-in player ban system, manageable via Discord commands.\n")
+			TEXT("; Bans are stored in <ServerRoot>/FactoryGame/Saved/ServerBanlist.json and\n")
+			TEXT("; persist across server restarts automatically.\n")
+			TEXT(";\n")
+			TEXT("; Set to True or False to set the initial ban-system state on the FIRST server\n")
+			TEXT("; start (when ServerBanlist.json does not yet exist).  After the first start,\n")
+			TEXT("; the enabled/disabled state is saved in ServerBanlist.json and survives\n")
+			TEXT("; restarts, so runtime changes via !ban on / !ban off truly persist.\n")
+			TEXT("; To force-reset the state to this config value: delete ServerBanlist.json\n")
+			TEXT("; and restart the server.\n")
+			TEXT("; Default: True.\n")
+			TEXT("BanSystemEnabled=True\n")
+			TEXT(";\n")
+			TEXT("; Prefix that triggers ban commands when typed in the bridged channel.\n")
+			TEXT("; Set to empty to disable Discord-based ban management entirely.\n")
+			TEXT("; Available commands:\n")
+			TEXT(";   !ban add <name>    - ban a player by in-game name\n")
+			TEXT(";   !ban remove <name> - unban a player by in-game name\n")
+			TEXT(";   !ban list          - list all banned players\n")
+			TEXT(";   !ban status        - show current enabled/disabled state\n")
+			TEXT(";   !ban on            - enable the ban system\n")
+			TEXT(";   !ban off           - disable the ban system\n")
+			TEXT("BanCommandPrefix=!ban\n")
+			TEXT(";\n")
+			TEXT("; Message posted to Discord when a banned player is kicked.\n")
+			TEXT("; Leave empty to disable this notification.\n")
+			TEXT("; Placeholder: %PlayerName% - in-game name of the kicked player.\n")
+			TEXT("BanKickDiscordMessage=:hammer: **%PlayerName%** is banned from this server and was kicked.\n")
+			TEXT(";\n")
+			TEXT("; Reason shown in-game to the player when they are kicked for being banned.\n")
+			TEXT("; This is the text the player sees in the Disconnected screen.\n")
+			TEXT("; Default: You are banned from this server.\n")
+			TEXT("BanKickReason=You are banned from this server.\n");
 
 		// Ensure the Config directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(ModFilePath));
@@ -357,6 +396,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistChannelId               = GetIniStringOrDefault(BackupFile, TEXT("WhitelistChannelId"),               Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage      = GetIniStringOrDefault(BackupFile, TEXT("WhitelistKickDiscordMessage"),      Config.WhitelistKickDiscordMessage);
 		Config.bWhitelistEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("WhitelistEnabled"),                Config.bWhitelistEnabled);
+		Config.bBanSystemEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("BanSystemEnabled"),                Config.bBanSystemEnabled);
+		Config.BanCommandPrefix                 = GetIniStringOrDefault(BackupFile, TEXT("BanCommandPrefix"),                 Config.BanCommandPrefix);
+		Config.BanKickDiscordMessage            = GetIniStringOrDefault(BackupFile, TEXT("BanKickDiscordMessage"),            Config.BanKickDiscordMessage);
+		Config.BanKickReason                    = GetIniStringOrDefault(BackupFile, TEXT("BanKickReason"),                    Config.BanKickReason);
 
 		if (!bHadToken || !bHadChannel)
 		{
@@ -395,7 +438,11 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("WhitelistCommandPrefix=%s\n")
 			TEXT("WhitelistRoleId=%s\n")
 			TEXT("WhitelistChannelId=%s\n")
-			TEXT("WhitelistKickDiscordMessage=%s\n"),
+			TEXT("WhitelistKickDiscordMessage=%s\n")
+			TEXT("BanSystemEnabled=%s\n")
+			TEXT("BanCommandPrefix=%s\n")
+			TEXT("BanKickDiscordMessage=%s\n")
+			TEXT("BanKickReason=%s\n"),
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
@@ -414,7 +461,11 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.WhitelistCommandPrefix,
 			*Config.WhitelistRoleId,
 			*Config.WhitelistChannelId,
-			*Config.WhitelistKickDiscordMessage);
+			*Config.WhitelistKickDiscordMessage,
+			Config.bBanSystemEnabled ? TEXT("True") : TEXT("False"),
+			*Config.BanCommandPrefix,
+			*Config.BanKickDiscordMessage,
+			*Config.BanKickReason);
 
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
 

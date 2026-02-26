@@ -147,6 +147,51 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 		TEXT(":boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.")
 	};
 
+	// ── Ban system ────────────────────────────────────────────────────────────
+
+	/**
+	 * When true, the ban system is active on every server start, overriding any
+	 * runtime change made via !ban on / !ban off Discord commands.
+	 * Default: true (banned players are kicked on join).
+	 */
+	bool bBanSystemEnabled{ true };
+
+	/**
+	 * Prefix that triggers ban management commands from Discord.
+	 * Set to an empty string to disable Discord-based ban management.
+	 * Default: "!ban"
+	 *
+	 * Supported commands (type in the bridged Discord channel):
+	 *   !ban add <name>    – ban a player by in-game name
+	 *   !ban remove <name> – unban a player by in-game name
+	 *   !ban list          – list all banned players
+	 *   !ban status        – show current enabled/disabled state
+	 *   !ban on            – enable the ban system
+	 *   !ban off           – disable the ban system
+	 */
+	FString BanCommandPrefix{ TEXT("!ban") };
+
+	/**
+	 * Message posted to the main Discord channel whenever a banned player tries
+	 * to join.  Leave empty to disable the notification.
+	 *
+	 * Available placeholder:
+	 *   %PlayerName%  – in-game name of the player who was kicked.
+	 *
+	 * Example:
+	 *   BanKickDiscordMessage=:hammer: **%PlayerName%** is banned and was kicked.
+	 */
+	FString BanKickDiscordMessage{
+		TEXT(":hammer: **%PlayerName%** is banned from this server and was kicked.")
+	};
+
+	/**
+	 * Reason shown in-game to the player when they are kicked for being banned.
+	 * This is the text the player sees in the "Disconnected" screen.
+	 * Default: "You are banned from this server."
+	 */
+	FString BanKickReason{ TEXT("You are banned from this server.") };
+
 	// ── Player count presence ─────────────────────────────────────────────────
 
 	/** When true, the bot's Discord presence activity shows the current player count. */
