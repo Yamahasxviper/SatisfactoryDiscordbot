@@ -178,9 +178,10 @@ void UDiscordBridgeSubsystem::Disconnect()
 		}
 	}
 
-	bGatewayReady        = false;
-	bPendingHeartbeatAck = false;
-	LastSequenceNumber   = -1;
+	bGatewayReady            = false;
+	bPendingHeartbeatAck     = false;
+	bServerOnlineMessageSent = false;
+	LastSequenceNumber       = -1;
 	BotUserId.Empty();
 	GuildId.Empty();
 
@@ -524,10 +525,14 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 		SendUpdatePresence(TEXT("online"));
 	}
 
-	// Post the server-online notification message, if configured.
-	if (!Config.ServerOnlineMessage.IsEmpty())
+	// Post the server-online notification message the first time only.
+	// Discord periodically forces bots to reconnect, which triggers a fresh
+	// READY event even though the game server never went offline.  Guard with
+	// bServerOnlineMessageSent so we don't spam the channel every ~hour.
+	if (!Config.ServerOnlineMessage.IsEmpty() && !bServerOnlineMessageSent)
 	{
 		SendStatusMessageToDiscord(Config.ServerOnlineMessage);
+		bServerOnlineMessageSent = true;
 	}
 
 	OnDiscordConnected.Broadcast();
