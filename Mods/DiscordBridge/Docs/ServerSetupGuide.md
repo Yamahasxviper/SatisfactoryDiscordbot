@@ -1,5 +1,10 @@
 # DiscordBridge – Server Setup & Configuration Guide
 
+> **This guide has been split into focused sections to make it easier to find what you need.**
+> See the [Documentation Index](README.md) for the full list of guides.
+
+---
+
 This guide explains every setting available in `DefaultDiscordBridge.ini` so you can
 get the Discord ↔ Satisfactory chat bridge running and fine-tune it to your liking.
 
