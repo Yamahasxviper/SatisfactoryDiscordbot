@@ -122,14 +122,31 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 		bLoadedFromMod = true;
 		UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Loaded config from %s"), *ModFilePath);
+
+		// When BotToken is empty the file has not been configured yet – this
+		// happens when Alpakit strips the ';' comments during packaging and
+		// ships a comment-free ini.  Rewrite it with the full annotated
+		// template so operators see the setting descriptions on first use.
+		if (Config.BotToken.IsEmpty())
+		{
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Config at '%s' has no BotToken – "
+			            "rewriting with annotated template so comments are visible."),
+			       *ModFilePath);
+			bLoadedFromMod = false; // fall through to the DefaultContent write below
+		}
 	}
-	else
+
+	if (!bLoadedFromMod)
 	{
-		// Primary config missing – create it with defaults so the operator has
-		// a ready-made file to fill in.
-		UE_LOG(LogTemp, Log,
-		       TEXT("DiscordBridge: Config file not found at '%s'. "
-		            "Creating it with defaults."), *ModFilePath);
+		if (!PlatformFile.FileExists(*ModFilePath))
+		{
+			// Primary config missing – create it with defaults so the operator has
+			// a ready-made file to fill in.
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Config file not found at '%s'. "
+			            "Creating it with defaults."), *ModFilePath);
+		}
 
 		const FString DefaultContent =
 			TEXT("[DiscordBridge]\n")
