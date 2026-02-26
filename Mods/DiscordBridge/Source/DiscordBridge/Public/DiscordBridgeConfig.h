@@ -185,6 +185,13 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 		TEXT(":hammer: **%PlayerName%** is banned from this server and was kicked.")
 	};
 
+	/**
+	 * Reason shown in-game to the player when they are kicked for being banned.
+	 * This is the text the player sees in the "Disconnected" screen.
+	 * Default: "You are banned from this server."
+	 */
+	FString BanKickReason{ TEXT("You are banned from this server.") };
+
 	// ── Player count presence ─────────────────────────────────────────────────
 
 	/** When true, the bot's Discord presence activity shows the current player count. */

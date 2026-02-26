@@ -29,14 +29,18 @@ FString FBanManager::GetFilePath()
 // Public API
 // ---------------------------------------------------------------------------
 
-void FBanManager::Load()
+void FBanManager::Load(bool bDefaultEnabled)
 {
 	const FString FilePath = GetFilePath();
 
 	if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FilePath))
 	{
+		// First run: no file exists yet.  Use the caller-supplied default so
+		// the BanSystemEnabled=True/False value from the INI takes effect.
+		bEnabled = bDefaultEnabled;
 		UE_LOG(LogBanManager, Display,
-			TEXT("Ban list file not found — creating default at %s"), *FilePath);
+			TEXT("Ban list file not found — creating default at %s (enabled=%s)"),
+			*FilePath, bEnabled ? TEXT("true") : TEXT("false"));
 		Save();
 		return;
 	}

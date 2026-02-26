@@ -40,9 +40,6 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	// Load the whitelist from disk so it is ready before any player joins.
 	FWhitelistManager::Load();
 
-	// Load the ban list from disk so it is ready before any player joins.
-	FBanManager::Load();
-
 	// Subscribe to PostLogin to enforce the whitelist on each player join.
 	PostLoginHandle = FGameModeEvents::GameModePostLoginEvent.AddUObject(
 		this, &UDiscordBridgeSubsystem::OnPostLogin);
@@ -72,10 +69,14 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	       TEXT("DiscordBridge: WhitelistEnabled (from config) = %s"),
 	       Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"));
 
-	// Apply the config-file ban system enabled state.
-	FBanManager::SetEnabled(Config.bBanSystemEnabled);
+	// Load the ban list AFTER the config so we can pass BanSystemEnabled as the
+	// first-run default.  When ServerBanlist.json already exists its persisted
+	// enabled state is used as-is; BanSystemEnabled only applies on the very
+	// first server start (when no JSON file exists yet).
+	FBanManager::Load(Config.bBanSystemEnabled);
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: BanSystemEnabled (from config) = %s"),
+	       TEXT("DiscordBridge: BanSystem active = %s (BanSystemEnabled config = %s)"),
+	       FBanManager::IsEnabled() ? TEXT("True") : TEXT("False"),
 	       Config.bBanSystemEnabled ? TEXT("True") : TEXT("False"));
 
 	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
@@ -1233,9 +1234,12 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 
 		if (GameMode && GameMode->GameSession)
 		{
+			const FString KickReason = Config.BanKickReason.IsEmpty()
+				? TEXT("You are banned from this server.")
+				: Config.BanKickReason;
 			GameMode->GameSession->KickPlayer(
 				Controller,
-				FText::FromString(TEXT("You are banned from this server.")));
+				FText::FromString(KickReason));
 		}
 
 		// Notify Discord so admins can see the ban kick in the bridge channel.

@@ -8,6 +8,11 @@
  * The file is created with defaults on first use and written to disk
  * immediately on every change so bans survive server restarts.
  *
+ * The enabled/disabled state is persisted in the JSON file, so runtime changes
+ * via !ban on / !ban off Discord commands survive server restarts.
+ * The bDefaultEnabled parameter to Load() is used only when creating the file
+ * for the first time (i.e. it reflects the BanSystemEnabled INI setting).
+ *
  * No additional dependency beyond Core/Json — uses UE4 Json + FFileHelper.
  *
  * Example file:
@@ -19,8 +24,16 @@
 class DISCORDBRIDGE_API FBanManager
 {
 public:
-	/** Load (or create) the ban list file from disk. Call once at startup. */
-	static void Load();
+	/**
+	 * Load (or create) the ban list file from disk. Call once at startup,
+	 * after the INI config has been loaded.
+	 *
+	 * @param bDefaultEnabled  Used only when no JSON file exists yet (first run).
+	 *                         Set to the BanSystemEnabled value from the INI so
+	 *                         the operator's config choice takes effect on the
+	 *                         very first server start.
+	 */
+	static void Load(bool bDefaultEnabled = true);
 
 	/** Persist the current state to disk immediately. */
 	static void Save();
