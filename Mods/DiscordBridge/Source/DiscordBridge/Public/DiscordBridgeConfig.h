@@ -86,6 +86,13 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	// ── Whitelist ─────────────────────────────────────────────────────────────
 
 	/**
+	 * When true, the whitelist is enabled on every server start, overriding any
+	 * runtime change made via !whitelist on / !whitelist off Discord commands.
+	 * Default: false (all players can join).
+	 */
+	bool bWhitelistEnabled{ false };
+
+	/**
 	 * Prefix that triggers whitelist management commands from Discord.
 	 * Set to an empty string to disable Discord-based whitelist management.
 	 * Default: "!whitelist"

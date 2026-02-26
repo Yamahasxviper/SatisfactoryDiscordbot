@@ -60,6 +60,14 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	// Load (or auto-create) the JSON config file from Configs/DiscordBridge.cfg.
 	Config = FDiscordBridgeConfig::LoadOrCreate();
 
+	// Apply the config-file whitelist enabled state so server operators can
+	// set "WhitelistEnabled=True" in DefaultDiscordBridge.ini to have the
+	// whitelist active from the very first server start.
+	FWhitelistManager::SetEnabled(Config.bWhitelistEnabled);
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: WhitelistEnabled (from config) = %s"),
+	       Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"));
+
 	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning,
