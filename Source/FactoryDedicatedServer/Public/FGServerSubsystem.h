@@ -22,6 +22,7 @@ enum class EServerFlags : uint64;
 struct FFGStoredPasswordData;
 class UFGServerSettings;
 class UFGServerAPIManager;
+class UFGServerWebSocketManager;
 class UFGServerControllerArray;
 class FFGOffThreadServerQuerySocket;
 
@@ -63,6 +64,9 @@ public:
 
 	/** Returns the server API manager instance that can be used to register external handlers outside of DS subsystem. Useful for Mods. */
 	FORCEINLINE UFGServerAPIManager* GetServerAPIManager() const { return mServerAPIManager; }
+
+	/** Returns the WebSocket manager instance, or nullptr if WebSocket support is unavailable. */
+	FORCEINLINE UFGServerWebSocketManager* GetServerWebSocketManager() const { return mServerWebSocketManager; }
 
 	/** Returns the name of the server set by the user */
 	FString GetServerName() const;
@@ -175,6 +179,9 @@ private:
 
 	UPROPERTY()
 	UFGServerAPIManager* mServerAPIManager;
+
+	UPROPERTY()
+	UFGServerWebSocketManager* mServerWebSocketManager;
 
 	UPROPERTY()
 	UFGServerControllerArray* mServerControllerArray;
