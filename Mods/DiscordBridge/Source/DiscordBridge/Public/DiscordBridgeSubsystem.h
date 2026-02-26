@@ -349,6 +349,10 @@ private:
 	void HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername,
 	                            const FString& AuthorId);
 
+	/** Handle a ban management command received from Discord. */
+	void HandleBanCommand(const FString& SubCommand, const FString& DiscordUsername,
+	                      const FString& AuthorId);
+
 	/**
 	 * Assign or revoke the configured WhitelistRoleId from a Discord user via
 	 * the REST API.  No-op when WhitelistRoleId or GuildId is empty.
