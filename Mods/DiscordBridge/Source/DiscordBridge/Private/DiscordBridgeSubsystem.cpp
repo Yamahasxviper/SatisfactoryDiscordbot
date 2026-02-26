@@ -1031,6 +1031,24 @@ void UDiscordBridgeSubsystem::HandleIncomingChatMessage(const FString& PlayerNam
 	       TEXT("DiscordBridge: Player message detected. Sender: '%s', Text: '%s'"),
 	       *PlayerName, *MessageText);
 
+	// Check whether this message is an in-game whitelist management command.
+	if (!Config.InGameWhitelistCommandPrefix.IsEmpty() &&
+	    MessageText.StartsWith(Config.InGameWhitelistCommandPrefix, ESearchCase::IgnoreCase))
+	{
+		const FString SubCommand = MessageText.Mid(Config.InGameWhitelistCommandPrefix.Len()).TrimStartAndEnd();
+		HandleInGameWhitelistCommand(SubCommand);
+		return; // Do not forward commands to Discord.
+	}
+
+	// Check whether this message is an in-game ban management command.
+	if (!Config.InGameBanCommandPrefix.IsEmpty() &&
+	    MessageText.StartsWith(Config.InGameBanCommandPrefix, ESearchCase::IgnoreCase))
+	{
+		const FString SubCommand = MessageText.Mid(Config.InGameBanCommandPrefix.Len()).TrimStartAndEnd();
+		HandleInGameBanCommand(SubCommand);
+		return; // Do not forward commands to Discord.
+	}
+
 	SendGameMessageToDiscord(PlayerName, MessageText);
 }
 
@@ -1571,4 +1589,202 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 
 	// Send the response back to Discord.
 	SendStatusMessageToDiscord(Response);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// In-game chat command helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::SendGameChatStatusMessage(const FString& Message)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	AFGChatManager* ChatManager = AFGChatManager::Get(World);
+	if (!ChatManager)
+	{
+		return;
+	}
+
+	FChatMessageStruct ChatMsg;
+	ChatMsg.MessageType   = EFGChatMessageType::CMT_CustomMessage;
+	ChatMsg.MessageSender = FText::FromString(TEXT("[Server]"));
+	ChatMsg.MessageText   = FText::FromString(Message);
+
+	ChatManager->BroadcastChatMessage(ChatMsg);
+}
+
+void UDiscordBridgeSubsystem::HandleInGameWhitelistCommand(const FString& SubCommand)
+{
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: In-game whitelist command: '%s'"), *SubCommand);
+
+	FString Response;
+
+	// Split sub-command into verb + optional argument.
+	FString Verb, Arg;
+	if (!SubCommand.Split(TEXT(" "), &Verb, &Arg, ESearchCase::IgnoreCase))
+	{
+		Verb = SubCommand.TrimStartAndEnd();
+		Arg  = TEXT("");
+	}
+	Verb = Verb.TrimStartAndEnd().ToLower();
+	Arg  = Arg.TrimStartAndEnd();
+
+	if (Verb == TEXT("on"))
+	{
+		FWhitelistManager::SetEnabled(true);
+		Response = TEXT("Whitelist ENABLED. Only whitelisted players can join.");
+	}
+	else if (Verb == TEXT("off"))
+	{
+		FWhitelistManager::SetEnabled(false);
+		Response = TEXT("Whitelist DISABLED. All players can join freely.");
+	}
+	else if (Verb == TEXT("add"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT("Usage: !whitelist add <PlayerName>");
+		}
+		else if (FWhitelistManager::AddPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT("%s has been added to the whitelist."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT("%s is already on the whitelist."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("remove"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT("Usage: !whitelist remove <PlayerName>");
+		}
+		else if (FWhitelistManager::RemovePlayer(Arg))
+		{
+			Response = FString::Printf(TEXT("%s has been removed from the whitelist."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT("%s was not on the whitelist."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("list"))
+	{
+		const TArray<FString> All = FWhitelistManager::GetAll();
+		const FString Status = FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled");
+		if (All.Num() == 0)
+		{
+			Response = FString::Printf(TEXT("Whitelist is %s. No players listed."), *Status);
+		}
+		else
+		{
+			Response = FString::Printf(
+				TEXT("Whitelist is %s. Players (%d): %s"),
+				*Status, All.Num(), *FString::Join(All, TEXT(", ")));
+		}
+	}
+	else if (Verb == TEXT("status"))
+	{
+		Response = FWhitelistManager::IsEnabled()
+			? TEXT("Whitelist is currently ENABLED.")
+			: TEXT("Whitelist is currently disabled.");
+	}
+	else
+	{
+		Response = TEXT("Unknown whitelist command. Available: on, off, add <name>, remove <name>, list, status.");
+	}
+
+	SendGameChatStatusMessage(Response);
+}
+
+void UDiscordBridgeSubsystem::HandleInGameBanCommand(const FString& SubCommand)
+{
+	UE_LOG(LogTemp, Log,
+	       TEXT("DiscordBridge: In-game ban command: '%s'"), *SubCommand);
+
+	FString Response;
+
+	// Split sub-command into verb + optional argument.
+	FString Verb, Arg;
+	if (!SubCommand.Split(TEXT(" "), &Verb, &Arg, ESearchCase::IgnoreCase))
+	{
+		Verb = SubCommand.TrimStartAndEnd();
+		Arg  = TEXT("");
+	}
+	Verb = Verb.TrimStartAndEnd().ToLower();
+	Arg  = Arg.TrimStartAndEnd();
+
+	if (Verb == TEXT("on"))
+	{
+		FBanManager::SetEnabled(true);
+		Response = TEXT("Ban system ENABLED. Banned players will be kicked on join.");
+	}
+	else if (Verb == TEXT("off"))
+	{
+		FBanManager::SetEnabled(false);
+		Response = TEXT("Ban system DISABLED. Banned players can join freely.");
+	}
+	else if (Verb == TEXT("add"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT("Usage: !ban add <PlayerName>");
+		}
+		else if (FBanManager::BanPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT("%s has been banned from the server."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT("%s is already banned."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("remove"))
+	{
+		if (Arg.IsEmpty())
+		{
+			Response = TEXT("Usage: !ban remove <PlayerName>");
+		}
+		else if (FBanManager::UnbanPlayer(Arg))
+		{
+			Response = FString::Printf(TEXT("%s has been unbanned."), *Arg);
+		}
+		else
+		{
+			Response = FString::Printf(TEXT("%s was not on the ban list."), *Arg);
+		}
+	}
+	else if (Verb == TEXT("list"))
+	{
+		const TArray<FString> All = FBanManager::GetAll();
+		const FString Status = FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled");
+		if (All.Num() == 0)
+		{
+			Response = FString::Printf(TEXT("Ban system is %s. No players banned."), *Status);
+		}
+		else
+		{
+			Response = FString::Printf(
+				TEXT("Ban system is %s. Banned players (%d): %s"),
+				*Status, All.Num(), *FString::Join(All, TEXT(", ")));
+		}
+	}
+	else if (Verb == TEXT("status"))
+	{
+		Response = FBanManager::IsEnabled()
+			? TEXT("Ban system is currently ENABLED.")
+			: TEXT("Ban system is currently disabled.");
+	}
+	else
+	{
+		Response = TEXT("Unknown ban command. Available: on, off, add <name>, remove <name>, list, status.");
+	}
+
+	SendGameChatStatusMessage(Response);
 }
