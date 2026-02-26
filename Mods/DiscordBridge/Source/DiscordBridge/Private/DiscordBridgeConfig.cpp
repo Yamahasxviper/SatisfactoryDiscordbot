@@ -114,6 +114,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistRoleId                 = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistRoleId"),                 Config.WhitelistRoleId);
 		Config.WhitelistChannelId              = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistChannelId"),              Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage     = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickDiscordMessage"),     Config.WhitelistKickDiscordMessage);
+		Config.bWhitelistEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("WhitelistEnabled"),               Config.bWhitelistEnabled);
 
 		// Trim leading/trailing whitespace from credential fields to prevent
 		// subtle mismatches when operators accidentally include spaces.
@@ -257,6 +258,12 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; -- WHITELIST ----------------------------------------------------------------\n")
 			TEXT("; Controls the built-in server whitelist, manageable via Discord commands.\n")
 			TEXT(";\n")
+			TEXT("; Set to True to enable the whitelist when the server starts, or False to\n")
+			TEXT("; disable it.  This value is applied every time the server starts, overriding\n")
+			TEXT("; any runtime change made via !whitelist on / !whitelist off Discord commands.\n")
+			TEXT("; Default: False (all players can join).\n")
+			TEXT("WhitelistEnabled=False\n")
+			TEXT(";\n")
 			TEXT("; Prefix that triggers whitelist commands when typed in the bridged channel.\n")
 			TEXT("; Set to empty to disable Discord-based whitelist management entirely.\n")
 			TEXT("; Available commands:\n")
@@ -349,6 +356,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistRoleId                  = GetIniStringOrDefault(BackupFile, TEXT("WhitelistRoleId"),                  Config.WhitelistRoleId);
 		Config.WhitelistChannelId               = GetIniStringOrDefault(BackupFile, TEXT("WhitelistChannelId"),               Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage      = GetIniStringOrDefault(BackupFile, TEXT("WhitelistKickDiscordMessage"),      Config.WhitelistKickDiscordMessage);
+		Config.bWhitelistEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("WhitelistEnabled"),                Config.bWhitelistEnabled);
 
 		if (!bHadToken || !bHadChannel)
 		{
@@ -383,6 +391,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("PlayerCountPresenceFormat=%s\n")
 			TEXT("PlayerCountUpdateIntervalSeconds=%s\n")
 			TEXT("PlayerCountActivityType=%d\n")
+			TEXT("WhitelistEnabled=%s\n")
 			TEXT("WhitelistCommandPrefix=%s\n")
 			TEXT("WhitelistRoleId=%s\n")
 			TEXT("WhitelistChannelId=%s\n")
@@ -401,6 +410,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.PlayerCountPresenceFormat,
 			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds),
 			Config.PlayerCountActivityType,
+			Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"),
 			*Config.WhitelistCommandPrefix,
 			*Config.WhitelistRoleId,
 			*Config.WhitelistChannelId,
