@@ -120,6 +120,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.BanCommandPrefix                = GetIniStringOrDefault(ConfigFile, TEXT("BanCommandPrefix"),                Config.BanCommandPrefix);
 		Config.BanKickDiscordMessage           = GetIniStringOrDefault(ConfigFile, TEXT("BanKickDiscordMessage"),           Config.BanKickDiscordMessage);
 		Config.BanKickReason                   = GetIniStringOrDefault(ConfigFile, TEXT("BanKickReason"),                   Config.BanKickReason);
+		Config.InGameWhitelistCommandPrefix    = GetIniStringOrDefault(ConfigFile, TEXT("InGameWhitelistCommandPrefix"),    Config.InGameWhitelistCommandPrefix);
+		Config.InGameBanCommandPrefix          = GetIniStringOrDefault(ConfigFile, TEXT("InGameBanCommandPrefix"),          Config.InGameBanCommandPrefix);
 
 		// Trim leading/trailing whitespace from credential fields to prevent
 		// subtle mismatches when operators accidentally include spaces.
@@ -343,7 +345,33 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Reason shown in-game to the player when they are kicked for being banned.\n")
 			TEXT("; This is the text the player sees in the Disconnected screen.\n")
 			TEXT("; Default: You are banned from this server.\n")
-			TEXT("BanKickReason=You are banned from this server.\n");
+			TEXT("BanKickReason=You are banned from this server.\n")
+			TEXT("\n")
+			TEXT("; -- IN-GAME COMMANDS ------------------------------------------------------------\n")
+			TEXT("; These settings control commands that server admins can type in the Satisfactory\n")
+			TEXT("; in-game chat to manage the whitelist and ban list without using Discord.\n")
+			TEXT(";\n")
+			TEXT("; Prefix that triggers whitelist commands when typed in the in-game chat.\n")
+			TEXT("; Set to empty to disable in-game whitelist commands.\n")
+			TEXT("; Available commands (type in Satisfactory chat):\n")
+			TEXT(";   !whitelist on            - enable the whitelist\n")
+			TEXT(";   !whitelist off           - disable the whitelist\n")
+			TEXT(";   !whitelist add <name>    - add a player by in-game name\n")
+			TEXT(";   !whitelist remove <name> - remove a player by in-game name\n")
+			TEXT(";   !whitelist list          - list all whitelisted players\n")
+			TEXT(";   !whitelist status        - show current enabled/disabled state\n")
+			TEXT("InGameWhitelistCommandPrefix=!whitelist\n")
+			TEXT(";\n")
+			TEXT("; Prefix that triggers ban commands when typed in the in-game chat.\n")
+			TEXT("; Set to empty to disable in-game ban commands.\n")
+			TEXT("; Available commands (type in Satisfactory chat):\n")
+			TEXT(";   !ban add <name>    - ban a player by in-game name\n")
+			TEXT(";   !ban remove <name> - unban a player by in-game name\n")
+			TEXT(";   !ban list          - list all banned players\n")
+			TEXT(";   !ban status        - show current enabled/disabled state\n")
+			TEXT(";   !ban on            - enable the ban system\n")
+			TEXT(";   !ban off           - disable the ban system\n")
+			TEXT("InGameBanCommandPrefix=!ban\n");
 
 		// Ensure the Config directory exists before writing.
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(ModFilePath));
@@ -407,6 +435,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.BanCommandPrefix                 = GetIniStringOrDefault(BackupFile, TEXT("BanCommandPrefix"),                 Config.BanCommandPrefix);
 		Config.BanKickDiscordMessage            = GetIniStringOrDefault(BackupFile, TEXT("BanKickDiscordMessage"),            Config.BanKickDiscordMessage);
 		Config.BanKickReason                    = GetIniStringOrDefault(BackupFile, TEXT("BanKickReason"),                    Config.BanKickReason);
+		Config.InGameWhitelistCommandPrefix     = GetIniStringOrDefault(BackupFile, TEXT("InGameWhitelistCommandPrefix"),     Config.InGameWhitelistCommandPrefix);
+		Config.InGameBanCommandPrefix           = GetIniStringOrDefault(BackupFile, TEXT("InGameBanCommandPrefix"),           Config.InGameBanCommandPrefix);
 
 		if (!bHadToken || !bHadChannel)
 		{
@@ -450,7 +480,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("BanSystemEnabled=%s\n")
 			TEXT("BanCommandPrefix=%s\n")
 			TEXT("BanKickDiscordMessage=%s\n")
-			TEXT("BanKickReason=%s\n"),
+			TEXT("BanKickReason=%s\n")
+			TEXT("InGameWhitelistCommandPrefix=%s\n")
+			TEXT("InGameBanCommandPrefix=%s\n"),
 			*ModFilePath,
 			*Config.BotToken,
 			*Config.ChannelId,
@@ -474,7 +506,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			Config.bBanSystemEnabled ? TEXT("True") : TEXT("False"),
 			*Config.BanCommandPrefix,
 			*Config.BanKickDiscordMessage,
-			*Config.BanKickReason);
+			*Config.BanKickReason,
+			*Config.InGameWhitelistCommandPrefix,
+			*Config.InGameBanCommandPrefix);
 
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
 

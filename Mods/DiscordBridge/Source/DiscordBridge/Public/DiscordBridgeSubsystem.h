@@ -353,6 +353,15 @@ private:
 	void HandleBanCommand(const FString& SubCommand, const FString& DiscordUsername,
 	                      const FString& AuthorId);
 
+	/** Handle a whitelist management command typed in the Satisfactory in-game chat. */
+	void HandleInGameWhitelistCommand(const FString& SubCommand);
+
+	/** Handle a ban management command typed in the Satisfactory in-game chat. */
+	void HandleInGameBanCommand(const FString& SubCommand);
+
+	/** Broadcast a status/feedback message to all connected players via the game chat. */
+	void SendGameChatStatusMessage(const FString& Message);
+
 	/**
 	 * Assign or revoke the configured WhitelistRoleId from a Discord user via
 	 * the REST API.  No-op when WhitelistRoleId or GuildId is empty.

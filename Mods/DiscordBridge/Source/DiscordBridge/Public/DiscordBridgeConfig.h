@@ -202,6 +202,40 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 */
 	FString BanKickReason{ TEXT("You are banned from this server.") };
 
+	// ── In-game commands ──────────────────────────────────────────────────────
+
+	/**
+	 * Prefix that triggers whitelist management commands when typed in the
+	 * Satisfactory in-game chat.  Set to an empty string to disable in-game
+	 * whitelist commands.
+	 * Default: "!whitelist"
+	 *
+	 * Supported commands (type in the Satisfactory in-game chat):
+	 *   !whitelist on            – enable the whitelist
+	 *   !whitelist off           – disable the whitelist
+	 *   !whitelist add <name>    – add a player by in-game name
+	 *   !whitelist remove <name> – remove a player by in-game name
+	 *   !whitelist list          – list all whitelisted players
+	 *   !whitelist status        – show current enabled/disabled state
+	 */
+	FString InGameWhitelistCommandPrefix{ TEXT("!whitelist") };
+
+	/**
+	 * Prefix that triggers ban management commands when typed in the
+	 * Satisfactory in-game chat.  Set to an empty string to disable in-game
+	 * ban commands.
+	 * Default: "!ban"
+	 *
+	 * Supported commands (type in the Satisfactory in-game chat):
+	 *   !ban add <name>    – ban a player by in-game name
+	 *   !ban remove <name> – unban a player by in-game name
+	 *   !ban list          – list all banned players
+	 *   !ban status        – show current enabled/disabled state
+	 *   !ban on            – enable the ban system
+	 *   !ban off           – disable the ban system
+	 */
+	FString InGameBanCommandPrefix{ TEXT("!ban") };
+
 	// ── Player count presence ─────────────────────────────────────────────────
 
 	/** When true, the bot's Discord presence activity shows the current player count. */
