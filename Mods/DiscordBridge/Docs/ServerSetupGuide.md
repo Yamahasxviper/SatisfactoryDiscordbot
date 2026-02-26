@@ -217,6 +217,21 @@ BanKickReason=You have been banned. Contact the server admin to appeal.
 
 Controls the built-in server whitelist that can be managed from Discord.
 
+#### `WhitelistEnabled`
+
+Sets the initial whitelist state on the **first** server start (when
+`ServerWhitelist.json` does not yet exist).  After the first start the
+enabled/disabled state is saved in `ServerWhitelist.json` and survives restarts
+automatically — so `!whitelist on` / `!whitelist off` changes made from Discord
+truly persist.
+
+To force-reset back to this config value: delete `ServerWhitelist.json` and
+restart the server.
+
+**Default:** `False` (all players can join)
+
+---
+
 #### `WhitelistCommandPrefix`
 
 The prefix that triggers whitelist management commands when typed in the bridged Discord channel.
@@ -285,6 +300,21 @@ Leave **empty** to disable this notification.
 
 ```ini
 WhitelistKickDiscordMessage=:no_entry: **%PlayerName%** is not whitelisted and was removed from the server.
+```
+
+---
+
+#### `WhitelistKickReason`
+
+The reason shown **in-game** to the player when they are kicked for not being on the whitelist.
+This is the text the player sees in the disconnected / kicked screen.
+
+**Default:** `You are not on this server's whitelist. Contact the server admin to be added.`
+
+**Example:**
+
+```ini
+WhitelistKickReason=You are not whitelisted. DM an admin on Discord to request access.
 ```
 
 ---

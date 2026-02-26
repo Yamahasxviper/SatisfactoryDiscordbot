@@ -37,10 +37,7 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	// Load the whitelist from disk so it is ready before any player joins.
-	FWhitelistManager::Load();
-
-	// Subscribe to PostLogin to enforce the whitelist on each player join.
+	// Subscribe to PostLogin to enforce the whitelist and ban list on each player join.
 	PostLoginHandle = FGameModeEvents::GameModePostLoginEvent.AddUObject(
 		this, &UDiscordBridgeSubsystem::OnPostLogin);
 
@@ -61,12 +58,15 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	// Load (or auto-create) the JSON config file from Configs/DiscordBridge.cfg.
 	Config = FDiscordBridgeConfig::LoadOrCreate();
 
-	// Apply the config-file whitelist enabled state so server operators can
-	// set "WhitelistEnabled=True" in DefaultDiscordBridge.ini to have the
-	// whitelist active from the very first server start.
-	FWhitelistManager::SetEnabled(Config.bWhitelistEnabled);
+	// Load (or create) the whitelist JSON from disk, using the config value as
+	// the default only on the very first server start (when no JSON file exists).
+	// After the first start the enabled/disabled state is saved in the JSON and
+	// survives restarts, so runtime !whitelist on / !whitelist off changes persist.
+	// To force-reset to this config value: delete ServerWhitelist.json and restart.
+	FWhitelistManager::Load(Config.bWhitelistEnabled);
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: WhitelistEnabled (from config) = %s"),
+	       TEXT("DiscordBridge: Whitelist active = %s (WhitelistEnabled config = %s)"),
+	       FWhitelistManager::IsEnabled() ? TEXT("True") : TEXT("False"),
 	       Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"));
 
 	// Load the ban list AFTER the config so we can pass BanSystemEnabled as the
@@ -1268,9 +1268,12 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 
 	if (GameMode && GameMode->GameSession)
 	{
+		const FString KickReason = Config.WhitelistKickReason.IsEmpty()
+			? TEXT("You are not on this server's whitelist. Contact the server admin to be added.")
+			: Config.WhitelistKickReason;
 		GameMode->GameSession->KickPlayer(
 			Controller,
-			FText::FromString(TEXT("You are not on this server's whitelist. Contact the server admin to be added.")));
+			FText::FromString(KickReason));
 	}
 
 	// Notify Discord so admins can see the kick in the bridge channel.

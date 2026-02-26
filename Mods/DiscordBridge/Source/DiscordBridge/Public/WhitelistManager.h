@@ -19,8 +19,16 @@
 class DISCORDBRIDGE_API FWhitelistManager
 {
 public:
-	/** Load (or create) the whitelist file from disk. Call once at startup. */
-	static void Load();
+	/**
+	 * Load (or create) the whitelist file from disk. Call once at startup,
+	 * after the INI config has been loaded.
+	 *
+	 * @param bDefaultEnabled  Used only when no JSON file exists yet (first run).
+	 *                         Set to the WhitelistEnabled value from the INI so
+	 *                         the operator's config choice takes effect on the
+	 *                         very first server start.
+	 */
+	static void Load(bool bDefaultEnabled = false);
 
 	/** Persist the current state to disk immediately. */
 	static void Save();

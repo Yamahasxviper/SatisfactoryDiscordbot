@@ -114,6 +114,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistRoleId                 = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistRoleId"),                 Config.WhitelistRoleId);
 		Config.WhitelistChannelId              = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistChannelId"),              Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage     = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickDiscordMessage"),     Config.WhitelistKickDiscordMessage);
+		Config.WhitelistKickReason             = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickReason"),             Config.WhitelistKickReason);
 		Config.bWhitelistEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("WhitelistEnabled"),               Config.bWhitelistEnabled);
 		Config.bBanSystemEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("BanSystemEnabled"),               Config.bBanSystemEnabled);
 		Config.BanCommandPrefix                = GetIniStringOrDefault(ConfigFile, TEXT("BanCommandPrefix"),                Config.BanCommandPrefix);
@@ -303,6 +304,11 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Leave empty to disable this notification.\n")
 			TEXT("; Placeholder: %PlayerName% - in-game name of the kicked player.\n")
 			TEXT("WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n")
+			TEXT(";\n")
+			TEXT("; Reason shown in-game to the player when they are kicked for not being whitelisted.\n")
+			TEXT("; This is the text the player sees in the Disconnected screen.\n")
+			TEXT("; Default: You are not on this server's whitelist. Contact the server admin to be added.\n")
+			TEXT("WhitelistKickReason=You are not on this server's whitelist. Contact the server admin to be added.\n")
 			TEXT("\n")
 			TEXT("; -- BAN SYSTEM ---------------------------------------------------------------\n")
 			TEXT("; Controls the built-in player ban system, manageable via Discord commands.\n")
@@ -395,6 +401,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistRoleId                  = GetIniStringOrDefault(BackupFile, TEXT("WhitelistRoleId"),                  Config.WhitelistRoleId);
 		Config.WhitelistChannelId               = GetIniStringOrDefault(BackupFile, TEXT("WhitelistChannelId"),               Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage      = GetIniStringOrDefault(BackupFile, TEXT("WhitelistKickDiscordMessage"),      Config.WhitelistKickDiscordMessage);
+		Config.WhitelistKickReason              = GetIniStringOrDefault(BackupFile, TEXT("WhitelistKickReason"),              Config.WhitelistKickReason);
 		Config.bWhitelistEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("WhitelistEnabled"),                Config.bWhitelistEnabled);
 		Config.bBanSystemEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("BanSystemEnabled"),                Config.bBanSystemEnabled);
 		Config.BanCommandPrefix                 = GetIniStringOrDefault(BackupFile, TEXT("BanCommandPrefix"),                 Config.BanCommandPrefix);
@@ -439,6 +446,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("WhitelistRoleId=%s\n")
 			TEXT("WhitelistChannelId=%s\n")
 			TEXT("WhitelistKickDiscordMessage=%s\n")
+			TEXT("WhitelistKickReason=%s\n")
 			TEXT("BanSystemEnabled=%s\n")
 			TEXT("BanCommandPrefix=%s\n")
 			TEXT("BanKickDiscordMessage=%s\n")
@@ -462,6 +470,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.WhitelistRoleId,
 			*Config.WhitelistChannelId,
 			*Config.WhitelistKickDiscordMessage,
+			*Config.WhitelistKickReason,
 			Config.bBanSystemEnabled ? TEXT("True") : TEXT("False"),
 			*Config.BanCommandPrefix,
 			*Config.BanKickDiscordMessage,
