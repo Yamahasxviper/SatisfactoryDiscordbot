@@ -181,6 +181,25 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString BanChannelId;
 
 	/**
+	 * Snowflake ID of the Discord role managed by `!ban role add/remove` commands.
+	 * Leave empty to disable Discord ban-role integration.
+	 *
+	 * When set, the `!ban role add <user_id>` and `!ban role remove <user_id>` commands
+	 * grant or revoke this role from Discord members via the REST API.  A common use-case
+	 * is to set BanRoleId to the same value as BanCommandRoleId so that ban-command
+	 * administrators can promote or demote each other from within Discord without needing
+	 * server-level role management access.
+	 *
+	 * The bot must have the **Manage Roles** permission in your Discord server.
+	 *
+	 * To get the role ID: Discord Settings → Advanced → Developer Mode, then
+	 * right-click the role in Server Settings → Roles and choose Copy Role ID.
+	 *
+	 * Example: BanRoleId=876543210987654321
+	 */
+	FString BanRoleId;
+
+	/**
 	 * Message posted to the main Discord channel whenever the whitelist kicks
 	 * a player who tried to join.  Leave empty to disable the notification.
 	 *
@@ -212,6 +231,19 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * Default: true (banned players are kicked on join).
 	 */
 	bool bBanSystemEnabled{ true };
+
+	/**
+	 * When true (default), Discord `!ban` commands and in-game `!ban` chat commands
+	 * are enabled.  Set to false to disable the entire ban command interface while
+	 * still enforcing bans on join (bBanSystemEnabled is unaffected).
+	 *
+	 * This is the "on/off from config" toggle for the command interface:
+	 *   bBanCommandsEnabled=True   → admins can run !ban commands (subject to BanCommandRoleId)
+	 *   bBanCommandsEnabled=False  → !ban commands are silently ignored; bans still enforced
+	 *
+	 * Default: true.
+	 */
+	bool bBanCommandsEnabled{ true };
 
 	/**
 	 * Prefix that triggers ban management commands from Discord.

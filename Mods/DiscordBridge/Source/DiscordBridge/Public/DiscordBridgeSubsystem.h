@@ -379,13 +379,14 @@ private:
 	void SendGameChatStatusMessage(const FString& Message);
 
 	/**
-	 * Assign or revoke the configured WhitelistRoleId from a Discord user via
-	 * the REST API.  No-op when WhitelistRoleId or GuildId is empty.
+	 * Assign or revoke a Discord role from a guild member via the REST API.
+	 * No-op when RoleId, GuildId, or BotToken is empty.
 	 *
 	 * @param UserId  Discord snowflake of the target member.
+	 * @param RoleId  Discord snowflake of the role to grant or revoke.
 	 * @param bGrant  true = grant the role, false = revoke it.
 	 */
-	void ModifyDiscordRole(const FString& UserId, bool bGrant);
+	void ModifyDiscordRole(const FString& UserId, const FString& RoleId, bool bGrant);
 
 	FDelegateHandle PostLoginHandle;
 

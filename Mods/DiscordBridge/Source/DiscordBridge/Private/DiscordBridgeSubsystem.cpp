@@ -704,6 +704,14 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	if (!Config.BanCommandPrefix.IsEmpty() &&
 	    Content.StartsWith(Config.BanCommandPrefix, ESearchCase::IgnoreCase))
 	{
+		if (!Config.bBanCommandsEnabled)
+		{
+			// Ban commands are disabled via config – silently ignore (ban enforcement is unaffected).
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Ignoring ban command from '%s' – BanCommandsEnabled=False."),
+			       *Username);
+			return;
+		}
 		if (!HasRequiredRole(Config.BanCommandRoleId))
 		{
 			UE_LOG(LogTemp, Log,
@@ -1115,6 +1123,11 @@ void UDiscordBridgeSubsystem::HandleIncomingChatMessage(const FString& PlayerNam
 	if (!Config.InGameBanCommandPrefix.IsEmpty() &&
 	    MessageText.StartsWith(Config.InGameBanCommandPrefix, ESearchCase::IgnoreCase))
 	{
+		if (!Config.bBanCommandsEnabled)
+		{
+			// In-game ban commands are disabled via config – suppress silently.
+			return;
+		}
 		const FString SubCommand = MessageText.Mid(Config.InGameBanCommandPrefix.Len()).TrimStartAndEnd();
 		HandleInGameBanCommand(SubCommand);
 		return; // Do not forward commands to Discord.
@@ -1502,13 +1515,13 @@ void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand,
 		}
 		else if (RoleVerb == TEXT("add"))
 		{
-			ModifyDiscordRole(TargetUserId, /*bGrant=*/true);
+			ModifyDiscordRole(TargetUserId, Config.WhitelistRoleId, /*bGrant=*/true);
 			Response = FString::Printf(
 				TEXT(":green_circle: Granting whitelist role to Discord user `%s`…"), *TargetUserId);
 		}
 		else if (RoleVerb == TEXT("remove"))
 		{
-			ModifyDiscordRole(TargetUserId, /*bGrant=*/false);
+			ModifyDiscordRole(TargetUserId, Config.WhitelistRoleId, /*bGrant=*/false);
 			Response = FString::Printf(
 				TEXT(":red_circle: Revoking whitelist role from Discord user `%s`…"), *TargetUserId);
 		}
@@ -1529,12 +1542,12 @@ void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand,
 	SendStatusMessageToDiscord(Response);
 }
 
-void UDiscordBridgeSubsystem::ModifyDiscordRole(const FString& UserId, bool bGrant)
+void UDiscordBridgeSubsystem::ModifyDiscordRole(const FString& UserId, const FString& RoleId, bool bGrant)
 {
-	if (Config.WhitelistRoleId.IsEmpty() || GuildId.IsEmpty() || Config.BotToken.IsEmpty())
+	if (RoleId.IsEmpty() || GuildId.IsEmpty() || Config.BotToken.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: ModifyDiscordRole: missing WhitelistRoleId, GuildId, or BotToken."));
+		       TEXT("DiscordBridge: ModifyDiscordRole: missing RoleId, GuildId, or BotToken."));
 		return;
 	}
 
@@ -1543,7 +1556,7 @@ void UDiscordBridgeSubsystem::ModifyDiscordRole(const FString& UserId, bool bGra
 	const FString Verb = bGrant ? TEXT("PUT") : TEXT("DELETE");
 	const FString Url = FString::Printf(
 		TEXT("%s/guilds/%s/members/%s/roles/%s"),
-		*DiscordApiBase, *GuildId, *UserId, *Config.WhitelistRoleId);
+		*DiscordApiBase, *GuildId, *UserId, *RoleId);
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
 		FHttpModule::Get().CreateRequest();
@@ -1687,10 +1700,55 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 			TEXT("**Server access control (each system is independent):**\n%s\n%s"),
 			*BanState, *WhitelistState);
 	}
+	else if (Verb == TEXT("role"))
+	{
+		// Sub-sub-command: role add <discord_user_id> / role remove <discord_user_id>
+		FString RoleVerb, TargetUserId;
+		if (!Arg.Split(TEXT(" "), &RoleVerb, &TargetUserId, ESearchCase::IgnoreCase))
+		{
+			RoleVerb     = Arg.TrimStartAndEnd();
+			TargetUserId = TEXT("");
+		}
+		RoleVerb     = RoleVerb.TrimStartAndEnd().ToLower();
+		TargetUserId = TargetUserId.TrimStartAndEnd();
+
+		if (Config.BanRoleId.IsEmpty())
+		{
+			Response = TEXT(":warning: `BanRoleId` is not configured in `DefaultDiscordBridge.ini`. "
+			                "Set it to the snowflake ID of the role you want to grant/revoke.");
+		}
+		else if (GuildId.IsEmpty())
+		{
+			Response = TEXT(":warning: Guild ID not yet available. Try again in a moment.");
+		}
+		else if (TargetUserId.IsEmpty())
+		{
+			Response = TEXT(":warning: Usage: `!ban role add <discord_user_id>` "
+			                "or `!ban role remove <discord_user_id>`");
+		}
+		else if (RoleVerb == TEXT("add"))
+		{
+			ModifyDiscordRole(TargetUserId, Config.BanRoleId, /*bGrant=*/true);
+			Response = FString::Printf(
+				TEXT(":green_circle: Granting ban role to Discord user `%s`…"), *TargetUserId);
+		}
+		else if (RoleVerb == TEXT("remove"))
+		{
+			ModifyDiscordRole(TargetUserId, Config.BanRoleId, /*bGrant=*/false);
+			Response = FString::Printf(
+				TEXT(":red_circle: Revoking ban role from Discord user `%s`…"), *TargetUserId);
+		}
+		else
+		{
+			Response = TEXT(":question: Usage: `!ban role add <discord_user_id>` "
+			                "or `!ban role remove <discord_user_id>`");
+		}
+	}
 	else
 	{
 		Response = TEXT(":question: Unknown ban command. Available: `on`, `off`, "
-		                "`add <name>`, `remove <name>`, `list`, `status`.");
+		                "`add <name>`, `remove <name>`, `list`, `status`, "
+		                "`role add <discord_id>`, `role remove <discord_id>`.");
 	}
 
 	// Send the response back to Discord on the channel where the command was issued.
