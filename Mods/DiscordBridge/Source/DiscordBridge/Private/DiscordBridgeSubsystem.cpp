@@ -650,10 +650,48 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	       TEXT("DiscordBridge: Discord message received from '%s' (channel %s): %s"),
 	       *Username, *MsgChannelId, *Content);
 
+	// Helper: returns true if the Discord member holds the given required role.
+	// When RequiredRoleId is empty the command is disabled entirely – nobody
+	// can run it until a role ID is configured.  Holding a command role does NOT
+	// grant any game-join bypass; whitelist and ban checks in OnPostLogin apply
+	// to everyone without exception.
+	auto HasRequiredRole = [&](const FString& RequiredRoleId) -> bool
+	{
+		if (RequiredRoleId.IsEmpty())
+		{
+			return false; // No role configured – command is disabled.
+		}
+		if (!MemberPtr)
+		{
+			return false;
+		}
+		const TArray<TSharedPtr<FJsonValue>>* Roles = nullptr;
+		if ((*MemberPtr)->TryGetArrayField(TEXT("roles"), Roles) && Roles)
+		{
+			for (const TSharedPtr<FJsonValue>& RoleVal : *Roles)
+			{
+				FString RoleId;
+				if (RoleVal->TryGetString(RoleId) && RoleId == RequiredRoleId)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+
 	// Check whether this message is a whitelist management command.
 	if (!Config.WhitelistCommandPrefix.IsEmpty() &&
 	    Content.StartsWith(Config.WhitelistCommandPrefix, ESearchCase::IgnoreCase))
 	{
+		if (!HasRequiredRole(Config.WhitelistCommandRoleId))
+		{
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Ignoring whitelist command from '%s' – sender lacks WhitelistCommandRoleId."),
+			       *Username);
+			SendStatusMessageToDiscord(TEXT(":no_entry: You do not have permission to use whitelist commands."));
+			return;
+		}
 		// Extract everything after the prefix as the sub-command (trimmed).
 		const FString SubCommand = Content.Mid(Config.WhitelistCommandPrefix.Len()).TrimStartAndEnd();
 		HandleWhitelistCommand(SubCommand, Username, AuthorId);
@@ -664,6 +702,14 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	if (!Config.BanCommandPrefix.IsEmpty() &&
 	    Content.StartsWith(Config.BanCommandPrefix, ESearchCase::IgnoreCase))
 	{
+		if (!HasRequiredRole(Config.BanCommandRoleId))
+		{
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Ignoring ban command from '%s' – sender lacks BanCommandRoleId."),
+			       *Username);
+			SendStatusMessageToDiscord(TEXT(":no_entry: You do not have permission to use ban commands."));
+			return;
+		}
 		// Extract everything after the prefix as the sub-command (trimmed).
 		const FString SubCommand = Content.Mid(Config.BanCommandPrefix.Len()).TrimStartAndEnd();
 		HandleBanCommand(SubCommand, Username, AuthorId);

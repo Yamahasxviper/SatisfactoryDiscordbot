@@ -93,6 +93,36 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	bool bWhitelistEnabled{ false };
 
 	/**
+	 * Snowflake ID of the Discord role whose members are allowed to run
+	 * !whitelist management commands.
+	 * Leave empty (or unset) to disable !whitelist commands entirely – no
+	 * Discord user will be able to run them until a role ID is provided.
+	 *
+	 * IMPORTANT: holding this role does NOT grant automatic access to the game
+	 * server.  Discord members with this role are still subject to the whitelist
+	 * and ban checks when they join; they must be added to the whitelist separately.
+	 *
+	 * To get the role ID: Discord Settings → Advanced → Developer Mode, then
+	 * right-click the role in Server Settings → Roles and choose Copy Role ID.
+	 */
+	FString WhitelistCommandRoleId;
+
+	/**
+	 * Snowflake ID of the Discord role whose members are allowed to run
+	 * !ban management commands.
+	 * Leave empty (or unset) to disable !ban commands entirely – no Discord
+	 * user will be able to run them until a role ID is provided.
+	 *
+	 * IMPORTANT: holding this role does NOT grant automatic access to the game
+	 * server.  Discord members with this role are still subject to the whitelist
+	 * and ban checks when they join; they must be added to the whitelist separately.
+	 *
+	 * To get the role ID: Discord Settings → Advanced → Developer Mode, then
+	 * right-click the role in Server Settings → Roles and choose Copy Role ID.
+	 */
+	FString BanCommandRoleId;
+
+	/**
 	 * Prefix that triggers whitelist management commands from Discord.
 	 * Set to an empty string to disable Discord-based whitelist management.
 	 * Default: "!whitelist"

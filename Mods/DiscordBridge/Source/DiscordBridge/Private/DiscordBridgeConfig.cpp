@@ -110,6 +110,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.PlayerCountPresenceFormat       = GetIniStringOrDefault(ConfigFile, TEXT("PlayerCountPresenceFormat"),       Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (ConfigFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType         = GetIniIntOrDefault   (ConfigFile, TEXT("PlayerCountActivityType"),         Config.PlayerCountActivityType);
+		Config.WhitelistCommandRoleId          = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistCommandRoleId"),          Config.WhitelistCommandRoleId);
+		Config.BanCommandRoleId                = GetIniStringOrDefault(ConfigFile, TEXT("BanCommandRoleId"),                Config.BanCommandRoleId);
 		Config.WhitelistCommandPrefix          = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistCommandPrefix"),          Config.WhitelistCommandPrefix);
 		Config.WhitelistRoleId                 = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistRoleId"),                 Config.WhitelistRoleId);
 		Config.WhitelistChannelId              = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistChannelId"),              Config.WhitelistChannelId);
@@ -261,6 +263,28 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT(";   3 = Watching        ->  Watching <your text here>\n")
 			TEXT(";   5 = Competing in    ->  Competing in <your text here>\n")
 			TEXT("PlayerCountActivityType=0\n")
+			TEXT("\n")
+			TEXT("; -- COMMAND PERMISSIONS -------------------------------------------------------\n")
+			TEXT("; Controls who can run management commands in the bridged Discord channel.\n")
+			TEXT(";\n")
+			TEXT("; Snowflake ID of the Discord role whose members may run !whitelist commands.\n")
+			TEXT("; Leave empty (default) to disable !whitelist commands for all Discord users.\n")
+			TEXT("; Only members who hold the specified role can run them.\n")
+			TEXT("; To get the role ID: Discord Settings -> Advanced -> Developer Mode, then\n")
+			TEXT("; right-click the role in Server Settings -> Roles and choose Copy Role ID.\n")
+			TEXT(";\n")
+			TEXT("; IMPORTANT: holding this role does NOT bypass the whitelist check when joining\n")
+			TEXT("; the game.  These members must still be added to the whitelist separately.\n")
+			TEXT("WhitelistCommandRoleId=\n")
+			TEXT(";\n")
+			TEXT("; Snowflake ID of the Discord role whose members may run !ban commands.\n")
+			TEXT("; Leave empty (default) to disable !ban commands for all Discord users.\n")
+			TEXT("; Only members who hold the specified role can run them.\n")
+			TEXT("; Same role ID format as above.\n")
+			TEXT(";\n")
+			TEXT("; IMPORTANT: holding this role does NOT bypass the ban check when joining the\n")
+			TEXT("; game.  These members are still banned if their name is on the ban list.\n")
+			TEXT("BanCommandRoleId=\n")
 			TEXT("\n")
 			TEXT("; -- WHITELIST ----------------------------------------------------------------\n")
 			TEXT("; Controls the built-in server whitelist, manageable via Discord commands.\n")
@@ -427,6 +451,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.PlayerCountPresenceFormat        = GetIniStringOrDefault(BackupFile, TEXT("PlayerCountPresenceFormat"),        Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (BackupFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType          = GetIniIntOrDefault   (BackupFile, TEXT("PlayerCountActivityType"),          Config.PlayerCountActivityType);
+		Config.WhitelistCommandRoleId           = GetIniStringOrDefault(BackupFile, TEXT("WhitelistCommandRoleId"),           Config.WhitelistCommandRoleId);
+		Config.BanCommandRoleId                 = GetIniStringOrDefault(BackupFile, TEXT("BanCommandRoleId"),                 Config.BanCommandRoleId);
 		Config.WhitelistCommandPrefix           = GetIniStringOrDefault(BackupFile, TEXT("WhitelistCommandPrefix"),           Config.WhitelistCommandPrefix);
 		Config.WhitelistRoleId                  = GetIniStringOrDefault(BackupFile, TEXT("WhitelistRoleId"),                  Config.WhitelistRoleId);
 		Config.WhitelistChannelId               = GetIniStringOrDefault(BackupFile, TEXT("WhitelistChannelId"),               Config.WhitelistChannelId);
@@ -473,6 +499,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("PlayerCountPresenceFormat=%s\n")
 			TEXT("PlayerCountUpdateIntervalSeconds=%s\n")
 			TEXT("PlayerCountActivityType=%d\n")
+			TEXT("WhitelistCommandRoleId=%s\n")
+			TEXT("BanCommandRoleId=%s\n")
 			TEXT("WhitelistEnabled=%s\n")
 			TEXT("WhitelistCommandPrefix=%s\n")
 			TEXT("WhitelistRoleId=%s\n")
@@ -499,6 +527,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.PlayerCountPresenceFormat,
 			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds),
 			Config.PlayerCountActivityType,
+			*Config.WhitelistCommandRoleId,
+			*Config.BanCommandRoleId,
 			Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"),
 			*Config.WhitelistCommandPrefix,
 			*Config.WhitelistRoleId,
