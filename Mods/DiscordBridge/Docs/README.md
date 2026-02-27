@@ -4,7 +4,7 @@ Welcome to the DiscordBridge documentation. Use the links below to jump straight
 
 | Guide | What it covers |
 |-------|---------------|
-| [Getting Started](01-GettingStarted.md) | Where the config file lives and how to create your Discord bot |
+| [Getting Started](01-GettingStarted.md) | How to install the mod, where the config file lives, and how to create your Discord bot |
 | [Connection Settings](02-ConnectionSettings.md) | `BotToken`, `ChannelId`, `ServerName` |
 | [Chat Bridge](03-ChatBridge.md) | Customise how messages look on both sides of the bridge |
 | [Ban System](04-BanSystem.md) | Discord-managed player bans and kick messages |

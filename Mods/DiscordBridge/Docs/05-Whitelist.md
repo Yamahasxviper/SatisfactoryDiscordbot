@@ -110,4 +110,28 @@ WhitelistKickReason=You are not whitelisted. DM an admin on Discord to request a
 
 ---
 
+### `InGameWhitelistCommandPrefix`
+
+The prefix that triggers whitelist management commands when typed in the **Satisfactory in-game chat**.
+This lets server admins manage the whitelist directly from inside the game without needing Discord.
+Set to an **empty string** to disable in-game whitelist commands.
+
+**Default:** `!whitelist`
+
+**Supported commands** (type these in the Satisfactory in-game chat):
+
+| Command | Effect |
+|---------|--------|
+| `!whitelist on` | Enable the whitelist |
+| `!whitelist off` | Disable the whitelist (all players can join) |
+| `!whitelist add <name>` | Add a player by in-game name |
+| `!whitelist remove <name>` | Remove a player by in-game name |
+| `!whitelist list` | List all whitelisted players |
+| `!whitelist status` | Show whether the whitelist is currently enabled or disabled |
+
+> **Note:** In-game whitelist commands support the same operations as the Discord commands,
+> except for role management (`!whitelist role add/remove`) which is Discord-only.
+
+---
+
 *For further help visit the Satisfactory Modding Discord: <https://discord.gg/xkVJ73E>*

@@ -77,4 +77,28 @@ BanKickReason=You have been banned. Contact the server admin to appeal.
 
 ---
 
+### `InGameBanCommandPrefix`
+
+The prefix that triggers ban management commands when typed in the **Satisfactory in-game chat**.
+This lets server admins manage bans directly from inside the game without needing Discord.
+Set to an **empty string** to disable in-game ban commands.
+
+**Default:** `!ban`
+
+**Supported commands** (type these in the Satisfactory in-game chat):
+
+| Command | Effect |
+|---------|--------|
+| `!ban on` | Enable the ban system |
+| `!ban off` | Disable the ban system |
+| `!ban add <name>` | Ban a player by in-game name |
+| `!ban remove <name>` | Unban a player by in-game name |
+| `!ban list` | List all banned players |
+| `!ban status` | Show whether the ban system is currently enabled or disabled |
+
+> **Note:** In-game ban commands support the same operations as the Discord commands,
+> except for role management which is Discord-only.
+
+---
+
 *For further help visit the Satisfactory Modding Discord: <https://discord.gg/xkVJ73E>*
