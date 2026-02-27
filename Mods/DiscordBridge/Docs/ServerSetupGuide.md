@@ -151,14 +151,10 @@ persist across server restarts automatically.
 
 #### `BanSystemEnabled`
 
-Sets the initial ban-system state on the **first** server start (when
-`ServerBanlist.json` does not yet exist).  After the first start the
-enabled/disabled state is saved in `ServerBanlist.json` and survives restarts
-automatically — so `!ban on` / `!ban off` changes made from Discord truly
-persist.
+Controls whether the ban system is active when the server starts.
+This setting is applied on **every** server restart — change it and restart the server to enable or disable ban enforcement.
 
-To force-reset back to this config value: delete `ServerBanlist.json` and
-restart the server.
+`!ban on` / `!ban off` Discord commands update the state for the current session but the config setting takes effect again on the next restart.
 
 **Default:** `True` (banned players are kicked on join)
 
@@ -484,10 +480,9 @@ bShowPlayerCountInPresence=False
 ### Ban commands are not recognised / banned players can still join
 
 1. Make sure `BanCommandPrefix` is set (default is `!ban`) and not empty.
-2. Run `!ban status` in the Discord channel to confirm the ban system is **enabled**. If it shows disabled, run `!ban on`.
-3. Remember that `BanSystemEnabled` in the config file is only applied on the **very first** server start (when `ServerBanlist.json` does not exist). After that, use `!ban on` / `!ban off` — the state is saved automatically in `ServerBanlist.json`.
-4. If you need to force the system back to the config-file value, stop the server, delete `<ServerRoot>/FactoryGame/Saved/ServerBanlist.json`, and restart.
-5. Players are only kicked on **join** — a ban takes effect the next time a banned player tries to connect, not while they are already in the game.
+2. Run `!ban status` in the Discord channel to confirm the ban system is **enabled**. If it shows disabled, run `!ban on` or set `BanSystemEnabled=True` in `DefaultDiscordBridge.ini` and restart.
+3. `BanSystemEnabled` in the config file is applied on **every** server restart — set it to `True` or `False` and restart to change the ban system state.
+4. Players are only kicked on **join** — a ban takes effect the next time a banned player tries to connect, not while they are already in the game.
 
 ### Log verbosity
 

@@ -70,9 +70,9 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	       Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"));
 
 	// Load the ban list AFTER the config so we can pass BanSystemEnabled as the
-	// first-run default.  When ServerBanlist.json already exists its persisted
-	// enabled state is used as-is; BanSystemEnabled only applies on the very
-	// first server start (when no JSON file exists yet).
+	// authoritative enabled state.  The ban list (players) is read from
+	// ServerBanlist.json, but the enabled/disabled state always comes from the
+	// INI config so operators can toggle it by editing the file and restarting.
 	FBanManager::Load(Config.bBanSystemEnabled);
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: BanSystem active = %s (BanSystemEnabled config = %s)"),

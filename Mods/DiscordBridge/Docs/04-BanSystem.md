@@ -22,14 +22,13 @@ server restarts automatically.
 
 ### `BanSystemEnabled`
 
-Sets the initial ban-system state on the **first** server start (when
-`ServerBanlist.json` does not yet exist). After the first start the
-enabled/disabled state is saved in `ServerBanlist.json` and survives restarts
-automatically — so `!ban on` / `!ban off` changes made from Discord truly persist.
-
-To force-reset back to this config value: delete `ServerBanlist.json` and restart the server.
+Controls whether the ban system is active when the server starts.
 
 **Default:** `True` (banned players are kicked on join)
+
+Set to `False` and restart the server to completely disable ban enforcement. Set back to `True` and restart to re-enable it. This INI value is applied on **every** server restart, so it is the authoritative on/off toggle for the ban system.
+
+> **Note:** `!ban on` / `!ban off` Discord commands update the in-memory state for the current session but do not override this config setting — the next server restart will always reset to whatever `BanSystemEnabled` is set to in the config file.
 
 ---
 
