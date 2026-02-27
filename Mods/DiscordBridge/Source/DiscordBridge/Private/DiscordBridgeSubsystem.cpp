@@ -1239,13 +1239,63 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 	const APlayerState* PS = Controller->GetPlayerState<APlayerState>();
 	const FString PlayerName = PS ? PS->GetPlayerName() : FString();
 
-	// If the player name is empty (PlayerState not yet populated), do not kick.
-	// An empty name cannot meaningfully be checked against the whitelist/ban list
-	// and an incorrect kick here would disconnect a legitimate player.
+	// If the player name is empty (PlayerState not yet populated), defer the
+	// check rather than skipping it – skipping would let every player bypass
+	// the whitelist/ban list until the server is restarted.
 	if (PlayerName.IsEmpty())
 	{
+		if (!FWhitelistManager::IsEnabled() && !FBanManager::IsEnabled())
+		{
+			// Neither enforcement system is active; safe to skip.
+			return;
+		}
+
 		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: player joined with an empty name – skipping whitelist/ban check."));
+		       TEXT("DiscordBridge: player joined with an empty name – deferring whitelist/ban check."));
+
+		TWeakObjectPtr<APlayerController>      WeakController(Controller);
+		TWeakObjectPtr<AGameModeBase>          WeakGameMode(GameMode);
+		TSharedRef<int32>                      AttemptCount = MakeShared<int32>(0);
+
+		FTSTicker::GetCoreTicker().AddTicker(
+			FTickerDelegate::CreateWeakLambda(this,
+				[this, WeakController, WeakGameMode, AttemptCount](float) -> bool
+				{
+					++(*AttemptCount);
+
+					if (!WeakController.IsValid())
+					{
+						return false; // Player disconnected; stop.
+					}
+
+					const APlayerState* DeferredPS = WeakController->GetPlayerState<APlayerState>();
+					const FString DeferredName = DeferredPS ? DeferredPS->GetPlayerName() : FString();
+
+					if (!DeferredName.IsEmpty())
+					{
+						// Name is now available; run the full whitelist/ban check.
+						OnPostLogin(WeakGameMode.Get(), WeakController.Get());
+						return false; // Stop ticking.
+					}
+
+					// After ~5 seconds (50 ticks × 0.1 s) kick as unverified to
+					// prevent an indefinite bypass if the name never populates.
+					if (*AttemptCount >= 50)
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: player name never populated after 5 s – kicking as unverified."));
+						if (WeakGameMode.IsValid() && WeakGameMode->GameSession)
+						{
+							WeakGameMode->GameSession->KickPlayer(
+								WeakController.Get(),
+								FText::FromString(TEXT("Unable to verify player identity.")));
+						}
+						return false; // Stop ticking.
+					}
+
+					return true; // Keep trying.
+				}),
+			0.1f);
 		return;
 	}
 
