@@ -16,7 +16,6 @@ public class SMLWebSocket : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"Sockets",
 			// Header stubs for APIs not present in Satisfactory's custom UE build.
 			// Required by all Alpakit C++ mods so UBT can resolve engine headers at mod compile time.
 			"DummyHeaders",
@@ -26,10 +25,24 @@ public class SMLWebSocket : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			// SSL module provides Unreal's SSL abstraction and links openssl libs
-			"SSL",
-			// OpenSSL provides raw OpenSSL headers (ssl.h, sha.h, bio.h, etc.)
-			"OpenSSL",
+			// FSocket / ISocketSubsystem are only used in private implementation files
+			// (SMLWebSocketRunnable.cpp), so Sockets is a private dependency.
+			"Sockets",
 		});
+
+		// SSL and OpenSSL are only available – and only needed – on the two
+		// dedicated-server platforms that Satisfactory supports.  Guarding the
+		// dependency prevents accidental inclusion on unsupported platforms.
+		if (Target.Platform == UnrealTargetPlatform.Win64 ||
+		    Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[]
+			{
+				// SSL module provides Unreal's SSL abstraction and links OpenSSL libs.
+				"SSL",
+				// OpenSSL provides raw OpenSSL headers (ssl.h, sha.h, bio.h, etc.)
+				"OpenSSL",
+			});
+		}
 	}
 }
