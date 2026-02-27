@@ -650,16 +650,15 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	       TEXT("DiscordBridge: Discord message received from '%s' (channel %s): %s"),
 	       *Username, *MsgChannelId, *Content);
 
-	// Determine whether the message author holds the configured AdminRoleId.
-	// When AdminRoleId is empty there is no restriction and any Discord user may
-	// run management commands.  Holding the admin role does NOT grant the sender
-	// any bypass when joining the game; whitelist and ban checks in OnPostLogin
-	// apply to everyone, including Discord admins/mods.
-	const bool bSenderIsAdmin = [&]() -> bool
+	// Helper: returns true if the Discord member holds the given required role.
+	// When RequiredRoleId is empty, the check is skipped and any user may run
+	// the command.  Holding a command role does NOT grant any game-join bypass;
+	// whitelist and ban checks in OnPostLogin apply to everyone without exception.
+	auto HasRequiredRole = [&](const FString& RequiredRoleId) -> bool
 	{
-		if (Config.AdminRoleId.IsEmpty())
+		if (RequiredRoleId.IsEmpty())
 		{
-			return true; // No restriction configured.
+			return true; // No restriction configured for this command.
 		}
 		if (!MemberPtr)
 		{
@@ -671,23 +670,23 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 			for (const TSharedPtr<FJsonValue>& RoleVal : *Roles)
 			{
 				FString RoleId;
-				if (RoleVal->TryGetString(RoleId) && RoleId == Config.AdminRoleId)
+				if (RoleVal->TryGetString(RoleId) && RoleId == RequiredRoleId)
 				{
 					return true;
 				}
 			}
 		}
 		return false;
-	}();
+	};
 
 	// Check whether this message is a whitelist management command.
 	if (!Config.WhitelistCommandPrefix.IsEmpty() &&
 	    Content.StartsWith(Config.WhitelistCommandPrefix, ESearchCase::IgnoreCase))
 	{
-		if (!bSenderIsAdmin)
+		if (!HasRequiredRole(Config.WhitelistCommandRoleId))
 		{
 			UE_LOG(LogTemp, Log,
-			       TEXT("DiscordBridge: Ignoring whitelist command from '%s' – sender lacks AdminRoleId."),
+			       TEXT("DiscordBridge: Ignoring whitelist command from '%s' – sender lacks WhitelistCommandRoleId."),
 			       *Username);
 			SendStatusMessageToDiscord(TEXT(":no_entry: You do not have permission to use whitelist commands."));
 			return;
@@ -702,10 +701,10 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	if (!Config.BanCommandPrefix.IsEmpty() &&
 	    Content.StartsWith(Config.BanCommandPrefix, ESearchCase::IgnoreCase))
 	{
-		if (!bSenderIsAdmin)
+		if (!HasRequiredRole(Config.BanCommandRoleId))
 		{
 			UE_LOG(LogTemp, Log,
-			       TEXT("DiscordBridge: Ignoring ban command from '%s' – sender lacks AdminRoleId."),
+			       TEXT("DiscordBridge: Ignoring ban command from '%s' – sender lacks BanCommandRoleId."),
 			       *Username);
 			SendStatusMessageToDiscord(TEXT(":no_entry: You do not have permission to use ban commands."));
 			return;
