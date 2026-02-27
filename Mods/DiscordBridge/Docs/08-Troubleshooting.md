@@ -26,14 +26,14 @@
 ## The bot shows "offline" in Discord even while the server is running
 
 - Discord caches presence state. Wait up to a minute or try restarting your Discord client.
-- Make sure `bShowPlayerCountInPresence=True` and `PlayerCountPresenceFormat` is
+- Make sure `ShowPlayerCountInPresence=True` and `PlayerCountPresenceFormat` is
   not empty.
 
 ---
 
 ## Messages from other bots are relayed into the game (echo loop)
 
-- Set `bIgnoreBotMessages=True` (this is the default). This drops messages from
+- Set `IgnoreBotMessages=True` (this is the default). This drops messages from
   any Discord account that has the `bot` flag set.
 
 ---

@@ -31,7 +31,7 @@ ServerOfflineMessage=
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `bIgnoreBotMessages` | bool | `True` | When `True`, messages from Discord bot accounts are silently dropped. This prevents echo loops when other bots are active in the same channel. Set to `False` only if you intentionally want bot messages relayed into the game. |
+| `IgnoreBotMessages` | bool | `True` | When `True`, messages from Discord bot accounts are silently dropped. This prevents echo loops when other bots are active in the same channel. Set to `False` only if you intentionally want bot messages relayed into the game. |
 
 ---
 

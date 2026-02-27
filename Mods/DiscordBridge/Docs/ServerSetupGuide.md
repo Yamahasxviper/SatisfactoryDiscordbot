@@ -370,7 +370,7 @@ Set to an **empty string** to disable in-game ban commands.
 
 | Setting             | Type | Default | Description |
 |---------------------|------|---------|-------------|
-| `bIgnoreBotMessages` | bool | `True` | When `True`, messages from Discord bot accounts are silently dropped. This prevents echo loops when other bots are active in the same channel. Set to `False` only if you intentionally want bot messages relayed into the game. |
+| `IgnoreBotMessages` | bool | `True` | When `True`, messages from Discord bot accounts are silently dropped. This prevents echo loops when other bots are active in the same channel. Set to `False` only if you intentionally want bot messages relayed into the game. |
 
 ---
 
@@ -404,7 +404,7 @@ bot's profile).
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `bShowPlayerCountInPresence` | bool | `True` | When `True`, the bot's Discord status is refreshed periodically to show the current player count. Set to `False` to leave the bot status blank. |
+| `ShowPlayerCountInPresence` | bool | `True` | When `True`, the bot's Discord status is refreshed periodically to show the current player count. Set to `False` to leave the bot status blank. |
 | `PlayerCountPresenceFormat` | string | *(empty)* | Text shown in the bot's Discord presence. Use `%PlayerCount%` for the live player count and `%ServerName%` for the server name. Leave empty to show nothing. |
 | `PlayerCountUpdateIntervalSeconds` | float | `60.0` | How often (in seconds) the presence is refreshed. **Minimum is 15 seconds.** Values below 15 are clamped to 15 to respect Discord's rate limits. |
 | `PlayerCountActivityType` | int | `0` | Controls the activity verb shown before the presence text in Discord. See table below. |
@@ -430,7 +430,7 @@ PlayerCountPresenceFormat=%ServerName% – %PlayerCount% online
 PlayerCountActivityType=3
 
 ; Disable presence entirely
-bShowPlayerCountInPresence=False
+ShowPlayerCountInPresence=False
 ```
 
 ---
@@ -455,12 +455,12 @@ bShowPlayerCountInPresence=False
 ### The bot shows "offline" in Discord even while the server is running
 
 - Discord caches presence state. Wait up to a minute or try restarting your Discord client.
-- Make sure `bShowPlayerCountInPresence=True` and `PlayerCountPresenceFormat` is
+- Make sure `ShowPlayerCountInPresence=True` and `PlayerCountPresenceFormat` is
   not empty.
 
 ### Messages from other bots are relayed into the game (echo loop)
 
-- Set `bIgnoreBotMessages=True` (this is the default). This drops messages from
+- Set `IgnoreBotMessages=True` (this is the default). This drops messages from
   any Discord account that has the `bot` flag set.
 
 ### The config gets reset after a mod update
