@@ -93,6 +93,20 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	bool bWhitelistEnabled{ false };
 
 	/**
+	 * Snowflake ID of the Discord role whose members are allowed to run
+	 * whitelist and ban management commands (!whitelist, !ban).
+	 * Leave empty to allow any Discord user to run management commands.
+	 *
+	 * IMPORTANT: holding this role does NOT grant automatic access to the game
+	 * server.  Discord admins/mods are still subject to the whitelist and ban
+	 * checks when they join; they must be added to the whitelist separately.
+	 *
+	 * To get the role ID: Discord Settings → Advanced → Developer Mode, then
+	 * right-click the role in Server Settings → Roles and choose Copy Role ID.
+	 */
+	FString AdminRoleId;
+
+	/**
 	 * Prefix that triggers whitelist management commands from Discord.
 	 * Set to an empty string to disable Discord-based whitelist management.
 	 * Default: "!whitelist"
