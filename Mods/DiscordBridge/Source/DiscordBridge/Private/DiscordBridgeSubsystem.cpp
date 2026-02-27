@@ -1239,13 +1239,34 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 	const APlayerState* PS = Controller->GetPlayerState<APlayerState>();
 	const FString PlayerName = PS ? PS->GetPlayerName() : FString();
 
-	// If the player name is empty (PlayerState not yet populated), do not kick.
-	// An empty name cannot meaningfully be checked against the whitelist/ban list
-	// and an incorrect kick here would disconnect a legitimate player.
+	// If the player name is empty (PlayerState not yet populated) we cannot
+	// verify identity against the whitelist or ban list.  When enforcement is
+	// active we must fail-closed (deny-by-default) to prevent non-whitelisted
+	// players from bypassing the check by connecting before their name is set.
+	// When neither system is active the player is allowed through normally.
 	if (PlayerName.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: player joined with an empty name – skipping whitelist/ban check."));
+		const bool bEnforcementActive =
+			FWhitelistManager::IsEnabled() || FBanManager::IsEnabled();
+
+		if (bEnforcementActive)
+		{
+			UE_LOG(LogTemp, Warning,
+			       TEXT("DiscordBridge: player joined with an empty name while "
+			            "enforcement is active – kicking to prevent whitelist/ban bypass."));
+			if (GameMode && GameMode->GameSession)
+			{
+				GameMode->GameSession->KickPlayer(
+					Controller,
+					FText::FromString(TEXT("Unable to verify player identity. Please try reconnecting.")));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+			       TEXT("DiscordBridge: player joined with an empty name – "
+			            "skipping whitelist/ban check (enforcement is disabled)."));
+		}
 		return;
 	}
 
