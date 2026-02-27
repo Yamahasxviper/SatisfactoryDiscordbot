@@ -95,7 +95,8 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/**
 	 * Snowflake ID of the Discord role whose members are allowed to run
 	 * !whitelist management commands.
-	 * Leave empty to allow any Discord user to run whitelist commands.
+	 * Leave empty (or unset) to disable !whitelist commands entirely – no
+	 * Discord user will be able to run them until a role ID is provided.
 	 *
 	 * IMPORTANT: holding this role does NOT grant automatic access to the game
 	 * server.  Discord members with this role are still subject to the whitelist
@@ -109,7 +110,8 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/**
 	 * Snowflake ID of the Discord role whose members are allowed to run
 	 * !ban management commands.
-	 * Leave empty to allow any Discord user to run ban commands.
+	 * Leave empty (or unset) to disable !ban commands entirely – no Discord
+	 * user will be able to run them until a role ID is provided.
 	 *
 	 * IMPORTANT: holding this role does NOT grant automatic access to the game
 	 * server.  Discord members with this role are still subject to the whitelist

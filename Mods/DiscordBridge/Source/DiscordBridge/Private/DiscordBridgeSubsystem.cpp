@@ -651,14 +651,15 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	       *Username, *MsgChannelId, *Content);
 
 	// Helper: returns true if the Discord member holds the given required role.
-	// When RequiredRoleId is empty, the check is skipped and any user may run
-	// the command.  Holding a command role does NOT grant any game-join bypass;
-	// whitelist and ban checks in OnPostLogin apply to everyone without exception.
+	// When RequiredRoleId is empty the command is disabled entirely – nobody
+	// can run it until a role ID is configured.  Holding a command role does NOT
+	// grant any game-join bypass; whitelist and ban checks in OnPostLogin apply
+	// to everyone without exception.
 	auto HasRequiredRole = [&](const FString& RequiredRoleId) -> bool
 	{
 		if (RequiredRoleId.IsEmpty())
 		{
-			return true; // No restriction configured for this command.
+			return false; // No role configured – command is disabled.
 		}
 		if (!MemberPtr)
 		{
