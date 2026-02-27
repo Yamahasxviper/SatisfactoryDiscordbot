@@ -113,6 +113,12 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * Leave empty (or unset) to disable !ban commands entirely – no Discord
 	 * user will be able to run them until a role ID is provided.
 	 *
+	 * This role is also the one granted or revoked by the
+	 * `!ban role add <user_id>` and `!ban role remove <user_id>` commands,
+	 * so holders can promote or demote other Discord members from within Discord
+	 * without needing server-level role management access.
+	 * The bot must have the **Manage Roles** permission for those commands to work.
+	 *
 	 * IMPORTANT: holding this role does NOT grant automatic access to the game
 	 * server.  Discord members with this role are still subject to the whitelist
 	 * and ban checks when they join; they must be added to the whitelist separately.
@@ -179,25 +185,6 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * Example: BanChannelId=567890123456789012
 	 */
 	FString BanChannelId;
-
-	/**
-	 * Snowflake ID of the Discord role managed by `!ban role add/remove` commands.
-	 * Leave empty to disable Discord ban-role integration.
-	 *
-	 * When set, the `!ban role add <user_id>` and `!ban role remove <user_id>` commands
-	 * grant or revoke this role from Discord members via the REST API.  A common use-case
-	 * is to set BanRoleId to the same value as BanCommandRoleId so that ban-command
-	 * administrators can promote or demote each other from within Discord without needing
-	 * server-level role management access.
-	 *
-	 * The bot must have the **Manage Roles** permission in your Discord server.
-	 *
-	 * To get the role ID: Discord Settings → Advanced → Developer Mode, then
-	 * right-click the role in Server Settings → Roles and choose Copy Role ID.
-	 *
-	 * Example: BanRoleId=876543210987654321
-	 */
-	FString BanRoleId;
 
 	/**
 	 * Message posted to the main Discord channel whenever the whitelist kicks

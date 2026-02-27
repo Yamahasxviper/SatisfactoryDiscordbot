@@ -121,7 +121,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.bBanSystemEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("BanSystemEnabled"),               Config.bBanSystemEnabled);
 		Config.BanCommandPrefix                = GetIniStringOrDefault(ConfigFile, TEXT("BanCommandPrefix"),                Config.BanCommandPrefix);
 		Config.BanChannelId                    = GetIniStringOrDefault(ConfigFile, TEXT("BanChannelId"),                    Config.BanChannelId);
-		Config.BanRoleId                       = GetIniStringOrDefault(ConfigFile, TEXT("BanRoleId"),                       Config.BanRoleId);
 		Config.bBanCommandsEnabled             = GetIniBoolOrDefault  (ConfigFile, TEXT("BanCommandsEnabled"),             Config.bBanCommandsEnabled);
 		Config.BanKickDiscordMessage           = GetIniStringOrDefault(ConfigFile, TEXT("BanKickDiscordMessage"),           Config.BanKickDiscordMessage);
 		Config.BanKickReason                   = GetIniStringOrDefault(ConfigFile, TEXT("BanKickReason"),                   Config.BanKickReason);
@@ -341,17 +340,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 						TEXT(";   - Ban-kick notifications are ALSO posted here (in addition to the main channel).\n")
 						TEXT("; Get the channel ID the same way as ChannelId above.\n")
 						TEXT("BanChannelId=\n");
-				}
-
-				if (bFileHasBan &&
-				    !ConfigFile.GetString(ConfigSection, TEXT("BanRoleId"), TmpVal))
-				{
-					AppendContent2 +=
-						TEXT("\n")
-						TEXT("; BanRoleId (added by mod update) -------------------------------------\n")
-						TEXT("; Snowflake ID of the Discord role managed by !ban role add/remove.\n")
-						TEXT("; Leave empty to disable ban role management.\n")
-						TEXT("BanRoleId=\n");
 				}
 
 				if (bFileHasBan &&
@@ -628,13 +616,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Get the channel ID the same way as ChannelId above.\n")
 			TEXT("BanChannelId=\n")
 			TEXT(";\n")
-			TEXT("; Snowflake ID of the Discord role managed by !ban role add/remove.\n")
-			TEXT("; Leave empty to disable ban role management.\n")
-			TEXT("; When set, !ban role add <user_id> grants this role to a Discord member,\n")
-			TEXT("; and !ban role remove <user_id> revokes it (bot needs Manage Roles).\n")
-			TEXT("; Example: BanRoleId=876543210987654321\n")
-			TEXT("BanRoleId=\n")
-			TEXT(";\n")
 			TEXT("; When True (default), !ban Discord and in-game commands are enabled.\n")
 			TEXT("; Set to False to disable the entire ban command interface while still\n")
 			TEXT("; enforcing bans on join (BanSystemEnabled is unaffected).\n")
@@ -741,7 +722,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.bBanSystemEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("BanSystemEnabled"),                Config.bBanSystemEnabled);
 		Config.BanCommandPrefix                 = GetIniStringOrDefault(BackupFile, TEXT("BanCommandPrefix"),                 Config.BanCommandPrefix);
 		Config.BanChannelId                     = GetIniStringOrDefault(BackupFile, TEXT("BanChannelId"),                     Config.BanChannelId);
-		Config.BanRoleId                        = GetIniStringOrDefault(BackupFile, TEXT("BanRoleId"),                        Config.BanRoleId);
 		Config.bBanCommandsEnabled              = GetIniBoolOrDefault  (BackupFile, TEXT("BanCommandsEnabled"),              Config.bBanCommandsEnabled);
 		Config.BanKickDiscordMessage            = GetIniStringOrDefault(BackupFile, TEXT("BanKickDiscordMessage"),            Config.BanKickDiscordMessage);
 		Config.BanKickReason                    = GetIniStringOrDefault(BackupFile, TEXT("BanKickReason"),                    Config.BanKickReason);
@@ -792,7 +772,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("BanSystemEnabled=%s\n")
 			TEXT("BanCommandPrefix=%s\n")
 			TEXT("BanChannelId=%s\n")
-			TEXT("BanRoleId=%s\n")
 			TEXT("BanCommandsEnabled=%s\n")
 			TEXT("BanKickDiscordMessage=%s\n")
 			TEXT("BanKickReason=%s\n")
@@ -823,7 +802,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			Config.bBanSystemEnabled ? TEXT("True") : TEXT("False"),
 			*Config.BanCommandPrefix,
 			*Config.BanChannelId,
-			*Config.BanRoleId,
 			Config.bBanCommandsEnabled ? TEXT("True") : TEXT("False"),
 			*Config.BanKickDiscordMessage,
 			*Config.BanKickReason,

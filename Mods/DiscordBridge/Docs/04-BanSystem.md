@@ -41,6 +41,8 @@ The snowflake ID of the Discord role whose members are allowed to run `!ban` man
 
 When set, **only members who hold this role** can run `!ban` commands in the bridged Discord channel. When left empty, `!ban` commands are fully disabled (deny-by-default) — no one can run them until a role ID is provided.
 
+This role is also the one granted or revoked by `!ban role add/remove <discord_id>`, so existing ban admins can promote or demote other Discord members without needing access to Discord server settings. The bot must have the **Manage Roles** permission for those commands to work.
+
 > **IMPORTANT:** Holding this role does **not** bypass the ban check when joining the game. If a role-holder's in-game name is on the ban list they will still be kicked.
 
 **How to get the role ID:**
@@ -72,8 +74,8 @@ Set to an **empty string** to disable Discord-based ban management entirely.
 | `!ban remove <name>` | Unban a player by in-game name |
 | `!ban list` | List all banned players and current enabled/disabled state |
 | `!ban status` | Show the current enabled/disabled state of **both** the ban system and the whitelist |
-| `!ban role add <discord_id>` | Grant the `BanRoleId` Discord role to a user |
-| `!ban role remove <discord_id>` | Revoke the `BanRoleId` Discord role from a user |
+| `!ban role add <discord_id>` | Grant the `BanCommandRoleId` role to a Discord user |
+| `!ban role remove <discord_id>` | Revoke the `BanCommandRoleId` role from a Discord user |
 
 ---
 
@@ -99,53 +101,6 @@ BanCommandsEnabled=False
 ---
 
 ### `BanChannelId`
-
-The snowflake ID of a **dedicated Discord channel** for ban management.
-Leave **empty** to disable the ban-only channel.
-
-**Default:** *(empty)*
-
-When set:
-- `!ban` commands issued from this channel are accepted. The sender must still hold `BanCommandRoleId`. Responses are sent back to this channel (not the main channel).
-- Ban-kick notifications are **also** posted here in addition to the main `ChannelId`, giving admins a focused audit log of all ban events.
-- Non-ban-command messages in this channel are silently ignored (the channel is admin-only and not bridged to game chat).
-
-**How to get the channel ID:**
-Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then right-click the channel and choose **Copy Channel ID**.
-
-**Example:**
-```ini
-BanChannelId=567890123456789012
-```
-
-> **Tip:** You can use `BanChannelId` together with `BanCommandRoleId` for a fully locked-down ban management workflow: create a private admin channel, add the bot to it, set `BanChannelId` to its ID and `BanCommandRoleId` to your admin role — only admins can see the channel and only they can issue ban commands from it.
-
----
-
-### `BanRoleId`
-
-The snowflake ID of the Discord role granted or revoked by `!ban role add/remove <discord_id>` commands.
-Leave **empty** to disable Discord ban-role management.
-
-**Default:** *(empty)*
-
-When set:
-- `!ban role add <discord_user_id>` grants this role to a Discord member.
-- `!ban role remove <discord_user_id>` revokes this role from a Discord member.
-- The bot must have the **Manage Roles** permission in your Discord server.
-
-**Typical setup:** set `BanRoleId` to the same snowflake as `BanCommandRoleId`.  This lets ban-command administrators promote or demote each other from within Discord, without needing direct access to Discord server settings.
-
-**How to get the role ID:**
-Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then right-click the role in Server Settings → Roles and choose **Copy Role ID**.
-
-**Example:**
-```ini
-BanCommandRoleId=987654321098765432
-BanRoleId=987654321098765432   ; same role — admins can grant each other ban access
-```
-
----
 
 The snowflake ID of a **dedicated Discord channel** for ban management.
 Leave **empty** to disable the ban-only channel.

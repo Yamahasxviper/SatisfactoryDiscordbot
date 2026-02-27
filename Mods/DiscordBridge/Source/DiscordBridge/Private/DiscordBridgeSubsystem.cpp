@@ -1712,10 +1712,10 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 		RoleVerb     = RoleVerb.TrimStartAndEnd().ToLower();
 		TargetUserId = TargetUserId.TrimStartAndEnd();
 
-		if (Config.BanRoleId.IsEmpty())
+		if (Config.BanCommandRoleId.IsEmpty())
 		{
-			Response = TEXT(":warning: `BanRoleId` is not configured in `DefaultDiscordBridge.ini`. "
-			                "Set it to the snowflake ID of the role you want to grant/revoke.");
+			Response = TEXT(":warning: `BanCommandRoleId` is not configured in `DefaultDiscordBridge.ini`. "
+			                "Set it to the snowflake ID of the ban admin role you want to grant/revoke.");
 		}
 		else if (GuildId.IsEmpty())
 		{
@@ -1728,13 +1728,13 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 		}
 		else if (RoleVerb == TEXT("add"))
 		{
-			ModifyDiscordRole(TargetUserId, Config.BanRoleId, /*bGrant=*/true);
+			ModifyDiscordRole(TargetUserId, Config.BanCommandRoleId, /*bGrant=*/true);
 			Response = FString::Printf(
 				TEXT(":green_circle: Granting ban role to Discord user `%s`…"), *TargetUserId);
 		}
 		else if (RoleVerb == TEXT("remove"))
 		{
-			ModifyDiscordRole(TargetUserId, Config.BanRoleId, /*bGrant=*/false);
+			ModifyDiscordRole(TargetUserId, Config.BanCommandRoleId, /*bGrant=*/false);
 			Response = FString::Printf(
 				TEXT(":red_circle: Revoking ban role from Discord user `%s`…"), *TargetUserId);
 		}
