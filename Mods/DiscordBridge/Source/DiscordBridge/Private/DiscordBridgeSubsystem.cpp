@@ -654,16 +654,6 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	if (!Config.WhitelistCommandPrefix.IsEmpty() &&
 	    Content.StartsWith(Config.WhitelistCommandPrefix, ESearchCase::IgnoreCase))
 	{
-		if (!HasCommandRole(MemberPtr))
-		{
-			UE_LOG(LogTemp, Log,
-			       TEXT("DiscordBridge: '%s' tried a whitelist command but lacks the required role."),
-			       *Username);
-			SendStatusMessageToDiscord(FString::Printf(
-				TEXT(":no_entry: **%s**, you do not have permission to use whitelist commands."),
-				*Username));
-			return;
-		}
 		// Extract everything after the prefix as the sub-command (trimmed).
 		const FString SubCommand = Content.Mid(Config.WhitelistCommandPrefix.Len()).TrimStartAndEnd();
 		HandleWhitelistCommand(SubCommand, Username, AuthorId);
@@ -674,16 +664,6 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	if (!Config.BanCommandPrefix.IsEmpty() &&
 	    Content.StartsWith(Config.BanCommandPrefix, ESearchCase::IgnoreCase))
 	{
-		if (!HasCommandRole(MemberPtr))
-		{
-			UE_LOG(LogTemp, Log,
-			       TEXT("DiscordBridge: '%s' tried a ban command but lacks the required role."),
-			       *Username);
-			SendStatusMessageToDiscord(FString::Printf(
-				TEXT(":no_entry: **%s**, you do not have permission to use ban commands."),
-				*Username));
-			return;
-		}
 		// Extract everything after the prefix as the sub-command (trimmed).
 		const FString SubCommand = Content.Mid(Config.BanCommandPrefix.Len()).TrimStartAndEnd();
 		HandleBanCommand(SubCommand, Username, AuthorId);
@@ -1248,11 +1228,6 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 // ─────────────────────────────────────────────────────────────────────────────
 // Whitelist and ban enforcement
 // ─────────────────────────────────────────────────────────────────────────────
-// NOTE: Game-join enforcement is purely name-based.  Discord roles — including
-// CommandRoleId (admin/mod) — have NO effect here.  A player who holds the
-// CommandRoleId in Discord is still subject to the whitelist and ban list
-// when they join the game, exactly like any other player.
-// ─────────────────────────────────────────────────────────────────────────────
 
 void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerController* Controller)
 {
@@ -1352,39 +1327,6 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 		Notice = Notice.Replace(TEXT("%PlayerName%"), *PlayerName);
 		SendStatusMessageToDiscord(Notice);
 	}
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Command role authorisation
-// ─────────────────────────────────────────────────────────────────────────────
-
-bool UDiscordBridgeSubsystem::HasCommandRole(const TSharedPtr<FJsonObject>* MemberPtr) const
-{
-	// When no CommandRoleId is configured, any Discord member may run commands.
-	if (Config.CommandRoleId.IsEmpty())
-	{
-		return true;
-	}
-
-	// No member object means we cannot verify the role → deny.
-	if (!MemberPtr || !(*MemberPtr).IsValid())
-	{
-		return false;
-	}
-
-	const TArray<TSharedPtr<FJsonValue>>* Roles = nullptr;
-	if ((*MemberPtr)->TryGetArrayField(TEXT("roles"), Roles) && Roles)
-	{
-		for (const TSharedPtr<FJsonValue>& RoleVal : *Roles)
-		{
-			FString RoleId;
-			if (RoleVal->TryGetString(RoleId) && RoleId == Config.CommandRoleId)
-			{
-				return true;
-			}
-		}
-	}
-	return false;
 }
 
 void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand,

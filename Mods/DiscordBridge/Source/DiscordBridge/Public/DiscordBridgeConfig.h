@@ -122,24 +122,6 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString WhitelistRoleId;
 
 	/**
-	 * Snowflake ID of the Discord role authorized to run management commands
-	 * (!whitelist and !ban) from the bridged Discord channel.
-	 * Leave empty to allow any Discord member to run management commands (default).
-	 *
-	 * When set, only members who hold this role (e.g. your server admin or mod role)
-	 * can execute management commands. Members without the role receive a
-	 * "permission denied" response instead.
-	 *
-	 * IMPORTANT: Holding this role does NOT exempt a player from whitelist or ban
-	 * enforcement when they join the game. Game-join enforcement is purely
-	 * name-based; Discord roles have no effect on it.
-	 *
-	 * To get a role ID: Discord Settings → Advanced → Developer Mode, then
-	 * right-click the role in Server Settings → Roles and choose Copy Role ID.
-	 */
-	FString CommandRoleId;
-
-	/**
 	 * Snowflake ID of a dedicated Discord channel for whitelisted members.
 	 * Leave empty to disable the whitelist-only channel.
 	 *
@@ -226,7 +208,8 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * Prefix that triggers whitelist management commands when typed in the
 	 * Satisfactory in-game chat.  Set to an empty string to disable in-game
 	 * whitelist commands.
-	 * Default: "!whitelist"
+	 * Default: "" (disabled – any player in-game could otherwise run these commands).
+	 * Set to "!whitelist" to re-enable if you trust all players on the server.
 	 *
 	 * Supported commands (type in the Satisfactory in-game chat):
 	 *   !whitelist on            – enable the whitelist
@@ -236,13 +219,14 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 *   !whitelist list          – list all whitelisted players
 	 *   !whitelist status        – show current enabled/disabled state
 	 */
-	FString InGameWhitelistCommandPrefix{ TEXT("!whitelist") };
+	FString InGameWhitelistCommandPrefix{ TEXT("") };
 
 	/**
 	 * Prefix that triggers ban management commands when typed in the
 	 * Satisfactory in-game chat.  Set to an empty string to disable in-game
 	 * ban commands.
-	 * Default: "!ban"
+	 * Default: "" (disabled – any player in-game could otherwise run these commands).
+	 * Set to "!ban" to re-enable if you trust all players on the server.
 	 *
 	 * Supported commands (type in the Satisfactory in-game chat):
 	 *   !ban add <name>    – ban a player by in-game name
@@ -252,7 +236,7 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 *   !ban on            – enable the ban system
 	 *   !ban off           – disable the ban system
 	 */
-	FString InGameBanCommandPrefix{ TEXT("!ban") };
+	FString InGameBanCommandPrefix{ TEXT("") };
 
 	// ── Player count presence ─────────────────────────────────────────────────
 
