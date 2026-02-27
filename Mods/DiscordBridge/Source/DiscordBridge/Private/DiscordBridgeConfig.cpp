@@ -273,6 +273,75 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					       *ModFilePath);
 				}
 			}
+
+			// Second pass: detect individual settings that were added in later updates
+			// but may be absent from configs that already have the whitelist/ban sections.
+			// Only appends the specific missing keys so no existing custom values are lost.
+			{
+				FString AppendContent2;
+
+				if (bFileHasWhitelist &&
+				    !ConfigFile.GetString(ConfigSection, TEXT("InGameWhitelistCommandPrefix"), TmpVal))
+				{
+					AppendContent2 +=
+						TEXT("\n")
+						TEXT("; InGameWhitelistCommandPrefix (added by mod update) -------------------\n")
+						TEXT("; Prefix that triggers whitelist commands when typed in the in-game chat.\n")
+						TEXT("; Set to empty to disable in-game whitelist commands.\n")
+						TEXT("InGameWhitelistCommandPrefix=!whitelist\n");
+				}
+
+				if (bFileHasBan &&
+				    !ConfigFile.GetString(ConfigSection, TEXT("BanCommandRoleId"), TmpVal))
+				{
+					AppendContent2 +=
+						TEXT("\n")
+						TEXT("; BanCommandRoleId (added by mod update) --------------------------------\n")
+						TEXT("; Snowflake ID of the Discord role whose members may run !ban commands.\n")
+						TEXT("; Leave empty (default) to disable !ban commands for all Discord users.\n")
+						TEXT("; Get the role ID the same way as WhitelistCommandRoleId above.\n")
+						TEXT(";\n")
+						TEXT("; IMPORTANT: holding this role does NOT bypass the ban check when joining.\n")
+						TEXT("; These members are still banned if their name appears on the ban list.\n")
+						TEXT("BanCommandRoleId=\n");
+				}
+
+				if (bFileHasBan &&
+				    !ConfigFile.GetString(ConfigSection, TEXT("InGameBanCommandPrefix"), TmpVal))
+				{
+					AppendContent2 +=
+						TEXT("\n")
+						TEXT("; InGameBanCommandPrefix (added by mod update) -------------------------\n")
+						TEXT("; Prefix that triggers ban commands when typed in the in-game chat.\n")
+						TEXT("; Set to empty to disable in-game ban commands.\n")
+						TEXT("InGameBanCommandPrefix=!ban\n");
+				}
+
+				if (!AppendContent2.IsEmpty())
+				{
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Config at '%s' is missing individual settings "
+					            "(older version detected). Appending missing entries."),
+					       *ModFilePath);
+
+					FString ExistingContent2;
+					FFileHelper::LoadFileToString(ExistingContent2, *ModFilePath);
+
+					if (FFileHelper::SaveStringToFile(ExistingContent2 + AppendContent2, *ModFilePath))
+					{
+						UE_LOG(LogTemp, Log,
+						       TEXT("DiscordBridge: Updated '%s' with missing settings. "
+						            "Review and configure them, then restart the server."),
+						       *ModFilePath);
+					}
+					else
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: Could not update '%s' with missing settings."),
+						       *ModFilePath);
+					}
+				}
+			}
 		}
 	}
 
