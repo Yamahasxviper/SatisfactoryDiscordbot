@@ -6,6 +6,16 @@ The built-in ban system lets you manage player bans directly from the bridged Di
 Bans are stored in `<ServerRoot>/FactoryGame/Saved/ServerBanlist.json` and persist across
 server restarts automatically.
 
+> **The ban system and the whitelist are completely independent.**
+> You can use either one, both, or neither — enabling or disabling one never affects the other.
+>
+> | Goal | Config |
+> |------|--------|
+> | Ban system only | `WhitelistEnabled=False`, `BanSystemEnabled=True` *(default)* |
+> | Whitelist only | `WhitelistEnabled=True`, `BanSystemEnabled=False` |
+> | Both | `WhitelistEnabled=True`, `BanSystemEnabled=True` |
+> | Neither | `WhitelistEnabled=False`, `BanSystemEnabled=False` |
+
 ---
 
 ## Settings
@@ -39,7 +49,7 @@ Set to an **empty string** to disable Discord-based ban management entirely.
 | `!ban add <name>` | Ban a player by in-game name |
 | `!ban remove <name>` | Unban a player by in-game name |
 | `!ban list` | List all banned players and current enabled/disabled state |
-| `!ban status` | Show whether the ban system is currently enabled or disabled |
+| `!ban status` | Show the current enabled/disabled state of **both** the ban system and the whitelist |
 
 ---
 
@@ -94,7 +104,7 @@ Set to an **empty string** to disable in-game ban commands.
 | `!ban add <name>` | Ban a player by in-game name |
 | `!ban remove <name>` | Unban a player by in-game name |
 | `!ban list` | List all banned players |
-| `!ban status` | Show whether the ban system is currently enabled or disabled |
+| `!ban status` | Show the current enabled/disabled state of **both** the ban system and the whitelist |
 
 > **Note:** In-game ban commands support the same operations as the Discord commands,
 > except for role management which is Discord-only.
