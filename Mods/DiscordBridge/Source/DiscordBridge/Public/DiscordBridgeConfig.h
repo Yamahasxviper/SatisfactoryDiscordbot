@@ -113,6 +113,12 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * Leave empty (or unset) to disable !ban commands entirely – no Discord
 	 * user will be able to run them until a role ID is provided.
 	 *
+	 * This role is also the one granted or revoked by the
+	 * `!ban role add <user_id>` and `!ban role remove <user_id>` commands,
+	 * so holders can promote or demote other Discord members from within Discord
+	 * without needing server-level role management access.
+	 * The bot must have the **Manage Roles** permission for those commands to work.
+	 *
 	 * IMPORTANT: holding this role does NOT grant automatic access to the game
 	 * server.  Discord members with this role are still subject to the whitelist
 	 * and ban checks when they join; they must be added to the whitelist separately.
@@ -164,6 +170,23 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString WhitelistChannelId;
 
 	/**
+	 * Snowflake ID of a dedicated Discord channel for ban management.
+	 * Leave empty to disable the ban-only channel.
+	 *
+	 * When set:
+	 *  • !ban commands issued from this channel are accepted (sender must still
+	 *    hold BanCommandRoleId).  Command responses are sent back to this channel.
+	 *  • Ban-kick notifications are also posted here (in addition to the main
+	 *    ChannelId), giving admins a focused audit log of bans.
+	 *
+	 * Get the channel ID the same way as ChannelId (right-click the channel in
+	 * Discord with Developer Mode enabled → Copy Channel ID).
+	 *
+	 * Example: BanChannelId=567890123456789012
+	 */
+	FString BanChannelId;
+
+	/**
 	 * Message posted to the main Discord channel whenever the whitelist kicks
 	 * a player who tried to join.  Leave empty to disable the notification.
 	 *
@@ -195,6 +218,19 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * Default: true (banned players are kicked on join).
 	 */
 	bool bBanSystemEnabled{ true };
+
+	/**
+	 * When true (default), Discord `!ban` commands and in-game `!ban` chat commands
+	 * are enabled.  Set to false to disable the entire ban command interface while
+	 * still enforcing bans on join (bBanSystemEnabled is unaffected).
+	 *
+	 * This is the "on/off from config" toggle for the command interface:
+	 *   bBanCommandsEnabled=True   → admins can run !ban commands (subject to BanCommandRoleId)
+	 *   bBanCommandsEnabled=False  → !ban commands are silently ignored; bans still enforced
+	 *
+	 * Default: true.
+	 */
+	bool bBanCommandsEnabled{ true };
 
 	/**
 	 * Prefix that triggers ban management commands from Discord.

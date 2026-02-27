@@ -59,16 +59,16 @@ void FBanManager::Load(bool bDefaultEnabled)
 	{
 		UE_LOG(LogBanManager, Warning,
 			TEXT("Ban list JSON is malformed — resetting to defaults"));
-		bEnabled = true;
+		bEnabled = bDefaultEnabled;
 		Players.Empty();
 		Save();
 		return;
 	}
 
-	if (Root->HasTypedField<EJson::Boolean>(TEXT("enabled")))
-	{
-		bEnabled = Root->GetBoolField(TEXT("enabled"));
-	}
+	// The enabled/disabled state is always taken from the INI config (bDefaultEnabled),
+	// so operators can toggle BanSystemEnabled in DefaultDiscordBridge.ini and it
+	// takes effect on the next server restart without touching ServerBanlist.json.
+	bEnabled = bDefaultEnabled;
 
 	Players.Empty();
 	if (Root->HasTypedField<EJson::Array>(TEXT("players")))

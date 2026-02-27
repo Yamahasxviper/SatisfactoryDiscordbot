@@ -8,10 +8,11 @@
  * The file is created with defaults on first use and written to disk
  * immediately on every change so bans survive server restarts.
  *
- * The enabled/disabled state is persisted in the JSON file, so runtime changes
- * via !ban on / !ban off Discord commands survive server restarts.
- * The bDefaultEnabled parameter to Load() is used only when creating the file
- * for the first time (i.e. it reflects the BanSystemEnabled INI setting).
+ * The enabled/disabled state is always driven by the INI config value passed to
+ * Load() on every startup.  Runtime `!ban on` / `!ban off` commands update the
+ * in-memory state for the current session; on the next restart the INI setting
+ * takes effect again (so it acts as the persistent, authoritative toggle).
+ * The ban list (player names) is still persisted in the JSON file across restarts.
  *
  * No additional dependency beyond Core/Json — uses UE4 Json + FFileHelper.
  *
@@ -28,10 +29,10 @@ public:
 	 * Load (or create) the ban list file from disk. Call once at startup,
 	 * after the INI config has been loaded.
 	 *
-	 * @param bDefaultEnabled  Used only when no JSON file exists yet (first run).
-	 *                         Set to the BanSystemEnabled value from the INI so
-	 *                         the operator's config choice takes effect on the
-	 *                         very first server start.
+	 * @param bDefaultEnabled  The BanSystemEnabled value from the INI config.
+	 *                         Applied on every startup — ban list players are read
+	 *                         from the JSON file, but the enabled/disabled state
+	 *                         always comes from this parameter.
 	 */
 	static void Load(bool bDefaultEnabled = true);
 

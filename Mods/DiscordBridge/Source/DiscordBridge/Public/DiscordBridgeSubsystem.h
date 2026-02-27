@@ -268,6 +268,10 @@ private:
 	/** Send a plain text message to the configured Discord channel via the REST API. */
 	void SendStatusMessageToDiscord(const FString& Message);
 
+	/** Send a plain text message to a specific Discord channel via the REST API.
+	 *  When TargetChannelId is empty, the call is a no-op. */
+	void SendMessageToChannel(const FString& TargetChannelId, const FString& Message);
+
 	/** Serialise a JSON object and send it as a text WebSocket frame. */
 	void SendGatewayPayload(const TSharedPtr<FJsonObject>& Payload);
 
@@ -359,9 +363,11 @@ private:
 	void HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername,
 	                            const FString& AuthorId);
 
-	/** Handle a ban management command received from Discord. */
+	/** Handle a ban management command received from Discord.
+	 *  @param ResponseChannelId  The channel to send the response to.
+	 *                            When empty, falls back to the main ChannelId. */
 	void HandleBanCommand(const FString& SubCommand, const FString& DiscordUsername,
-	                      const FString& AuthorId);
+	                      const FString& AuthorId, const FString& ResponseChannelId);
 
 	/** Handle a whitelist management command typed in the Satisfactory in-game chat. */
 	void HandleInGameWhitelistCommand(const FString& SubCommand);
@@ -373,13 +379,14 @@ private:
 	void SendGameChatStatusMessage(const FString& Message);
 
 	/**
-	 * Assign or revoke the configured WhitelistRoleId from a Discord user via
-	 * the REST API.  No-op when WhitelistRoleId or GuildId is empty.
+	 * Assign or revoke a Discord role from a guild member via the REST API.
+	 * No-op when RoleId, GuildId, or BotToken is empty.
 	 *
 	 * @param UserId  Discord snowflake of the target member.
+	 * @param RoleId  Discord snowflake of the role to grant or revoke.
 	 * @param bGrant  true = grant the role, false = revoke it.
 	 */
-	void ModifyDiscordRole(const FString& UserId, bool bGrant);
+	void ModifyDiscordRole(const FString& UserId, const FString& RoleId, bool bGrant);
 
 	FDelegateHandle PostLoginHandle;
 
