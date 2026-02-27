@@ -122,6 +122,24 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString WhitelistRoleId;
 
 	/**
+	 * Snowflake ID of the Discord role authorized to run management commands
+	 * (!whitelist and !ban) from the bridged Discord channel.
+	 * Leave empty to allow any Discord member to run management commands (default).
+	 *
+	 * When set, only members who hold this role (e.g. your server admin or mod role)
+	 * can execute management commands. Members without the role receive a
+	 * "permission denied" response instead.
+	 *
+	 * IMPORTANT: Holding this role does NOT exempt a player from whitelist or ban
+	 * enforcement when they join the game. Game-join enforcement is purely
+	 * name-based; Discord roles have no effect on it.
+	 *
+	 * To get a role ID: Discord Settings → Advanced → Developer Mode, then
+	 * right-click the role in Server Settings → Roles and choose Copy Role ID.
+	 */
+	FString CommandRoleId;
+
+	/**
 	 * Snowflake ID of a dedicated Discord channel for whitelisted members.
 	 * Leave empty to disable the whitelist-only channel.
 	 *

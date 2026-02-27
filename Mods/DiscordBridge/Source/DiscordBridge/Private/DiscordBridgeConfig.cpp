@@ -112,6 +112,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.PlayerCountActivityType         = GetIniIntOrDefault   (ConfigFile, TEXT("PlayerCountActivityType"),         Config.PlayerCountActivityType);
 		Config.WhitelistCommandPrefix          = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistCommandPrefix"),          Config.WhitelistCommandPrefix);
 		Config.WhitelistRoleId                 = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistRoleId"),                 Config.WhitelistRoleId);
+		Config.CommandRoleId                   = GetIniStringOrDefault(ConfigFile, TEXT("CommandRoleId"),                   Config.CommandRoleId);
 		Config.WhitelistChannelId              = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistChannelId"),              Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage     = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickDiscordMessage"),     Config.WhitelistKickDiscordMessage);
 		Config.WhitelistKickReason             = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickReason"),             Config.WhitelistKickReason);
@@ -292,6 +293,16 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; To get the role ID: Discord Settings -> Advanced -> Developer Mode,\n")
 			TEXT("; then right-click the role in Server Settings -> Roles and choose Copy Role ID.\n")
 			TEXT("WhitelistRoleId=\n")
+			TEXT(";\n")
+			TEXT("; Snowflake ID of the Discord role allowed to run !whitelist and !ban commands.\n")
+			TEXT("; Leave empty to allow ANY Discord member to run management commands (default).\n")
+			TEXT("; Set this to your server's admin or mod role ID to restrict command usage.\n")
+			TEXT("; NOTE: Holding this role does NOT exempt a player from whitelist or ban\n")
+			TEXT("; enforcement. Game-join enforcement is name-based; Discord roles have no\n")
+			TEXT("; effect on it. Admins and mods are still subject to the whitelist and ban list.\n")
+			TEXT("; To get the role ID: Discord Settings -> Advanced -> Developer Mode,\n")
+			TEXT("; then right-click the role in Server Settings -> Roles and choose Copy Role ID.\n")
+			TEXT("CommandRoleId=\n")
 			TEXT(";\n")
 			TEXT("; Snowflake ID of a dedicated Discord channel for whitelisted members.\n")
 			TEXT("; Leave empty to disable the whitelist-only channel.\n")

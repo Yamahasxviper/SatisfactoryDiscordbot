@@ -363,6 +363,19 @@ private:
 	void HandleBanCommand(const FString& SubCommand, const FString& DiscordUsername,
 	                      const FString& AuthorId);
 
+	/**
+	 * Returns true if the Discord message sender is authorised to run management
+	 * commands (!whitelist, !ban).
+	 *
+	 * When CommandRoleId is empty, everyone is authorised (open mode).
+	 * When CommandRoleId is set, the sender must hold that role.
+	 * Holding CommandRoleId does NOT exempt the player from whitelist or ban
+	 * enforcement when they join the game.
+	 *
+	 * @param MemberPtr  Pointer to the "member" JSON object from MESSAGE_CREATE.
+	 */
+	bool HasCommandRole(const TSharedPtr<FJsonObject>* MemberPtr) const;
+
 	/** Handle a whitelist management command typed in the Satisfactory in-game chat. */
 	void HandleInGameWhitelistCommand(const FString& SubCommand);
 
