@@ -33,6 +33,28 @@ To force-reset back to this config value: delete `ServerBanlist.json` and restar
 
 ---
 
+### `BanCommandRoleId`
+
+The snowflake ID of the Discord role whose members are allowed to run `!ban` management commands.
+
+**Default:** *(empty — !ban commands are disabled for all Discord users)*
+
+When set, **only members who hold this role** can run `!ban` commands in the bridged Discord channel. When left empty, `!ban` commands are fully disabled (deny-by-default) — no one can run them until a role ID is provided.
+
+> **IMPORTANT:** Holding this role does **not** bypass the ban check when joining the game. If a role-holder's in-game name is on the ban list they will still be kicked.
+
+**How to get the role ID:**
+Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then right-click the role in Server Settings → Roles and choose **Copy Role ID**.
+
+**Example:**
+```ini
+BanCommandRoleId=987654321098765432
+```
+
+The ban admin role and the whitelist admin role are **completely independent** — you can assign different roles to each, or use the same role for both.
+
+---
+
 ### `BanCommandPrefix`
 
 The prefix that triggers ban management commands when typed in the bridged Discord channel.

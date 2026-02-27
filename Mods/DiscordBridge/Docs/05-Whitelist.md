@@ -33,6 +33,28 @@ To force-reset back to this config value: delete `ServerWhitelist.json` and rest
 
 ---
 
+### `WhitelistCommandRoleId`
+
+The snowflake ID of the Discord role whose members are allowed to run `!whitelist` management commands.
+
+**Default:** *(empty — !whitelist commands are disabled for all Discord users)*
+
+When set, **only members who hold this role** can run `!whitelist` commands in the bridged Discord channel. When left empty, `!whitelist` commands are fully disabled (deny-by-default) — no one can run them until a role ID is provided.
+
+> **IMPORTANT:** Holding this role does **not** grant access to the game server. These members are still subject to the normal whitelist and ban checks when they try to join.
+
+**How to get the role ID:**
+Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then right-click the role in Server Settings → Roles and choose **Copy Role ID**.
+
+**Example:**
+```ini
+WhitelistCommandRoleId=123456789012345678
+```
+
+The whitelist admin role and the ban admin role are **completely independent** — you can assign different roles to each, or use the same role for both.
+
+---
+
 ### `WhitelistCommandPrefix`
 
 The prefix that triggers whitelist management commands when typed in the bridged Discord channel.
