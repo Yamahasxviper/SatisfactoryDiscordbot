@@ -12,7 +12,7 @@ bot's profile), which can display the live player count.
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `bShowPlayerCountInPresence` | bool | `True` | When `True`, the bot's Discord status is refreshed periodically to show the current player count. Set to `False` to leave the bot status blank. |
-| `PlayerCountPresenceFormat` | string | *(empty)* | Text shown in the bot's Discord presence. Use `%PlayerCount%` for the live player count and `%ServerName%` for the server name. Leave empty to show nothing. |
+| `PlayerCountPresenceFormat` | string | `Satisfactory with %PlayerCount% players` | Text shown in the bot's Discord presence. Use `%PlayerCount%` for the live player count and `%ServerName%` for the server name. Leave empty to show just the raw player count number. |
 | `PlayerCountUpdateIntervalSeconds` | float | `60.0` | How often (in seconds) the presence is refreshed. **Minimum is 15 seconds.** Values below 15 are clamped to 15 to respect Discord's rate limits. |
 | `PlayerCountActivityType` | int | `0` | Controls the activity verb shown before the presence text in Discord. See table below. |
 
