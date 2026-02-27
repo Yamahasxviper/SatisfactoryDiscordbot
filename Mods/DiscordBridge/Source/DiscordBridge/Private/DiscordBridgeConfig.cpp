@@ -15,6 +15,8 @@ namespace
 {
 	static const TCHAR* ConfigSection = TEXT("DiscordBridge");
 
+	// Returns the INI value when the key exists (including empty string values).
+	// Use for optional settings where an empty value intentionally disables the feature.
 	FString GetIniStringOrDefault(const FConfigFile& Cfg,
 	                              const FString& Key,
 	                              const FString& Default)
@@ -23,10 +25,23 @@ namespace
 		return Cfg.GetString(ConfigSection, *Key, Value) ? Value : Default;
 	}
 
+	// Returns the INI value only when non-empty; falls back to Default otherwise.
+	// Use for format/reason strings where leaving a setting blank means "use the default".
+	FString GetIniStringOrFallback(const FConfigFile& Cfg,
+	                               const FString& Key,
+	                               const FString& Default)
+	{
+		FString Value;
+		return (Cfg.GetString(ConfigSection, *Key, Value) && !Value.IsEmpty()) ? Value : Default;
+	}
+
 	bool GetIniBoolOrDefault(const FConfigFile& Cfg,
 	                         const FString& Key,
 	                         bool Default)
 	{
+		FString StrValue;
+		if (!Cfg.GetString(ConfigSection, *Key, StrValue) || StrValue.IsEmpty())
+			return Default;
 		bool Value = Default;
 		Cfg.GetBool(ConfigSection, *Key, Value);
 		return Value;
@@ -37,7 +52,7 @@ namespace
 	                           float Default)
 	{
 		FString Value;
-		if (Cfg.GetString(ConfigSection, *Key, Value))
+		if (Cfg.GetString(ConfigSection, *Key, Value) && !Value.IsEmpty())
 		{
 			return FCString::Atof(*Value);
 		}
@@ -49,7 +64,7 @@ namespace
 	                         int32 Default)
 	{
 		FString Value;
-		if (Cfg.GetString(ConfigSection, *Key, Value))
+		if (Cfg.GetString(ConfigSection, *Key, Value) && !Value.IsEmpty())
 		{
 			return FCString::Atoi(*Value);
 		}
@@ -100,16 +115,16 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.BotToken             = GetIniStringOrDefault(ConfigFile, TEXT("BotToken"),             TEXT(""));
 		Config.ChannelId            = GetIniStringOrDefault(ConfigFile, TEXT("ChannelId"),            TEXT(""));
 		Config.ServerName           = GetIniStringOrDefault(ConfigFile, TEXT("ServerName"),           Config.ServerName);
-		Config.GameToDiscordFormat  = GetIniStringOrDefault(ConfigFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
-		Config.DiscordToGameFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
-		Config.DiscordSenderFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
+		Config.GameToDiscordFormat  = GetIniStringOrFallback(ConfigFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
+		Config.DiscordToGameFormat  = GetIniStringOrFallback(ConfigFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
+		Config.DiscordSenderFormat  = GetIniStringOrFallback(ConfigFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (ConfigFile, TEXT("IgnoreBotMessages"),
 		                              GetIniBoolOrDefault  (ConfigFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages));
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(ConfigFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
 		Config.bShowPlayerCountInPresence      = GetIniBoolOrDefault  (ConfigFile, TEXT("ShowPlayerCountInPresence"),
 		                                         GetIniBoolOrDefault  (ConfigFile, TEXT("bShowPlayerCountInPresence"),      Config.bShowPlayerCountInPresence));
-		Config.PlayerCountPresenceFormat       = GetIniStringOrDefault(ConfigFile, TEXT("PlayerCountPresenceFormat"),       Config.PlayerCountPresenceFormat);
+		Config.PlayerCountPresenceFormat       = GetIniStringOrFallback(ConfigFile, TEXT("PlayerCountPresenceFormat"),       Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (ConfigFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType         = GetIniIntOrDefault   (ConfigFile, TEXT("PlayerCountActivityType"),         Config.PlayerCountActivityType);
 		Config.WhitelistCommandRoleId          = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistCommandRoleId"),          Config.WhitelistCommandRoleId);
@@ -118,14 +133,14 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistRoleId                 = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistRoleId"),                 Config.WhitelistRoleId);
 		Config.WhitelistChannelId              = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistChannelId"),              Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage     = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickDiscordMessage"),     Config.WhitelistKickDiscordMessage);
-		Config.WhitelistKickReason             = GetIniStringOrDefault(ConfigFile, TEXT("WhitelistKickReason"),             Config.WhitelistKickReason);
+		Config.WhitelistKickReason             = GetIniStringOrFallback(ConfigFile, TEXT("WhitelistKickReason"),             Config.WhitelistKickReason);
 		Config.bWhitelistEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("WhitelistEnabled"),               Config.bWhitelistEnabled);
 		Config.bBanSystemEnabled               = GetIniBoolOrDefault  (ConfigFile, TEXT("BanSystemEnabled"),               Config.bBanSystemEnabled);
 		Config.BanCommandPrefix                = GetIniStringOrDefault(ConfigFile, TEXT("BanCommandPrefix"),                Config.BanCommandPrefix);
 		Config.BanChannelId                    = GetIniStringOrDefault(ConfigFile, TEXT("BanChannelId"),                    Config.BanChannelId);
 		Config.bBanCommandsEnabled             = GetIniBoolOrDefault  (ConfigFile, TEXT("BanCommandsEnabled"),             Config.bBanCommandsEnabled);
 		Config.BanKickDiscordMessage           = GetIniStringOrDefault(ConfigFile, TEXT("BanKickDiscordMessage"),           Config.BanKickDiscordMessage);
-		Config.BanKickReason                   = GetIniStringOrDefault(ConfigFile, TEXT("BanKickReason"),                   Config.BanKickReason);
+		Config.BanKickReason                   = GetIniStringOrFallback(ConfigFile, TEXT("BanKickReason"),                   Config.BanKickReason);
 		Config.InGameWhitelistCommandPrefix    = GetIniStringOrDefault(ConfigFile, TEXT("InGameWhitelistCommandPrefix"),    Config.InGameWhitelistCommandPrefix);
 		Config.InGameBanCommandPrefix          = GetIniStringOrDefault(ConfigFile, TEXT("InGameBanCommandPrefix"),          Config.InGameBanCommandPrefix);
 
@@ -415,15 +430,19 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("\n")
 			TEXT("; -- CHAT CUSTOMISATION -------------------------------------------------------\n")
 			TEXT("; Format for game -> Discord. Placeholders: %ServerName%, %PlayerName%, %Message%\n")
-			TEXT("GameToDiscordFormat=**%PlayerName%**: %Message%\n")
+			TEXT("; Default: **%PlayerName%**: %Message%\n")
+			TEXT("GameToDiscordFormat=\n")
 			TEXT("; Format for Discord -> game (message body). Placeholders: %Username%, %Message%\n")
-			TEXT("DiscordToGameFormat=%Message%\n")
+			TEXT("; Default: %Message%\n")
+			TEXT("DiscordToGameFormat=\n")
 			TEXT("; Format for Discord -> game (sender name column). Placeholders: %Username%\n")
-			TEXT("DiscordSenderFormat=[Discord] %Username%\n")
+			TEXT("; Default: [Discord] %Username%\n")
+			TEXT("DiscordSenderFormat=\n")
 			TEXT("\n")
 			TEXT("; -- BEHAVIOUR ----------------------------------------------------------------\n")
 			TEXT("; When True, messages from bot accounts are ignored (prevents echo loops).\n")
-			TEXT("IgnoreBotMessages=True\n")
+			TEXT("; Default: True\n")
+			TEXT("IgnoreBotMessages=\n")
 			TEXT("\n")
 			TEXT("; -- SERVER STATUS MESSAGES ---------------------------------------------------\n")
 			TEXT("; Message posted to Discord when the server starts. Leave empty to disable.\n")
@@ -433,13 +452,15 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("\n")
 			TEXT("; -- PLAYER COUNT PRESENCE ----------------------------------------------------\n")
 			TEXT("; When True, the bot's Discord status shows the current player count.\n")
-			TEXT("ShowPlayerCountInPresence=True\n")
+			TEXT("; Default: True\n")
+			TEXT("ShowPlayerCountInPresence=\n")
 			TEXT("; Text shown in the bot's Discord presence. Placeholders: %PlayerCount%, %ServerName%\n")
-			TEXT("PlayerCountPresenceFormat=Satisfactory with %PlayerCount% players\n")
+			TEXT("; Default: Satisfactory with %PlayerCount% players\n")
+			TEXT("PlayerCountPresenceFormat=\n")
 			TEXT("; How often (in seconds) to refresh the player count. Minimum 15. Default 60.\n")
-			TEXT("PlayerCountUpdateIntervalSeconds=60.0\n")
-			TEXT("; Activity type: 0=Playing, 2=Listening to, 3=Watching, 5=Competing in\n")
-			TEXT("PlayerCountActivityType=0\n")
+			TEXT("PlayerCountUpdateIntervalSeconds=\n")
+			TEXT("; Activity type: 0=Playing, 2=Listening to, 3=Watching, 5=Competing in. Default 0.\n")
+			TEXT("PlayerCountActivityType=\n")
 			TEXT("\n")
 			TEXT("; -- WHITELIST ----------------------------------------------------------------\n")
 			TEXT("; Controls the built-in server whitelist, manageable via Discord commands.\n")
@@ -449,7 +470,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT(";   Both:            WhitelistEnabled=True,  BanSystemEnabled=True\n")
 			TEXT(";   Neither:         WhitelistEnabled=False, BanSystemEnabled=False\n")
 			TEXT("; Initial whitelist state. After first start, state is saved in ServerWhitelist.json.\n")
-			TEXT("WhitelistEnabled=False\n")
+			TEXT("; Default: False\n")
+			TEXT("WhitelistEnabled=\n")
 			TEXT("; Snowflake ID of the Discord role allowed to run !whitelist commands. Leave empty to disable.\n")
 			TEXT("WhitelistCommandRoleId=\n")
 			TEXT("; Prefix for whitelist commands in Discord. Set empty to disable.\n")
@@ -461,14 +483,16 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Message posted to Discord when a non-whitelisted player is kicked. Placeholder: %PlayerName%\n")
 			TEXT("WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n")
 			TEXT("; Reason shown in-game to a kicked non-whitelisted player.\n")
-			TEXT("WhitelistKickReason=You are not on this server's whitelist. Contact the server admin to be added.\n")
+			TEXT("; Default: You are not on this server's whitelist. Contact the server admin to be added.\n")
+			TEXT("WhitelistKickReason=\n")
 			TEXT("\n")
 			TEXT("; -- BAN SYSTEM ---------------------------------------------------------------\n")
 			TEXT("; Controls the built-in player ban system, manageable via Discord commands.\n")
 			TEXT("; Bans are stored in <ServerRoot>/FactoryGame/Saved/ServerBanlist.json.\n")
 			TEXT("; Ban system and whitelist are INDEPENDENT (see WHITELIST section above).\n")
 			TEXT("; Whether the ban system is active on startup. Applied on every server restart.\n")
-			TEXT("BanSystemEnabled=True\n")
+			TEXT("; Default: True\n")
+			TEXT("BanSystemEnabled=\n")
 			TEXT("; Snowflake ID of the Discord role allowed to run !ban commands. Leave empty to disable.\n")
 			TEXT("BanCommandRoleId=\n")
 			TEXT("; Prefix for ban commands in Discord. Set empty to disable.\n")
@@ -476,11 +500,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Snowflake ID of a dedicated Discord channel for ban management. Leave empty to disable.\n")
 			TEXT("BanChannelId=\n")
 			TEXT("; When True (default), !ban commands are enabled. When False, commands are disabled but bans are still enforced.\n")
-			TEXT("BanCommandsEnabled=True\n")
+			TEXT("; Default: True\n")
+			TEXT("BanCommandsEnabled=\n")
 			TEXT("; Message posted to Discord when a banned player is kicked. Placeholder: %PlayerName%\n")
 			TEXT("BanKickDiscordMessage=:hammer: **%PlayerName%** is banned from this server and was kicked.\n")
 			TEXT("; Reason shown in-game to a kicked banned player.\n")
-			TEXT("BanKickReason=You are banned from this server.\n")
+			TEXT("; Default: You are banned from this server.\n")
+			TEXT("BanKickReason=\n")
 			TEXT("\n")
 			TEXT("; -- IN-GAME COMMANDS ---------------------------------------------------------\n")
 			TEXT("; Prefix for whitelist commands in in-game chat. Set empty to disable.\n")
@@ -530,16 +556,16 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		// message formats and status messages also survive a mod update that
 		// resets the primary config to its shipped defaults.
 		Config.ServerName           = GetIniStringOrDefault(BackupFile, TEXT("ServerName"),           Config.ServerName);
-		Config.GameToDiscordFormat  = GetIniStringOrDefault(BackupFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
-		Config.DiscordToGameFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
-		Config.DiscordSenderFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
+		Config.GameToDiscordFormat  = GetIniStringOrFallback(BackupFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
+		Config.DiscordToGameFormat  = GetIniStringOrFallback(BackupFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
+		Config.DiscordSenderFormat  = GetIniStringOrFallback(BackupFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (BackupFile, TEXT("IgnoreBotMessages"),
 	                              GetIniBoolOrDefault  (BackupFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages));
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(BackupFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(BackupFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
 		Config.bShowPlayerCountInPresence       = GetIniBoolOrDefault  (BackupFile, TEXT("ShowPlayerCountInPresence"),
 	                                          GetIniBoolOrDefault  (BackupFile, TEXT("bShowPlayerCountInPresence"),       Config.bShowPlayerCountInPresence));
-		Config.PlayerCountPresenceFormat        = GetIniStringOrDefault(BackupFile, TEXT("PlayerCountPresenceFormat"),        Config.PlayerCountPresenceFormat);
+		Config.PlayerCountPresenceFormat        = GetIniStringOrFallback(BackupFile, TEXT("PlayerCountPresenceFormat"),        Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (BackupFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType          = GetIniIntOrDefault   (BackupFile, TEXT("PlayerCountActivityType"),          Config.PlayerCountActivityType);
 		Config.WhitelistCommandRoleId           = GetIniStringOrDefault(BackupFile, TEXT("WhitelistCommandRoleId"),           Config.WhitelistCommandRoleId);
@@ -548,14 +574,14 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.WhitelistRoleId                  = GetIniStringOrDefault(BackupFile, TEXT("WhitelistRoleId"),                  Config.WhitelistRoleId);
 		Config.WhitelistChannelId               = GetIniStringOrDefault(BackupFile, TEXT("WhitelistChannelId"),               Config.WhitelistChannelId);
 		Config.WhitelistKickDiscordMessage      = GetIniStringOrDefault(BackupFile, TEXT("WhitelistKickDiscordMessage"),      Config.WhitelistKickDiscordMessage);
-		Config.WhitelistKickReason              = GetIniStringOrDefault(BackupFile, TEXT("WhitelistKickReason"),              Config.WhitelistKickReason);
+		Config.WhitelistKickReason              = GetIniStringOrFallback(BackupFile, TEXT("WhitelistKickReason"),              Config.WhitelistKickReason);
 		Config.bWhitelistEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("WhitelistEnabled"),                Config.bWhitelistEnabled);
 		Config.bBanSystemEnabled                = GetIniBoolOrDefault  (BackupFile, TEXT("BanSystemEnabled"),                Config.bBanSystemEnabled);
 		Config.BanCommandPrefix                 = GetIniStringOrDefault(BackupFile, TEXT("BanCommandPrefix"),                 Config.BanCommandPrefix);
 		Config.BanChannelId                     = GetIniStringOrDefault(BackupFile, TEXT("BanChannelId"),                     Config.BanChannelId);
 		Config.bBanCommandsEnabled              = GetIniBoolOrDefault  (BackupFile, TEXT("BanCommandsEnabled"),              Config.bBanCommandsEnabled);
 		Config.BanKickDiscordMessage            = GetIniStringOrDefault(BackupFile, TEXT("BanKickDiscordMessage"),            Config.BanKickDiscordMessage);
-		Config.BanKickReason                    = GetIniStringOrDefault(BackupFile, TEXT("BanKickReason"),                    Config.BanKickReason);
+		Config.BanKickReason                    = GetIniStringOrFallback(BackupFile, TEXT("BanKickReason"),                    Config.BanKickReason);
 		Config.InGameWhitelistCommandPrefix     = GetIniStringOrDefault(BackupFile, TEXT("InGameWhitelistCommandPrefix"),     Config.InGameWhitelistCommandPrefix);
 		Config.InGameBanCommandPrefix           = GetIniStringOrDefault(BackupFile, TEXT("InGameBanCommandPrefix"),           Config.InGameBanCommandPrefix);
 

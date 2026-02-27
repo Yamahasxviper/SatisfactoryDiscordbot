@@ -311,7 +311,7 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 *  Type whatever you like.  Use %PlayerCount% to insert the live player count
 	 *  and %ServerName% to insert the configured server name.
 	 *  Example: "My Server with %PlayerCount% players" */
-	FString PlayerCountPresenceFormat{ TEXT("%PlayerCount% players online") };
+	FString PlayerCountPresenceFormat{ TEXT("Satisfactory with %PlayerCount% players") };
 
 	/** How often (in seconds) to refresh the player count shown in the bot's presence.
 	 *  Must be at least 15 seconds; the default is 60 seconds. */
