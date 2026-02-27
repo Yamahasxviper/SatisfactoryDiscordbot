@@ -1376,12 +1376,20 @@ void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand,
 	if (Verb == TEXT("on"))
 	{
 		FWhitelistManager::SetEnabled(true);
-		Response = TEXT(":white_check_mark: Whitelist **enabled**. Only whitelisted players can join.");
+		Response = FString::Printf(
+			TEXT(":white_check_mark: Whitelist **enabled**. Only whitelisted players can join.\n"
+			     ":information_source: Ban system is **%s** (independent — use `%s on/off` to toggle it)."),
+			FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"),
+			*Config.BanCommandPrefix);
 	}
 	else if (Verb == TEXT("off"))
 	{
 		FWhitelistManager::SetEnabled(false);
-		Response = TEXT(":no_entry_sign: Whitelist **disabled**. All players can join freely.");
+		Response = FString::Printf(
+			TEXT(":no_entry_sign: Whitelist **disabled**. All players can join freely.\n"
+			     ":information_source: Ban system is **%s** (independent — use `%s on/off` to toggle it)."),
+			FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"),
+			*Config.BanCommandPrefix);
 	}
 	else if (Verb == TEXT("add"))
 	{
@@ -1430,9 +1438,15 @@ void UDiscordBridgeSubsystem::HandleWhitelistCommand(const FString& SubCommand,
 	}
 	else if (Verb == TEXT("status"))
 	{
-		Response = FWhitelistManager::IsEnabled()
-			? TEXT(":white_check_mark: Whitelist is currently **ENABLED**.")
-			: TEXT(":no_entry_sign: Whitelist is currently **disabled**.");
+		const FString WhitelistState = FWhitelistManager::IsEnabled()
+			? TEXT(":white_check_mark: Whitelist: **ENABLED**")
+			: TEXT(":no_entry_sign: Whitelist: **disabled**");
+		const FString BanState = FBanManager::IsEnabled()
+			? TEXT(":hammer: Ban system: **ENABLED**")
+			: TEXT(":unlock: Ban system: **disabled**");
+		Response = FString::Printf(
+			TEXT("**Server access control (each system is independent):**\n%s\n%s"),
+			*WhitelistState, *BanState);
 	}
 	else if (Verb == TEXT("role"))
 	{
@@ -1574,12 +1588,20 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 	if (Verb == TEXT("on"))
 	{
 		FBanManager::SetEnabled(true);
-		Response = TEXT(":hammer: Ban system **enabled**. Banned players will be kicked on join.");
+		Response = FString::Printf(
+			TEXT(":hammer: Ban system **enabled**. Banned players will be kicked on join.\n"
+			     ":information_source: Whitelist is **%s** (independent — use `%s on/off` to toggle it)."),
+			FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"),
+			*Config.WhitelistCommandPrefix);
 	}
 	else if (Verb == TEXT("off"))
 	{
 		FBanManager::SetEnabled(false);
-		Response = TEXT(":unlock: Ban system **disabled**. Banned players can join freely.");
+		Response = FString::Printf(
+			TEXT(":unlock: Ban system **disabled**. Banned players can join freely.\n"
+			     ":information_source: Whitelist is **%s** (independent — use `%s on/off` to toggle it)."),
+			FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"),
+			*Config.WhitelistCommandPrefix);
 	}
 	else if (Verb == TEXT("add"))
 	{
@@ -1628,9 +1650,15 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 	}
 	else if (Verb == TEXT("status"))
 	{
-		Response = FBanManager::IsEnabled()
-			? TEXT(":hammer: Ban system is currently **ENABLED**.")
-			: TEXT(":unlock: Ban system is currently **disabled**.");
+		const FString BanState = FBanManager::IsEnabled()
+			? TEXT(":hammer: Ban system: **ENABLED**")
+			: TEXT(":unlock: Ban system: **disabled**");
+		const FString WhitelistState = FWhitelistManager::IsEnabled()
+			? TEXT(":white_check_mark: Whitelist: **ENABLED**")
+			: TEXT(":no_entry_sign: Whitelist: **disabled**");
+		Response = FString::Printf(
+			TEXT("**Server access control (each system is independent):**\n%s\n%s"),
+			*BanState, *WhitelistState);
 	}
 	else
 	{
@@ -1688,12 +1716,18 @@ void UDiscordBridgeSubsystem::HandleInGameWhitelistCommand(const FString& SubCom
 	if (Verb == TEXT("on"))
 	{
 		FWhitelistManager::SetEnabled(true);
-		Response = TEXT("Whitelist ENABLED. Only whitelisted players can join.");
+		Response = FString::Printf(
+			TEXT("Whitelist ENABLED. Only whitelisted players can join. "
+			     "(Ban system is %s — independent.)"),
+			FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"));
 	}
 	else if (Verb == TEXT("off"))
 	{
 		FWhitelistManager::SetEnabled(false);
-		Response = TEXT("Whitelist DISABLED. All players can join freely.");
+		Response = FString::Printf(
+			TEXT("Whitelist DISABLED. All players can join freely. "
+			     "(Ban system is %s — independent.)"),
+			FBanManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"));
 	}
 	else if (Verb == TEXT("add"))
 	{
@@ -1742,9 +1776,13 @@ void UDiscordBridgeSubsystem::HandleInGameWhitelistCommand(const FString& SubCom
 	}
 	else if (Verb == TEXT("status"))
 	{
-		Response = FWhitelistManager::IsEnabled()
-			? TEXT("Whitelist is currently ENABLED.")
-			: TEXT("Whitelist is currently disabled.");
+		const FString WhitelistState = FWhitelistManager::IsEnabled()
+			? TEXT("ENABLED") : TEXT("disabled");
+		const FString BanState = FBanManager::IsEnabled()
+			? TEXT("ENABLED") : TEXT("disabled");
+		Response = FString::Printf(
+			TEXT("Whitelist: %s | Ban system: %s  (each system is independent)"),
+			*WhitelistState, *BanState);
 	}
 	else
 	{
@@ -1774,12 +1812,18 @@ void UDiscordBridgeSubsystem::HandleInGameBanCommand(const FString& SubCommand)
 	if (Verb == TEXT("on"))
 	{
 		FBanManager::SetEnabled(true);
-		Response = TEXT("Ban system ENABLED. Banned players will be kicked on join.");
+		Response = FString::Printf(
+			TEXT("Ban system ENABLED. Banned players will be kicked on join. "
+			     "(Whitelist is %s — independent.)"),
+			FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"));
 	}
 	else if (Verb == TEXT("off"))
 	{
 		FBanManager::SetEnabled(false);
-		Response = TEXT("Ban system DISABLED. Banned players can join freely.");
+		Response = FString::Printf(
+			TEXT("Ban system DISABLED. Banned players can join freely. "
+			     "(Whitelist is %s — independent.)"),
+			FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"));
 	}
 	else if (Verb == TEXT("add"))
 	{
@@ -1828,9 +1872,13 @@ void UDiscordBridgeSubsystem::HandleInGameBanCommand(const FString& SubCommand)
 	}
 	else if (Verb == TEXT("status"))
 	{
-		Response = FBanManager::IsEnabled()
-			? TEXT("Ban system is currently ENABLED.")
-			: TEXT("Ban system is currently disabled.");
+		const FString BanState = FBanManager::IsEnabled()
+			? TEXT("ENABLED") : TEXT("disabled");
+		const FString WhitelistState = FWhitelistManager::IsEnabled()
+			? TEXT("ENABLED") : TEXT("disabled");
+		Response = FString::Printf(
+			TEXT("Ban system: %s | Whitelist: %s  (each system is independent)"),
+			*BanState, *WhitelistState);
 	}
 	else
 	{
