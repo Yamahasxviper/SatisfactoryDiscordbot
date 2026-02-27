@@ -550,8 +550,10 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 	const bool bIsMainChannel      = (MsgChannelId == Config.ChannelId);
 	const bool bIsWhitelistChannel = (!Config.WhitelistChannelId.IsEmpty() &&
 	                                  MsgChannelId == Config.WhitelistChannelId);
+	const bool bIsBanChannel       = (!Config.BanChannelId.IsEmpty() &&
+	                                  MsgChannelId == Config.BanChannelId);
 
-	if (!bIsMainChannel && !bIsWhitelistChannel)
+	if (!bIsMainChannel && !bIsWhitelistChannel && !bIsBanChannel)
 	{
 		return;
 	}
@@ -707,13 +709,25 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 			UE_LOG(LogTemp, Log,
 			       TEXT("DiscordBridge: Ignoring ban command from '%s' – sender lacks BanCommandRoleId."),
 			       *Username);
-			SendStatusMessageToDiscord(TEXT(":no_entry: You do not have permission to use ban commands."));
+			// Reply in the channel where the command was typed.
+			const FString ReplyChannel = bIsBanChannel ? Config.BanChannelId : Config.ChannelId;
+			SendMessageToChannel(ReplyChannel,
+			                     TEXT(":no_entry: You do not have permission to use ban commands."));
 			return;
 		}
 		// Extract everything after the prefix as the sub-command (trimmed).
 		const FString SubCommand = Content.Mid(Config.BanCommandPrefix.Len()).TrimStartAndEnd();
-		HandleBanCommand(SubCommand, Username, AuthorId);
+		// Route the response back to the channel where the command was issued.
+		const FString ResponseChannel = bIsBanChannel ? Config.BanChannelId : Config.ChannelId;
+		HandleBanCommand(SubCommand, Username, AuthorId, ResponseChannel);
 		return; // Do not relay ban commands to in-game chat.
+	}
+
+	// Messages from the dedicated ban channel that are not ban commands are
+	// silently ignored – the ban channel is admin-only and not bridged to game chat.
+	if (bIsBanChannel)
+	{
+		return;
 	}
 
 	OnDiscordMessageReceived.Broadcast(Username, Content);
@@ -843,7 +857,13 @@ void UDiscordBridgeSubsystem::SendUpdatePresence(const FString& Status)
 
 void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 {
-	if (Config.BotToken.IsEmpty() || Config.ChannelId.IsEmpty())
+	SendMessageToChannel(Config.ChannelId, Message);
+}
+
+void UDiscordBridgeSubsystem::SendMessageToChannel(const FString& TargetChannelId,
+                                                    const FString& Message)
+{
+	if (Config.BotToken.IsEmpty() || TargetChannelId.IsEmpty())
 	{
 		return;
 	}
@@ -856,7 +876,7 @@ void UDiscordBridgeSubsystem::SendStatusMessageToDiscord(const FString& Message)
 	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
 
 	const FString Url = FString::Printf(
-		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *Config.ChannelId);
+		TEXT("%s/channels/%s/messages"), *DiscordApiBase, *TargetChannelId);
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
 		FHttpModule::Get().CreateRequest();
@@ -1317,6 +1337,12 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 			FString Notice = Config.BanKickDiscordMessage;
 			Notice = Notice.Replace(TEXT("%PlayerName%"), *PlayerName);
 			SendStatusMessageToDiscord(Notice);
+			// Also notify the dedicated ban channel (if configured) so admins
+			// have a focused audit log of all ban-related events.
+			if (!Config.BanChannelId.IsEmpty() && Config.BanChannelId != Config.ChannelId)
+			{
+				SendMessageToChannel(Config.BanChannelId, Notice);
+			}
 		}
 		return;
 	}
@@ -1568,7 +1594,8 @@ void UDiscordBridgeSubsystem::ModifyDiscordRole(const FString& UserId, bool bGra
 
 void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
                                                 const FString& DiscordUsername,
-                                                const FString& AuthorId)
+                                                const FString& AuthorId,
+                                                const FString& ResponseChannelId)
 {
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: Ban command from '%s': '%s'"), *DiscordUsername, *SubCommand);
@@ -1666,8 +1693,10 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 		                "`add <name>`, `remove <name>`, `list`, `status`.");
 	}
 
-	// Send the response back to Discord.
-	SendStatusMessageToDiscord(Response);
+	// Send the response back to Discord on the channel where the command was issued.
+	// If no explicit response channel was provided, fall back to the main channel.
+	const FString EffectiveChannel = ResponseChannelId.IsEmpty() ? Config.ChannelId : ResponseChannelId;
+	SendMessageToChannel(EffectiveChannel, Response);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

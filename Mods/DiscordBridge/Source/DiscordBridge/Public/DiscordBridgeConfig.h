@@ -164,6 +164,23 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	FString WhitelistChannelId;
 
 	/**
+	 * Snowflake ID of a dedicated Discord channel for ban management.
+	 * Leave empty to disable the ban-only channel.
+	 *
+	 * When set:
+	 *  • !ban commands issued from this channel are accepted (sender must still
+	 *    hold BanCommandRoleId).  Command responses are sent back to this channel.
+	 *  • Ban-kick notifications are also posted here (in addition to the main
+	 *    ChannelId), giving admins a focused audit log of bans.
+	 *
+	 * Get the channel ID the same way as ChannelId (right-click the channel in
+	 * Discord with Developer Mode enabled → Copy Channel ID).
+	 *
+	 * Example: BanChannelId=567890123456789012
+	 */
+	FString BanChannelId;
+
+	/**
 	 * Message posted to the main Discord channel whenever the whitelist kicks
 	 * a player who tried to join.  Leave empty to disable the notification.
 	 *

@@ -75,6 +75,30 @@ Set to an **empty string** to disable Discord-based ban management entirely.
 
 ---
 
+### `BanChannelId`
+
+The snowflake ID of a **dedicated Discord channel** for ban management.
+Leave **empty** to disable the ban-only channel.
+
+**Default:** *(empty)*
+
+When set:
+- `!ban` commands issued from this channel are accepted. The sender must still hold `BanCommandRoleId`. Responses are sent back to this channel (not the main channel).
+- Ban-kick notifications are **also** posted here in addition to the main `ChannelId`, giving admins a focused audit log of all ban events.
+- Non-ban-command messages in this channel are silently ignored (the channel is admin-only and not bridged to game chat).
+
+**How to get the channel ID:**
+Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then right-click the channel and choose **Copy Channel ID**.
+
+**Example:**
+```ini
+BanChannelId=567890123456789012
+```
+
+> **Tip:** You can use `BanChannelId` together with `BanCommandRoleId` for a fully locked-down ban management workflow: create a private admin channel, add the bot to it, set `BanChannelId` to its ID and `BanCommandRoleId` to your admin role — only admins can see the channel and only they can issue ban commands from it.
+
+---
+
 ### `BanKickDiscordMessage`
 
 The message posted to the **main** Discord channel whenever a banned player attempts to join and is kicked.
