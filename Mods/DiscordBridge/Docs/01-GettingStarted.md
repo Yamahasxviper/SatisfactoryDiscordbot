@@ -2,7 +2,23 @@
 
 ← [Back to index](README.md)
 
-This guide covers where the configuration file lives and how to create the Discord bot that powers the bridge.
+This guide covers how to install the mod, where the configuration file lives, and how to create the Discord bot that powers the bridge.
+
+---
+
+## Step 0 – Install the mod
+
+The easiest way to install DiscordBridge is through the **Satisfactory Mod Manager (SMM)**:
+
+1. Download and install [SMM](https://smm.ficsit.app/) if you have not done so already.
+2. Open SMM, select your Satisfactory installation, then search for **DiscordBridge** in the mods list.
+3. Click **Install**. SMM handles all dependencies (SML, SMLWebSocket) automatically.
+4. Launch / restart your dedicated server. The mod loads automatically on startup.
+
+> **Dedicated server without SMM**
+> Copy the extracted mod folder (`DiscordBridge/`) into
+> `<ServerRoot>/FactoryGame/Mods/` manually.
+> Ensure SML and SMLWebSocket are present in that same `Mods/` directory.
 
 ---
 

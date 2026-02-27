@@ -324,6 +324,52 @@ WhitelistKickReason=You are not whitelisted. DM an admin on Discord to request a
 
 ---
 
+### IN-GAME COMMANDS
+
+These settings control commands that server admins can type directly in the **Satisfactory in-game chat** to manage the whitelist and ban list without using Discord.
+
+#### `InGameWhitelistCommandPrefix`
+
+The prefix that triggers whitelist management commands in the in-game chat.
+Set to an **empty string** to disable in-game whitelist commands.
+
+**Default:** `!whitelist`
+
+**Supported commands** (type these in the Satisfactory in-game chat):
+
+| Command | Effect |
+|---------|--------|
+| `!whitelist on` | Enable the whitelist |
+| `!whitelist off` | Disable the whitelist (all players can join) |
+| `!whitelist add <name>` | Add a player by in-game name |
+| `!whitelist remove <name>` | Remove a player by in-game name |
+| `!whitelist list` | List all whitelisted players |
+| `!whitelist status` | Show whether the whitelist is currently enabled or disabled |
+
+> **Note:** In-game whitelist commands do not support `!whitelist role add/remove` (that is Discord-only).
+
+---
+
+#### `InGameBanCommandPrefix`
+
+The prefix that triggers ban management commands in the in-game chat.
+Set to an **empty string** to disable in-game ban commands.
+
+**Default:** `!ban`
+
+**Supported commands** (type these in the Satisfactory in-game chat):
+
+| Command | Effect |
+|---------|--------|
+| `!ban on` | Enable the ban system |
+| `!ban off` | Disable the ban system |
+| `!ban add <name>` | Ban a player by in-game name |
+| `!ban remove <name>` | Unban a player by in-game name |
+| `!ban list` | List all banned players |
+| `!ban status` | Show whether the ban system is currently enabled or disabled |
+
+---
+
 ### BEHAVIOUR
 
 | Setting             | Type | Default | Description |

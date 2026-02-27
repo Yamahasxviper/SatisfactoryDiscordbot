@@ -66,6 +66,15 @@
 
 ---
 
+## In-game commands are not recognised
+
+1. Make sure `InGameWhitelistCommandPrefix` and `InGameBanCommandPrefix` are set (both default to `!whitelist` and `!ban` respectively) and not empty in the config file.
+2. In-game commands can only be typed in the **Satisfactory in-game chat** by players who are already connected to the server.
+3. In-game whitelist commands do not include `!whitelist role add/remove` — that is Discord-only.
+4. If the command appears to do nothing, check the server log (`FactoryGame.log`) for `LogDiscordBridge` or `LogWhitelistManager` / `LogBanManager` lines that may explain why it was rejected.
+
+---
+
 ## Log verbosity
 
 Add the following to your server's `DefaultEngine.ini` to increase log detail:
