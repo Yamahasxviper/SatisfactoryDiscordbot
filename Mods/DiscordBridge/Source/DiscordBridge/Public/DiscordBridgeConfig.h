@@ -215,9 +215,9 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/**
 	 * When true, the ban system is active on every server start, overriding any
 	 * runtime change made via !ban on / !ban off Discord commands.
-	 * Default: true (banned players are kicked on join).
+	 * Default: false (ban system is off by default; enable explicitly in config).
 	 */
-	bool bBanSystemEnabled{ true };
+	bool bBanSystemEnabled{ false };
 
 	/**
 	 * When true (default), Discord `!ban` commands and in-game `!ban` chat commands
