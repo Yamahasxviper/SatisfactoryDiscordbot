@@ -103,10 +103,12 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.GameToDiscordFormat  = GetIniStringOrDefault(ConfigFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
 		Config.DiscordSenderFormat  = GetIniStringOrDefault(ConfigFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
-		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (ConfigFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
+		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (ConfigFile, TEXT("IgnoreBotMessages"),
+		                              GetIniBoolOrDefault  (ConfigFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages));
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(ConfigFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
-		Config.bShowPlayerCountInPresence      = GetIniBoolOrDefault  (ConfigFile, TEXT("bShowPlayerCountInPresence"),      Config.bShowPlayerCountInPresence);
+		Config.bShowPlayerCountInPresence      = GetIniBoolOrDefault  (ConfigFile, TEXT("ShowPlayerCountInPresence"),
+		                                         GetIniBoolOrDefault  (ConfigFile, TEXT("bShowPlayerCountInPresence"),      Config.bShowPlayerCountInPresence));
 		Config.PlayerCountPresenceFormat       = GetIniStringOrDefault(ConfigFile, TEXT("PlayerCountPresenceFormat"),       Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (ConfigFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType         = GetIniIntOrDefault   (ConfigFile, TEXT("PlayerCountActivityType"),         Config.PlayerCountActivityType);
@@ -421,7 +423,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("\n")
 			TEXT("; -- BEHAVIOUR ----------------------------------------------------------------\n")
 			TEXT("; When True, messages from bot accounts are ignored (prevents echo loops).\n")
-			TEXT("bIgnoreBotMessages=True\n")
+			TEXT("IgnoreBotMessages=True\n")
 			TEXT("\n")
 			TEXT("; -- SERVER STATUS MESSAGES ---------------------------------------------------\n")
 			TEXT("; Message posted to Discord when the server starts. Leave empty to disable.\n")
@@ -431,7 +433,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("\n")
 			TEXT("; -- PLAYER COUNT PRESENCE ----------------------------------------------------\n")
 			TEXT("; When True, the bot's Discord status shows the current player count.\n")
-			TEXT("bShowPlayerCountInPresence=True\n")
+			TEXT("ShowPlayerCountInPresence=True\n")
 			TEXT("; Text shown in the bot's Discord presence. Placeholders: %PlayerCount%, %ServerName%\n")
 			TEXT("PlayerCountPresenceFormat=Satisfactory with %PlayerCount% players\n")
 			TEXT("; How often (in seconds) to refresh the player count. Minimum 15. Default 60.\n")
@@ -531,10 +533,12 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.GameToDiscordFormat  = GetIniStringOrDefault(BackupFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
 		Config.DiscordSenderFormat  = GetIniStringOrDefault(BackupFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
-		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (BackupFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages);
+		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (BackupFile, TEXT("IgnoreBotMessages"),
+	                              GetIniBoolOrDefault  (BackupFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages));
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(BackupFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
 		Config.ServerOfflineMessage = GetIniStringOrDefault(BackupFile, TEXT("ServerOfflineMessage"), Config.ServerOfflineMessage);
-		Config.bShowPlayerCountInPresence       = GetIniBoolOrDefault  (BackupFile, TEXT("bShowPlayerCountInPresence"),       Config.bShowPlayerCountInPresence);
+		Config.bShowPlayerCountInPresence       = GetIniBoolOrDefault  (BackupFile, TEXT("ShowPlayerCountInPresence"),
+	                                          GetIniBoolOrDefault  (BackupFile, TEXT("bShowPlayerCountInPresence"),       Config.bShowPlayerCountInPresence));
 		Config.PlayerCountPresenceFormat        = GetIniStringOrDefault(BackupFile, TEXT("PlayerCountPresenceFormat"),        Config.PlayerCountPresenceFormat);
 		Config.PlayerCountUpdateIntervalSeconds = GetIniFloatOrDefault (BackupFile, TEXT("PlayerCountUpdateIntervalSeconds"), Config.PlayerCountUpdateIntervalSeconds);
 		Config.PlayerCountActivityType          = GetIniIntOrDefault   (BackupFile, TEXT("PlayerCountActivityType"),          Config.PlayerCountActivityType);
@@ -581,10 +585,10 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("GameToDiscordFormat=%s\n")
 			TEXT("DiscordToGameFormat=%s\n")
 			TEXT("DiscordSenderFormat=%s\n")
-			TEXT("bIgnoreBotMessages=%s\n")
+			TEXT("IgnoreBotMessages=%s\n")
 			TEXT("ServerOnlineMessage=%s\n")
 			TEXT("ServerOfflineMessage=%s\n")
-			TEXT("bShowPlayerCountInPresence=%s\n")
+			TEXT("ShowPlayerCountInPresence=%s\n")
 			TEXT("PlayerCountPresenceFormat=%s\n")
 			TEXT("PlayerCountUpdateIntervalSeconds=%s\n")
 			TEXT("PlayerCountActivityType=%d\n")
