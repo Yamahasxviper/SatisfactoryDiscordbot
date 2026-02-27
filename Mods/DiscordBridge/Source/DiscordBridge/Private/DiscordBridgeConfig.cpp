@@ -145,6 +145,135 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			       *ModFilePath);
 			bLoadedFromMod = false; // fall through to the DefaultContent write below
 		}
+		else
+		{
+			// Detect configs written before the whitelist / ban system was added
+			// (upgrade scenario).  If either section's key-value pair is absent
+			// from the file, append the missing sections so server operators can
+			// see and configure the new settings without losing their existing ones.
+			FString TmpVal;
+			const bool bFileHasWhitelist = ConfigFile.GetString(ConfigSection, TEXT("WhitelistEnabled"), TmpVal);
+			const bool bFileHasBan       = ConfigFile.GetString(ConfigSection, TEXT("BanSystemEnabled"), TmpVal);
+
+			if (!bFileHasWhitelist || !bFileHasBan)
+			{
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Config at '%s' is missing whitelist/ban settings "
+				            "(older version detected). Appending new settings."),
+				       *ModFilePath);
+
+				FString ExistingContent;
+				FFileHelper::LoadFileToString(ExistingContent, *ModFilePath);
+
+				FString AppendContent;
+
+				if (!bFileHasWhitelist)
+				{
+					AppendContent +=
+						TEXT("\n")
+						TEXT("; -- WHITELIST (added by mod update) -----------------------------------------\n")
+						TEXT("; Controls the built-in server whitelist, manageable via Discord commands.\n")
+						TEXT(";\n")
+						TEXT("; The whitelist and the ban system are COMPLETELY INDEPENDENT of each other.\n")
+						TEXT("; You can use either one, both, or neither:\n")
+						TEXT(";\n")
+						TEXT(";   Whitelist only:   WhitelistEnabled=True,  BanSystemEnabled=False\n")
+						TEXT(";   Ban system only:  WhitelistEnabled=False, BanSystemEnabled=True  (default)\n")
+						TEXT(";   Both:             WhitelistEnabled=True,  BanSystemEnabled=True\n")
+						TEXT(";   Neither:          WhitelistEnabled=False, BanSystemEnabled=False\n")
+						TEXT(";\n")
+						TEXT("; Sets the initial whitelist state on the FIRST server start (when\n")
+						TEXT("; ServerWhitelist.json does not yet exist). After the first start, the\n")
+						TEXT("; enabled/disabled state is saved in ServerWhitelist.json and survives\n")
+						TEXT("; restarts, so runtime !whitelist on / !whitelist off changes truly persist.\n")
+						TEXT("; To force-reset to this config value: delete ServerWhitelist.json and restart.\n")
+						TEXT("; Default: False (all players can join).\n")
+						TEXT("WhitelistEnabled=False\n")
+						TEXT(";\n")
+						TEXT("; Snowflake ID of the Discord role whose members may run !whitelist commands.\n")
+						TEXT("; Leave empty (default) to disable !whitelist commands for all Discord users.\n")
+						TEXT("WhitelistCommandRoleId=\n")
+						TEXT(";\n")
+						TEXT("; Prefix that triggers whitelist commands in the bridged Discord channel.\n")
+						TEXT("; Set to empty to disable Discord-based whitelist management entirely.\n")
+						TEXT("WhitelistCommandPrefix=!whitelist\n")
+						TEXT(";\n")
+						TEXT("; Snowflake ID of the Discord role assigned to whitelisted members.\n")
+						TEXT("; Leave empty to disable Discord role integration.\n")
+						TEXT("WhitelistRoleId=\n")
+						TEXT(";\n")
+						TEXT("; Snowflake ID of a dedicated Discord channel for whitelisted members.\n")
+						TEXT("; Leave empty to disable the whitelist-only channel.\n")
+						TEXT("WhitelistChannelId=\n")
+						TEXT(";\n")
+						TEXT("; Message posted to Discord when a non-whitelisted player is kicked.\n")
+						TEXT("; Leave empty to disable this notification.\n")
+						TEXT("; Placeholder: %PlayerName% - in-game name of the kicked player.\n")
+						TEXT("WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n")
+						TEXT(";\n")
+						TEXT("; Reason shown in-game to the player when they are kicked for not being whitelisted.\n")
+						TEXT("WhitelistKickReason=You are not on this server's whitelist. Contact the server admin to be added.\n")
+						TEXT(";\n")
+						TEXT("; Prefix that triggers whitelist commands in the in-game chat.\n")
+						TEXT("; Set to empty to disable in-game whitelist commands.\n")
+						TEXT("InGameWhitelistCommandPrefix=!whitelist\n");
+				}
+
+				if (!bFileHasBan)
+				{
+					AppendContent +=
+						TEXT("\n")
+						TEXT("; -- BAN SYSTEM (added by mod update) ----------------------------------------\n")
+						TEXT("; Controls the built-in player ban system, manageable via Discord commands.\n")
+						TEXT("; Bans are stored in <ServerRoot>/FactoryGame/Saved/ServerBanlist.json.\n")
+						TEXT(";\n")
+						TEXT("; The ban system and the whitelist are COMPLETELY INDEPENDENT of each other.\n")
+						TEXT("; See the quick-start guide in the WHITELIST section above.\n")
+						TEXT(";\n")
+						TEXT("; Sets the initial ban-system state on the FIRST server start (when\n")
+						TEXT("; ServerBanlist.json does not yet exist). After the first start, the\n")
+						TEXT("; enabled/disabled state is saved in ServerBanlist.json and survives\n")
+						TEXT("; restarts, so runtime !ban on / !ban off changes truly persist.\n")
+						TEXT("; To force-reset to this config value: delete ServerBanlist.json and restart.\n")
+						TEXT("; Default: True.\n")
+						TEXT("BanSystemEnabled=True\n")
+						TEXT(";\n")
+						TEXT("; Snowflake ID of the Discord role whose members may run !ban commands.\n")
+						TEXT("; Leave empty (default) to disable !ban commands for all Discord users.\n")
+						TEXT("BanCommandRoleId=\n")
+						TEXT(";\n")
+						TEXT("; Prefix that triggers ban commands in the bridged Discord channel.\n")
+						TEXT("; Set to empty to disable Discord-based ban management entirely.\n")
+						TEXT("BanCommandPrefix=!ban\n")
+						TEXT(";\n")
+						TEXT("; Message posted to Discord when a banned player is kicked.\n")
+						TEXT("; Leave empty to disable this notification.\n")
+						TEXT("; Placeholder: %PlayerName% - in-game name of the kicked player.\n")
+						TEXT("BanKickDiscordMessage=:hammer: **%PlayerName%** is banned from this server and was kicked.\n")
+						TEXT(";\n")
+						TEXT("; Reason shown in-game to the player when they are kicked for being banned.\n")
+						TEXT("BanKickReason=You are banned from this server.\n")
+						TEXT(";\n")
+						TEXT("; Prefix that triggers ban commands in the in-game chat.\n")
+						TEXT("; Set to empty to disable in-game ban commands.\n")
+						TEXT("InGameBanCommandPrefix=!ban\n");
+				}
+
+				if (FFileHelper::SaveStringToFile(ExistingContent + AppendContent, *ModFilePath))
+				{
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Updated '%s' with whitelist/ban settings. "
+					            "Review and configure them, then restart the server."),
+					       *ModFilePath);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Could not update '%s' with whitelist/ban settings."),
+					       *ModFilePath);
+				}
+			}
+		}
 	}
 
 	if (!bLoadedFromMod)
