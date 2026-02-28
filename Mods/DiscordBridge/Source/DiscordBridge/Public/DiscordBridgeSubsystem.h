@@ -379,6 +379,15 @@ private:
 	void SendGameChatStatusMessage(const FString& Message);
 
 	/**
+	 * Scans connected players and kicks any whose name matches PlayerName
+	 * (case-insensitive) using the configured BanKickReason.
+	 * When PlayerName is empty all connected players that are on the ban list
+	 * are kicked, which is useful when the ban system is toggled on at runtime.
+	 * Returns the number of players kicked.
+	 */
+	int32 KickConnectedBannedPlayers(const FString& PlayerName = TEXT(""));
+
+	/**
 	 * Assign or revoke a Discord role from a guild member via the REST API.
 	 * No-op when RoleId, GuildId, or BotToken is empty.
 	 *

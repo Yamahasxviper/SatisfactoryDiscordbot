@@ -1679,9 +1679,13 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 	if (Verb == TEXT("on"))
 	{
 		FBanManager::SetEnabled(true);
+		const int32 Kicked = KickConnectedBannedPlayers();
 		Response = FString::Printf(
-			TEXT(":hammer: Ban system **enabled**. Banned players will be kicked on join.\n"
+			TEXT(":hammer: Ban system **enabled**. Banned players will be kicked on join.%s\n"
 			     ":information_source: Whitelist is **%s** (independent — use `%s on/off` to toggle it)."),
+			Kicked > 0
+				? *FString::Printf(TEXT(" Kicked **%d** already-connected banned player(s)."), Kicked)
+				: TEXT(""),
 			FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"),
 			*Config.WhitelistCommandPrefix);
 	}
@@ -1702,7 +1706,21 @@ void UDiscordBridgeSubsystem::HandleBanCommand(const FString& SubCommand,
 		}
 		else if (FBanManager::BanPlayer(Arg))
 		{
-			Response = FString::Printf(TEXT(":hammer: **%s** has been banned from the server."), *Arg);
+			if (FBanManager::IsEnabled())
+			{
+				const int32 Kicked = KickConnectedBannedPlayers(Arg);
+				Response = FString::Printf(
+					TEXT(":hammer: **%s** has been banned from the server.%s"),
+					*Arg,
+					Kicked > 0 ? TEXT(" They have been kicked.") : TEXT(""));
+			}
+			else
+			{
+				Response = FString::Printf(
+					TEXT(":hammer: **%s** has been added to the ban list.\n"
+					     ":warning: The ban system is currently **disabled** — run `!ban on` to enforce bans."),
+					*Arg);
+			}
 		}
 		else
 		{
@@ -1834,6 +1852,75 @@ void UDiscordBridgeSubsystem::SendGameChatStatusMessage(const FString& Message)
 	ChatManager->BroadcastChatMessage(ChatMsg);
 }
 
+int32 UDiscordBridgeSubsystem::KickConnectedBannedPlayers(const FString& PlayerName)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0;
+	}
+
+	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
+	if (!GS)
+	{
+		return 0;
+	}
+
+	AGameModeBase* GM = World->GetAuthGameMode<AGameModeBase>();
+	if (!GM || !GM->GameSession)
+	{
+		return 0;
+	}
+
+	const FString KickReason = Config.BanKickReason.IsEmpty()
+		? TEXT("You are banned from this server.")
+		: Config.BanKickReason;
+
+	const bool bTargetSpecific = !PlayerName.IsEmpty();
+	const FString LowerTarget  = PlayerName.ToLower();
+
+	int32 KickedCount = 0;
+	for (APlayerState* PS : GS->PlayerArray)
+	{
+		if (!PS)
+		{
+			continue;
+		}
+
+		const FString ConnectedName = PS->GetPlayerName();
+		if (ConnectedName.IsEmpty())
+		{
+			continue;
+		}
+
+		// When a specific name was requested, only match that player.
+		// Otherwise kick anyone whose name is on the ban list.
+		const bool bMatch = bTargetSpecific
+			? (ConnectedName.ToLower() == LowerTarget)
+			: FBanManager::IsBanned(ConnectedName);
+
+		if (!bMatch)
+		{
+			continue;
+		}
+
+		APlayerController* PC = Cast<APlayerController>(PS->GetOwner());
+		if (!PC || PC->IsLocalController())
+		{
+			continue;
+		}
+
+		UE_LOG(LogTemp, Warning,
+		       TEXT("DiscordBridge BanSystem: kicking connected banned player '%s'"),
+		       *ConnectedName);
+
+		GM->GameSession->KickPlayer(PC, FText::FromString(KickReason));
+		++KickedCount;
+	}
+
+	return KickedCount;
+}
+
 void UDiscordBridgeSubsystem::HandleInGameWhitelistCommand(const FString& SubCommand)
 {
 	UE_LOG(LogTemp, Log,
@@ -1950,9 +2037,16 @@ void UDiscordBridgeSubsystem::HandleInGameBanCommand(const FString& SubCommand)
 	if (Verb == TEXT("on"))
 	{
 		FBanManager::SetEnabled(true);
+		const int32 Kicked = KickConnectedBannedPlayers();
+		FString KickedNote;
+		if (Kicked > 0)
+		{
+			KickedNote = FString::Printf(TEXT(" Kicked %d already-connected banned player(s)."), Kicked);
+		}
 		Response = FString::Printf(
-			TEXT("Ban system ENABLED. Banned players will be kicked on join. "
+			TEXT("Ban system ENABLED. Banned players will be kicked on join.%s "
 			     "(Whitelist is %s — independent.)"),
+			*KickedNote,
 			FWhitelistManager::IsEnabled() ? TEXT("ENABLED") : TEXT("disabled"));
 	}
 	else if (Verb == TEXT("off"))
@@ -1971,7 +2065,21 @@ void UDiscordBridgeSubsystem::HandleInGameBanCommand(const FString& SubCommand)
 		}
 		else if (FBanManager::BanPlayer(Arg))
 		{
-			Response = FString::Printf(TEXT("%s has been banned from the server."), *Arg);
+			if (FBanManager::IsEnabled())
+			{
+				const int32 Kicked = KickConnectedBannedPlayers(Arg);
+				Response = FString::Printf(
+					TEXT("%s has been banned from the server.%s"),
+					*Arg,
+					Kicked > 0 ? TEXT(" They have been kicked.") : TEXT(""));
+			}
+			else
+			{
+				Response = FString::Printf(
+					TEXT("%s has been added to the ban list. "
+					     "WARNING: ban system is disabled — run !ban on to enforce bans."),
+					*Arg);
+			}
 		}
 		else
 		{
