@@ -59,16 +59,16 @@ void FWhitelistManager::Load(bool bDefaultEnabled)
 	{
 		UE_LOG(LogWhitelistManager, Warning,
 			TEXT("Whitelist JSON is malformed — resetting to defaults"));
-		bEnabled = false;
+		bEnabled = bDefaultEnabled;
 		Players.Empty();
 		Save();
 		return;
 	}
 
-	if (Root->HasTypedField<EJson::Boolean>(TEXT("enabled")))
-	{
-		bEnabled = Root->GetBoolField(TEXT("enabled"));
-	}
+	// The enabled/disabled state is always taken from the INI config (bDefaultEnabled),
+	// so operators can toggle WhitelistEnabled in DefaultDiscordBridge.ini and it
+	// takes effect on the next server restart without touching ServerWhitelist.json.
+	bEnabled = bDefaultEnabled;
 
 	Players.Empty();
 	if (Root->HasTypedField<EJson::Array>(TEXT("players")))
