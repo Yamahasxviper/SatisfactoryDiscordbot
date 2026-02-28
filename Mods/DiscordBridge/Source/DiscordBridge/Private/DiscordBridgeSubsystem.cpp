@@ -13,6 +13,7 @@
 #include "GameFramework/GameSession.h"
 #include "GameFramework/PlayerState.h"
 #include "FGChatManager.h"
+#include "TimerManager.h"
 #include "WhitelistManager.h"
 #include "BanManager.h"
 
@@ -1318,13 +1319,63 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 	const APlayerState* PS = Controller->GetPlayerState<APlayerState>();
 	const FString PlayerName = PS ? PS->GetPlayerName() : FString();
 
-	// If the player name is empty (PlayerState not yet populated), do not kick.
-	// An empty name cannot meaningfully be checked against the whitelist/ban list
-	// and an incorrect kick here would disconnect a legitimate player.
+	// In Satisfactory's CSS UE build, the player name is populated asynchronously
+	// from Epic Online Services (via Server_SetPlayerNames RPC) after PostLogin fires.
+	// When enforcement is active and the name is not yet available, schedule a
+	// one-shot deferred retry rather than silently allowing the player through.
 	if (PlayerName.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning,
-		       TEXT("DiscordBridge: player joined with an empty name – skipping whitelist/ban check."));
+		const bool bEnforcementActive = FWhitelistManager::IsEnabled() || FBanManager::IsEnabled();
+		if (bEnforcementActive)
+		{
+			UE_LOG(LogTemp, Warning,
+			       TEXT("DiscordBridge: player joined with an empty name – scheduling deferred whitelist/ban check."));
+
+			if (UWorld* World = GetWorld())
+			{
+				TWeakObjectPtr<AGameModeBase>     WeakGM(GameMode);
+				TWeakObjectPtr<APlayerController> WeakPC(Controller);
+
+				FTimerHandle Handle;
+				World->GetTimerManager().SetTimer(Handle,
+					FTimerDelegate::CreateWeakLambda(this, [this, WeakGM, WeakPC]()
+					{
+						if (!WeakPC.IsValid())
+						{
+							return; // Player already disconnected – nothing to do.
+						}
+
+						const APlayerState* RetryPS   = WeakPC->GetPlayerState<APlayerState>();
+						const FString       RetryName = RetryPS ? RetryPS->GetPlayerName() : FString();
+
+						if (RetryName.IsEmpty())
+						{
+							// Name still not available after the retry window.
+							// Kick to enforce whitelist/ban integrity (fail-closed).
+							UE_LOG(LogTemp, Warning,
+							       TEXT("DiscordBridge: player name still empty after deferred check – kicking to enforce whitelist/ban."));
+
+							if (WeakGM.IsValid() && WeakGM->GameSession)
+							{
+								WeakGM->GameSession->KickPlayer(
+									WeakPC.Get(),
+									FText::FromString(
+										TEXT("Unable to verify player identity. Please reconnect.")));
+							}
+							return;
+						}
+
+						// Name is now available – run the normal whitelist/ban check.
+						OnPostLogin(WeakGM.Get(), WeakPC.Get());
+					}),
+					2.0f, false);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+			       TEXT("DiscordBridge: player joined with an empty name – skipping check (enforcement disabled)."));
+		}
 		return;
 	}
 
