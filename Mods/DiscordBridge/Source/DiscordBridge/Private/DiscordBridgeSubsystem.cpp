@@ -1335,40 +1335,62 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 			{
 				TWeakObjectPtr<AGameModeBase>     WeakGM(GameMode);
 				TWeakObjectPtr<APlayerController> WeakPC(Controller);
+				TWeakObjectPtr<UWorld>            WeakWorld(World);
 
-				FTimerHandle Handle;
-				World->GetTimerManager().SetTimer(Handle,
-					FTimerDelegate::CreateWeakLambda(this, [this, WeakGM, WeakPC]()
+				// Retry every 0.5 s, up to MaxRetries times.  A shared handle
+				// lets the lambda cancel the repeating timer once done.
+				TSharedRef<FTimerHandle> SharedHandle = MakeShared<FTimerHandle>();
+				TSharedRef<int32>        RetriesLeft  = MakeShared<int32>(10);
+
+				World->GetTimerManager().SetTimer(*SharedHandle,
+					FTimerDelegate::CreateWeakLambda(this,
+						[this, WeakGM, WeakPC, WeakWorld, SharedHandle, RetriesLeft]()
 					{
+						UWorld* W = WeakWorld.Get();
+
 						if (!WeakPC.IsValid())
 						{
-							return; // Player already disconnected – nothing to do.
+							// Player already disconnected – stop the timer.
+							if (W) { W->GetTimerManager().ClearTimer(*SharedHandle); }
+							return;
 						}
 
 						const APlayerState* RetryPS   = WeakPC->GetPlayerState<APlayerState>();
 						const FString       RetryName = RetryPS ? RetryPS->GetPlayerName() : FString();
 
-						if (RetryName.IsEmpty())
+						if (!RetryName.IsEmpty())
 						{
-							// Name still not available after the retry window.
-							// Kick to enforce whitelist/ban integrity (fail-closed).
-							UE_LOG(LogTemp, Warning,
-							       TEXT("DiscordBridge: player name still empty after deferred check – kicking to enforce whitelist/ban."));
-
-							if (WeakGM.IsValid() && WeakGM->GameSession)
-							{
-								WeakGM->GameSession->KickPlayer(
-									WeakPC.Get(),
-									FText::FromString(
-										TEXT("Unable to verify player identity. Please reconnect.")));
-							}
+							// Name is now available – run the whitelist/ban check and stop the timer.
+							if (W) { W->GetTimerManager().ClearTimer(*SharedHandle); }
+							OnPostLogin(WeakGM.Get(), WeakPC.Get());
 							return;
 						}
 
-						// Name is now available – run the normal whitelist/ban check.
-						OnPostLogin(WeakGM.Get(), WeakPC.Get());
+						--(*RetriesLeft);
+						if (*RetriesLeft > 0)
+						{
+							return; // Name not yet populated – try again next tick.
+						}
+
+						// All retries exhausted; kick to enforce whitelist/ban integrity (fail-closed).
+						if (W) { W->GetTimerManager().ClearTimer(*SharedHandle); }
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: player name still empty after deferred check – kicking to enforce whitelist/ban."));
+
+						AGameModeBase* FallbackGM = WeakGM.IsValid() ? WeakGM.Get() : nullptr;
+						if (!FallbackGM && W)
+						{
+							FallbackGM = W->GetAuthGameMode<AGameModeBase>();
+						}
+						if (FallbackGM && FallbackGM->GameSession)
+						{
+							FallbackGM->GameSession->KickPlayer(
+								WeakPC.Get(),
+								FText::FromString(
+									TEXT("Unable to verify player identity. Please reconnect.")));
+						}
 					}),
-					2.0f, false);
+					0.5f, true);
 			}
 		}
 		else
@@ -1379,18 +1401,31 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 		return;
 	}
 
+	// ── Resolve the authoritative game mode ──────────────────────────────────
+	// When OnPostLogin is called from the deferred-name retry lambda the GameMode
+	// parameter may be null (weak pointer expired).  Fall back to the world's
+	// auth game mode so the kick can always be issued.
+	AGameModeBase* EffectiveGameMode = GameMode;
+	if (!EffectiveGameMode || !EffectiveGameMode->GameSession)
+	{
+		if (UWorld* W = Controller->GetWorld())
+		{
+			EffectiveGameMode = W->GetAuthGameMode<AGameModeBase>();
+		}
+	}
+
 	// ── Ban check (takes priority over whitelist) ─────────────────────────────
 	if (FBanManager::IsEnabled() && FBanManager::IsBanned(PlayerName))
 	{
 		UE_LOG(LogTemp, Warning,
 		       TEXT("DiscordBridge BanSystem: kicking banned player '%s'"), *PlayerName);
 
-		if (GameMode && GameMode->GameSession)
+		if (EffectiveGameMode && EffectiveGameMode->GameSession)
 		{
 			const FString KickReason = Config.BanKickReason.IsEmpty()
 				? TEXT("You are banned from this server.")
 				: Config.BanKickReason;
-			GameMode->GameSession->KickPlayer(
+			EffectiveGameMode->GameSession->KickPlayer(
 				Controller,
 				FText::FromString(KickReason));
 		}
@@ -1425,12 +1460,12 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 	UE_LOG(LogTemp, Warning,
 	       TEXT("DiscordBridge Whitelist: kicking non-whitelisted player '%s'"), *PlayerName);
 
-	if (GameMode && GameMode->GameSession)
+	if (EffectiveGameMode && EffectiveGameMode->GameSession)
 	{
 		const FString KickReason = Config.WhitelistKickReason.IsEmpty()
 			? TEXT("You are not on this server's whitelist. Contact the server admin to be added.")
 			: Config.WhitelistKickReason;
-		GameMode->GameSession->KickPlayer(
+		EffectiveGameMode->GameSession->KickPlayer(
 			Controller,
 			FText::FromString(KickReason));
 	}
