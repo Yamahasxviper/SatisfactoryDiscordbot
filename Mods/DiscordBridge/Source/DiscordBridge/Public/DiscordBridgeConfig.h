@@ -215,9 +215,9 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/**
 	 * When true, the ban system is active on every server start, overriding any
 	 * runtime change made via !ban on / !ban off Discord commands.
-	 * Default: false (ban system is off by default; enable explicitly in config).
+	 * Default: true (ban list is enforced; set to false to disable enforcement).
 	 */
-	bool bBanSystemEnabled{ false };
+	bool bBanSystemEnabled{ true };
 
 	/**
 	 * When true (default), Discord `!ban` commands and in-game `!ban` chat commands
