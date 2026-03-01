@@ -97,6 +97,28 @@ FString FDiscordBridgeConfig::GetBackupConfigFilePath()
 	return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("DiscordBridge.ini"));
 }
 
+FString FDiscordBridgeConfig::GetWhitelistConfigFilePath()
+{
+	// Optional separate whitelist config in the mod's Config folder.
+	// When present, whitelist settings here take priority over DefaultDiscordBridge.ini.
+	// On a deployed server:
+	//   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridgeWhitelist.ini
+	return FPaths::Combine(FPaths::ProjectDir(),
+	                       TEXT("Mods"), TEXT("DiscordBridge"),
+	                       TEXT("Config"), TEXT("DefaultDiscordBridgeWhitelist.ini"));
+}
+
+FString FDiscordBridgeConfig::GetBanConfigFilePath()
+{
+	// Optional separate ban-system config in the mod's Config folder.
+	// When present, ban settings here take priority over DefaultDiscordBridge.ini.
+	// On a deployed server:
+	//   <ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridgeBan.ini
+	return FPaths::Combine(FPaths::ProjectDir(),
+	                       TEXT("Mods"), TEXT("DiscordBridge"),
+	                       TEXT("Config"), TEXT("DefaultDiscordBridgeBan.ini"));
+}
+
 FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 {
 	FDiscordBridgeConfig Config;
@@ -411,6 +433,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; 1. Set BotToken and ChannelId below.\n")
 			TEXT("; 2. Restart the server. The bridge starts automatically.\n")
 			TEXT("; Backup: <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini (auto-saved)\n")
+			TEXT("; Optional separate files (settings there override what is set below):\n")
+			TEXT(";   DefaultDiscordBridgeWhitelist.ini  – whitelist settings only\n")
+			TEXT(";   DefaultDiscordBridgeBan.ini         – ban system settings only\n")
 			TEXT("; Bot setup: Discord Developer Portal -> your app -> Bot\n")
 			TEXT(";   - Enable Presence, Server Members and Message Content intents.\n")
 			TEXT(";   - Invite the bot with Send Messages + Read Message History permissions.\n")
@@ -589,6 +614,52 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			            "Copy your BotToken and ChannelId back into the primary config "
 			            "to silence this message."),
 			       *ModFilePath, *BackupFilePath);
+		}
+	}
+
+	// ── Step 2b: overlay settings from optional separate config files ────────────
+	// If DefaultDiscordBridgeWhitelist.ini exists in the mod's Config folder,
+	// any setting defined there overrides the value loaded from the primary
+	// config (or the backup).  Only settings that are explicitly present (and
+	// non-empty where a non-empty value is required) are applied; omitting a
+	// key from the separate file leaves the primary-config value intact.
+	// The same logic applies to DefaultDiscordBridgeBan.ini for ban settings.
+	// Neither file is created automatically – they are purely opt-in.
+	{
+		const FString WhitelistFilePath = GetWhitelistConfigFilePath();
+		if (PlatformFile.FileExists(*WhitelistFilePath))
+		{
+			FConfigFile WhitelistConfigFile;
+			WhitelistConfigFile.Read(WhitelistFilePath);
+
+			Config.bWhitelistEnabled            = GetIniBoolOrDefault  (WhitelistConfigFile, TEXT("WhitelistEnabled"),            Config.bWhitelistEnabled);
+			Config.WhitelistCommandRoleId       = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistCommandRoleId"),       Config.WhitelistCommandRoleId);
+			Config.WhitelistCommandPrefix       = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistCommandPrefix"),       Config.WhitelistCommandPrefix);
+			Config.WhitelistRoleId              = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistRoleId"),              Config.WhitelistRoleId);
+			Config.WhitelistChannelId           = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistChannelId"),           Config.WhitelistChannelId);
+			Config.WhitelistKickDiscordMessage  = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistKickDiscordMessage"),  Config.WhitelistKickDiscordMessage);
+			Config.WhitelistKickReason          = GetIniStringOrFallback(WhitelistConfigFile, TEXT("WhitelistKickReason"),         Config.WhitelistKickReason);
+			Config.InGameWhitelistCommandPrefix = GetIniStringOrDefault(WhitelistConfigFile, TEXT("InGameWhitelistCommandPrefix"), Config.InGameWhitelistCommandPrefix);
+
+			UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Applied whitelist overrides from '%s'."), *WhitelistFilePath);
+		}
+
+		const FString BanFilePath = GetBanConfigFilePath();
+		if (PlatformFile.FileExists(*BanFilePath))
+		{
+			FConfigFile BanConfigFile;
+			BanConfigFile.Read(BanFilePath);
+
+			Config.bBanSystemEnabled      = GetIniBoolOrDefault  (BanConfigFile, TEXT("BanSystemEnabled"),      Config.bBanSystemEnabled);
+			Config.BanCommandRoleId       = GetIniStringOrDefault(BanConfigFile, TEXT("BanCommandRoleId"),       Config.BanCommandRoleId);
+			Config.BanCommandPrefix       = GetIniStringOrDefault(BanConfigFile, TEXT("BanCommandPrefix"),       Config.BanCommandPrefix);
+			Config.BanChannelId           = GetIniStringOrDefault(BanConfigFile, TEXT("BanChannelId"),           Config.BanChannelId);
+			Config.bBanCommandsEnabled    = GetIniBoolOrDefault  (BanConfigFile, TEXT("BanCommandsEnabled"),    Config.bBanCommandsEnabled);
+			Config.BanKickDiscordMessage  = GetIniStringOrDefault(BanConfigFile, TEXT("BanKickDiscordMessage"),  Config.BanKickDiscordMessage);
+			Config.BanKickReason          = GetIniStringOrFallback(BanConfigFile, TEXT("BanKickReason"),         Config.BanKickReason);
+			Config.InGameBanCommandPrefix = GetIniStringOrDefault(BanConfigFile, TEXT("InGameBanCommandPrefix"), Config.InGameBanCommandPrefix);
+
+			UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Applied ban overrides from '%s'."), *BanFilePath);
 		}
 	}
 

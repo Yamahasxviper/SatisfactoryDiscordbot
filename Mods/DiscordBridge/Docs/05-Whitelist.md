@@ -17,6 +17,29 @@ the list directly from the bridged Discord channel.
 
 ---
 
+## Separate whitelist config file (optional)
+
+All whitelist settings can be kept in their own dedicated file instead of (or in addition to)
+`DefaultDiscordBridge.ini`:
+
+```
+<ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridgeWhitelist.ini
+```
+
+This file ships with the mod as an all-commented-out template. To use it:
+
+1. Open `DefaultDiscordBridgeWhitelist.ini`.
+2. Uncomment (remove the leading `;`) any setting you want to manage separately.
+3. Set the value.
+4. Restart the server.
+
+Any setting defined in `DefaultDiscordBridgeWhitelist.ini` takes priority over the same
+setting in `DefaultDiscordBridge.ini`. Settings left commented out in the separate file
+continue to use whatever is in the primary config. This lets you, for example, keep your
+bot token and chat settings in the main file while whitelist configuration lives in its own file.
+
+---
+
 ## Settings
 
 ### `WhitelistEnabled`

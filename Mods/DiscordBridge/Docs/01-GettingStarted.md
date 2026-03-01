@@ -38,6 +38,16 @@ Edit that file, then restart the server. Your changes take effect on the next st
 > starts. If a mod update resets the primary config, the bridge falls back to that
 > backup so it keeps working until you copy your credentials back.
 
+> **Tip – separate files for whitelist and ban settings**
+> You can keep your whitelist and ban configuration in their own dedicated files:
+> - `DefaultDiscordBridgeWhitelist.ini` – whitelist settings only
+> - `DefaultDiscordBridgeBan.ini` – ban system settings only
+>
+> Both files live in the same `Config/` folder as `DefaultDiscordBridge.ini`.
+> Any setting you uncomment and fill in there takes priority over the same setting
+> in the primary config. Settings you leave commented out fall back to the primary
+> config. See [Whitelist](05-Whitelist.md) and [Ban System](04-BanSystem.md) for details.
+
 ---
 
 ## Step 1 – Create a Discord Bot

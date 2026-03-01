@@ -345,4 +345,36 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 
 	/** Returns the absolute path to the backup INI config file (Saved/Config/). */
 	static FString GetBackupConfigFilePath();
+
+	/**
+	 * Returns the absolute path to the optional whitelist-only INI config file
+	 * (mod Config folder).
+	 *
+	 * If this file exists, the whitelist settings it contains take priority over
+	 * the same settings in the primary DefaultDiscordBridge.ini.  All other
+	 * settings (connection, chat, ban, etc.) continue to come from the primary
+	 * config.  This lets you keep whitelist configuration in its own dedicated
+	 * file for easier management.
+	 *
+	 * The file is NOT created automatically – create it yourself when you want
+	 * to use the separate-file workflow.  An annotated template can be found in
+	 * the mod's Config folder as DefaultDiscordBridgeWhitelist.ini.
+	 */
+	static FString GetWhitelistConfigFilePath();
+
+	/**
+	 * Returns the absolute path to the optional ban-system-only INI config file
+	 * (mod Config folder).
+	 *
+	 * If this file exists, the ban settings it contains take priority over the
+	 * same settings in the primary DefaultDiscordBridge.ini.  All other settings
+	 * (connection, chat, whitelist, etc.) continue to come from the primary
+	 * config.  This lets you keep ban configuration in its own dedicated file
+	 * for easier management.
+	 *
+	 * The file is NOT created automatically – create it yourself when you want
+	 * to use the separate-file workflow.  An annotated template can be found in
+	 * the mod's Config folder as DefaultDiscordBridgeBan.ini.
+	 */
+	static FString GetBanConfigFilePath();
 };
