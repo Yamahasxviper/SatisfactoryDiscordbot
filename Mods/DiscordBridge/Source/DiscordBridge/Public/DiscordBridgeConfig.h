@@ -347,6 +347,30 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	static FString GetBackupConfigFilePath();
 
 	/**
+	 * Returns the absolute path to the whitelist-only backup INI (Saved/Config/).
+	 *
+	 * Written automatically whenever DefaultDiscordBridgeWhitelist.ini contains
+	 * at least one user-set (uncommented) key.  If a mod update resets that
+	 * file to the all-commented-out shipped template, the mod restores it from
+	 * this backup so whitelist settings survive upgrades.
+	 * On a deployed server:
+	 *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeWhitelist.ini
+	 */
+	static FString GetWhitelistBackupConfigFilePath();
+
+	/**
+	 * Returns the absolute path to the ban-system-only backup INI (Saved/Config/).
+	 *
+	 * Written automatically whenever DefaultDiscordBridgeBan.ini contains at
+	 * least one user-set (uncommented) key.  If a mod update resets that file
+	 * to the all-commented-out shipped template, the mod restores it from this
+	 * backup so ban settings survive upgrades.
+	 * On a deployed server:
+	 *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeBan.ini
+	 */
+	static FString GetBanBackupConfigFilePath();
+
+	/**
 	 * Returns the absolute path to the optional whitelist-only INI config file
 	 * (mod Config folder).
 	 *

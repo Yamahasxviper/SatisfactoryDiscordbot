@@ -119,6 +119,26 @@ FString FDiscordBridgeConfig::GetBanConfigFilePath()
 	                       TEXT("Config"), TEXT("DefaultDiscordBridgeBan.ini"));
 }
 
+FString FDiscordBridgeConfig::GetWhitelistBackupConfigFilePath()
+{
+	// Backup for the optional whitelist config – never touched by mod updates.
+	// Written automatically whenever DefaultDiscordBridgeWhitelist.ini has
+	// at least one user-set key.
+	// On a deployed server:
+	//   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeWhitelist.ini
+	return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("DiscordBridgeWhitelist.ini"));
+}
+
+FString FDiscordBridgeConfig::GetBanBackupConfigFilePath()
+{
+	// Backup for the optional ban config – never touched by mod updates.
+	// Written automatically whenever DefaultDiscordBridgeBan.ini has at
+	// least one user-set key.
+	// On a deployed server:
+	//   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeBan.ini
+	return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Config"), TEXT("DiscordBridgeBan.ini"));
+}
+
 FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 {
 	FDiscordBridgeConfig Config;
@@ -580,48 +600,173 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 	}
 
 	// ── Step 2b: overlay settings from optional separate config files ────────────
-	// If DefaultDiscordBridgeWhitelist.ini exists in the mod's Config folder,
-	// any setting defined there overrides the value loaded from the primary
-	// config (or the backup).  Only settings that are explicitly present (and
-	// non-empty where a non-empty value is required) are applied; omitting a
-	// key from the separate file leaves the primary-config value intact.
-	// The same logic applies to DefaultDiscordBridgeBan.ini for ban settings.
-	// Neither file is created automatically – they are purely opt-in.
+	// If DefaultDiscordBridgeWhitelist.ini / DefaultDiscordBridgeBan.ini exist
+	// in the mod's Config folder, any setting defined there overrides the value
+	// loaded from the primary config or the backup.
+	//
+	// Backup / restore for separate files:
+	//   Each separate file is backed up to Saved/Config/ whenever it contains
+	//   at least one user-set (uncommented) key.  If a mod update resets the
+	//   file to the all-commented-out shipped template, the backed-up copy is
+	//   restored automatically so operator settings survive upgrades.
 	{
-		const FString WhitelistFilePath = GetWhitelistConfigFilePath();
+		// ── Whitelist ─────────────────────────────────────────────────────────
+		const FString WhitelistFilePath       = GetWhitelistConfigFilePath();
+		const FString WhitelistBackupFilePath = GetWhitelistBackupConfigFilePath();
+
+		auto ApplyWhitelistSettings = [&](const FConfigFile& Cfg)
+		{
+			Config.bWhitelistEnabled            = GetIniBoolOrDefault  (Cfg, TEXT("WhitelistEnabled"),            Config.bWhitelistEnabled);
+			Config.WhitelistCommandRoleId       = GetIniStringOrDefault(Cfg, TEXT("WhitelistCommandRoleId"),       Config.WhitelistCommandRoleId);
+			Config.WhitelistCommandPrefix       = GetIniStringOrDefault(Cfg, TEXT("WhitelistCommandPrefix"),       Config.WhitelistCommandPrefix);
+			Config.WhitelistRoleId              = GetIniStringOrDefault(Cfg, TEXT("WhitelistRoleId"),              Config.WhitelistRoleId);
+			Config.WhitelistChannelId           = GetIniStringOrDefault(Cfg, TEXT("WhitelistChannelId"),           Config.WhitelistChannelId);
+			Config.WhitelistKickDiscordMessage  = GetIniStringOrDefault(Cfg, TEXT("WhitelistKickDiscordMessage"),  Config.WhitelistKickDiscordMessage);
+			Config.WhitelistKickReason          = GetIniStringOrFallback(Cfg, TEXT("WhitelistKickReason"),         Config.WhitelistKickReason);
+			Config.InGameWhitelistCommandPrefix = GetIniStringOrDefault(Cfg, TEXT("InGameWhitelistCommandPrefix"), Config.InGameWhitelistCommandPrefix);
+		};
+
 		if (PlatformFile.FileExists(*WhitelistFilePath))
 		{
 			FConfigFile WhitelistConfigFile;
 			WhitelistConfigFile.Read(WhitelistFilePath);
 
-			Config.bWhitelistEnabled            = GetIniBoolOrDefault  (WhitelistConfigFile, TEXT("WhitelistEnabled"),            Config.bWhitelistEnabled);
-			Config.WhitelistCommandRoleId       = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistCommandRoleId"),       Config.WhitelistCommandRoleId);
-			Config.WhitelistCommandPrefix       = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistCommandPrefix"),       Config.WhitelistCommandPrefix);
-			Config.WhitelistRoleId              = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistRoleId"),              Config.WhitelistRoleId);
-			Config.WhitelistChannelId           = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistChannelId"),           Config.WhitelistChannelId);
-			Config.WhitelistKickDiscordMessage  = GetIniStringOrDefault(WhitelistConfigFile, TEXT("WhitelistKickDiscordMessage"),  Config.WhitelistKickDiscordMessage);
-			Config.WhitelistKickReason          = GetIniStringOrFallback(WhitelistConfigFile, TEXT("WhitelistKickReason"),         Config.WhitelistKickReason);
-			Config.InGameWhitelistCommandPrefix = GetIniStringOrDefault(WhitelistConfigFile, TEXT("InGameWhitelistCommandPrefix"), Config.InGameWhitelistCommandPrefix);
+			// Detect whether the file has any user-set (uncommented) keys.
+			// The shipped template has all entries commented out, so if a mod
+			// update has reset the file none of these GetString calls succeed.
+			FString TmpCheck;
+			const bool bWhitelistHasUserSettings =
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistEnabled"),             TmpCheck) ||
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandRoleId"),       TmpCheck) ||
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandPrefix"),       TmpCheck) ||
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistRoleId"),              TmpCheck) ||
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistChannelId"),           TmpCheck) ||
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickDiscordMessage"),  TmpCheck) ||
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickReason"),          TmpCheck) ||
+				WhitelistConfigFile.GetString(ConfigSection, TEXT("InGameWhitelistCommandPrefix"), TmpCheck);
 
-			UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Applied whitelist overrides from '%s'."), *WhitelistFilePath);
+			if (bWhitelistHasUserSettings)
+			{
+				ApplyWhitelistSettings(WhitelistConfigFile);
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Applied whitelist overrides from '%s'."), *WhitelistFilePath);
+
+				// Back up verbatim to Saved/Config/ so settings survive mod updates.
+				PlatformFile.CreateDirectoryTree(*FPaths::GetPath(WhitelistBackupFilePath));
+				FString RawContent;
+				if (FFileHelper::LoadFileToString(RawContent, *WhitelistFilePath) &&
+				    FFileHelper::SaveStringToFile(RawContent, *WhitelistBackupFilePath))
+				{
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Backed up whitelist config to '%s'."), *WhitelistBackupFilePath);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Could not back up whitelist config to '%s'."), *WhitelistBackupFilePath);
+				}
+			}
+			else if (PlatformFile.FileExists(*WhitelistBackupFilePath))
+			{
+				// File was reset to the shipped template by a mod update – restore.
+				FString BackupRaw;
+				if (FFileHelper::LoadFileToString(BackupRaw, *WhitelistBackupFilePath) &&
+				    FFileHelper::SaveStringToFile(BackupRaw, *WhitelistFilePath))
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Whitelist config was reset by a mod update. "
+					            "Restored from backup at '%s'."), *WhitelistBackupFilePath);
+					FConfigFile RestoredFile;
+					RestoredFile.Read(WhitelistFilePath);
+					ApplyWhitelistSettings(RestoredFile);
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Applied restored whitelist settings."));
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Whitelist config was reset but could not restore from '%s'."),
+					       *WhitelistBackupFilePath);
+				}
+			}
 		}
 
-		const FString BanFilePath = GetBanConfigFilePath();
+		// ── Ban ───────────────────────────────────────────────────────────────
+		const FString BanFilePath       = GetBanConfigFilePath();
+		const FString BanBackupFilePath = GetBanBackupConfigFilePath();
+
+		auto ApplyBanSettings = [&](const FConfigFile& Cfg)
+		{
+			Config.bBanSystemEnabled      = GetIniBoolOrDefault  (Cfg, TEXT("BanSystemEnabled"),      Config.bBanSystemEnabled);
+			Config.BanCommandRoleId       = GetIniStringOrDefault(Cfg, TEXT("BanCommandRoleId"),       Config.BanCommandRoleId);
+			Config.BanCommandPrefix       = GetIniStringOrDefault(Cfg, TEXT("BanCommandPrefix"),       Config.BanCommandPrefix);
+			Config.BanChannelId           = GetIniStringOrDefault(Cfg, TEXT("BanChannelId"),           Config.BanChannelId);
+			Config.bBanCommandsEnabled    = GetIniBoolOrDefault  (Cfg, TEXT("BanCommandsEnabled"),     Config.bBanCommandsEnabled);
+			Config.BanKickDiscordMessage  = GetIniStringOrDefault(Cfg, TEXT("BanKickDiscordMessage"),  Config.BanKickDiscordMessage);
+			Config.BanKickReason          = GetIniStringOrFallback(Cfg, TEXT("BanKickReason"),         Config.BanKickReason);
+			Config.InGameBanCommandPrefix = GetIniStringOrDefault(Cfg, TEXT("InGameBanCommandPrefix"), Config.InGameBanCommandPrefix);
+		};
+
 		if (PlatformFile.FileExists(*BanFilePath))
 		{
 			FConfigFile BanConfigFile;
 			BanConfigFile.Read(BanFilePath);
 
-			Config.bBanSystemEnabled      = GetIniBoolOrDefault  (BanConfigFile, TEXT("BanSystemEnabled"),      Config.bBanSystemEnabled);
-			Config.BanCommandRoleId       = GetIniStringOrDefault(BanConfigFile, TEXT("BanCommandRoleId"),       Config.BanCommandRoleId);
-			Config.BanCommandPrefix       = GetIniStringOrDefault(BanConfigFile, TEXT("BanCommandPrefix"),       Config.BanCommandPrefix);
-			Config.BanChannelId           = GetIniStringOrDefault(BanConfigFile, TEXT("BanChannelId"),           Config.BanChannelId);
-			Config.bBanCommandsEnabled    = GetIniBoolOrDefault  (BanConfigFile, TEXT("BanCommandsEnabled"),    Config.bBanCommandsEnabled);
-			Config.BanKickDiscordMessage  = GetIniStringOrDefault(BanConfigFile, TEXT("BanKickDiscordMessage"),  Config.BanKickDiscordMessage);
-			Config.BanKickReason          = GetIniStringOrFallback(BanConfigFile, TEXT("BanKickReason"),         Config.BanKickReason);
-			Config.InGameBanCommandPrefix = GetIniStringOrDefault(BanConfigFile, TEXT("InGameBanCommandPrefix"), Config.InGameBanCommandPrefix);
+			FString TmpCheck;
+			const bool bBanHasUserSettings =
+				BanConfigFile.GetString(ConfigSection, TEXT("BanSystemEnabled"),      TmpCheck) ||
+				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandRoleId"),      TmpCheck) ||
+				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandPrefix"),      TmpCheck) ||
+				BanConfigFile.GetString(ConfigSection, TEXT("BanChannelId"),          TmpCheck) ||
+				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandsEnabled"),    TmpCheck) ||
+				BanConfigFile.GetString(ConfigSection, TEXT("BanKickDiscordMessage"), TmpCheck) ||
+				BanConfigFile.GetString(ConfigSection, TEXT("BanKickReason"),         TmpCheck) ||
+				BanConfigFile.GetString(ConfigSection, TEXT("InGameBanCommandPrefix"),TmpCheck);
 
-			UE_LOG(LogTemp, Log, TEXT("DiscordBridge: Applied ban overrides from '%s'."), *BanFilePath);
+			if (bBanHasUserSettings)
+			{
+				ApplyBanSettings(BanConfigFile);
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Applied ban overrides from '%s'."), *BanFilePath);
+
+				// Back up verbatim to Saved/Config/ so settings survive mod updates.
+				PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BanBackupFilePath));
+				FString RawContent;
+				if (FFileHelper::LoadFileToString(RawContent, *BanFilePath) &&
+				    FFileHelper::SaveStringToFile(RawContent, *BanBackupFilePath))
+				{
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Backed up ban config to '%s'."), *BanBackupFilePath);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Could not back up ban config to '%s'."), *BanBackupFilePath);
+				}
+			}
+			else if (PlatformFile.FileExists(*BanBackupFilePath))
+			{
+				// File was reset to the shipped template by a mod update – restore.
+				FString BackupRaw;
+				if (FFileHelper::LoadFileToString(BackupRaw, *BanBackupFilePath) &&
+				    FFileHelper::SaveStringToFile(BackupRaw, *BanFilePath))
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Ban config was reset by a mod update. "
+					            "Restored from backup at '%s'."), *BanBackupFilePath);
+					FConfigFile RestoredFile;
+					RestoredFile.Read(BanFilePath);
+					ApplyBanSettings(RestoredFile);
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Applied restored ban settings."));
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Ban config was reset but could not restore from '%s'."),
+					       *BanBackupFilePath);
+				}
+			}
 		}
 	}
 
