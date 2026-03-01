@@ -705,6 +705,135 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					       *WhitelistBackupFilePath);
 				}
 			}
+			else
+			{
+				// File exists but has no user-set settings and no backup.
+				// This happens when Alpakit strips ';' comments during packaging,
+				// leaving a comment-free file with no setup instructions.
+				// Rewrite with the full annotated template so operators can see
+				// and understand all available settings.
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Whitelist config at '%s' has no settings "
+				            "(comments were stripped during packaging). "
+				            "Rewriting with annotated template."), *WhitelistFilePath);
+
+				const FString WhitelistDefaultContent =
+					TEXT("[DiscordBridge]\n")
+					TEXT("; DiscordBridge - Whitelist Configuration (Optional Override File)\n")
+					TEXT("; ================================================================\n")
+					TEXT("; 1. Remove the leading ';' from each setting you want to enable below.\n")
+					TEXT("; 2. Fill in the value after the '='.\n")
+					TEXT("; 3. Restart the server. Settings here take priority over built-in defaults.\n")
+					TEXT("; Backup: <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeWhitelist.ini (auto-saved)\n")
+					TEXT(";   The mod writes a backup of your whitelist settings here automatically so they\n")
+					TEXT(";   survive mod updates that reset this file. The backup is only written when at\n")
+					TEXT(";   least one setting below is uncommented (active).\n")
+					TEXT("; All other settings (connection, chat, ban system, etc.) are in DefaultDiscordBridge.ini.\n")
+					TEXT("\n")
+					TEXT("; -- WHITELIST ----------------------------------------------------------------\n")
+					TEXT("; Controls the built-in server whitelist, manageable via Discord commands.\n")
+					TEXT("; Whitelist entries are stored in <ServerRoot>/FactoryGame/Saved/ServerWhitelist.json\n")
+					TEXT("; and persist across server restarts automatically.\n")
+					TEXT("; Whitelist and ban system are INDEPENDENT - use either, both, or neither:\n")
+					TEXT(";   Whitelist only:  WhitelistEnabled=True,  BanSystemEnabled=False\n")
+					TEXT(";   Ban only:        WhitelistEnabled=False, BanSystemEnabled=True  (default)\n")
+					TEXT(";   Both:            WhitelistEnabled=True,  BanSystemEnabled=True\n")
+					TEXT(";   Neither:         WhitelistEnabled=False, BanSystemEnabled=False\n")
+					TEXT("\n")
+					TEXT("; Controls whether the whitelist is active when the server starts.\n")
+					TEXT("; When True, only players listed in ServerWhitelist.json (or who hold the\n")
+					TEXT("; WhitelistRoleId Discord role, if configured) are allowed to join.\n")
+					TEXT("; When False, all players can join regardless of the whitelist.\n")
+					TEXT("; This value is applied on EVERY server restart - it is the authoritative\n")
+					TEXT("; toggle. Note: !whitelist on / !whitelist off Discord commands update the\n")
+					TEXT("; in-memory state for the current session only and do not override this value.\n")
+					TEXT("; Default: False\n")
+					TEXT(";WhitelistEnabled=False\n")
+					TEXT("\n")
+					TEXT("; Snowflake ID of the Discord role whose members are allowed to run !whitelist\n")
+					TEXT("; commands. When set, ONLY members who hold this role can issue !whitelist\n")
+					TEXT("; commands in the bridged Discord channel. When left empty, !whitelist commands\n")
+					TEXT("; are disabled for all Discord users (deny-by-default) until a role ID is provided.\n")
+					TEXT("; IMPORTANT: holding this role does NOT grant access to the game server. Role\n")
+					TEXT("; holders are still subject to the normal whitelist and ban checks when joining.\n")
+					TEXT("; How to get the role ID: Discord Settings -> Advanced -> Developer Mode, then\n")
+					TEXT("; right-click the role in Server Settings -> Roles -> Copy Role ID.\n")
+					TEXT("; Example: WhitelistCommandRoleId=123456789012345678\n")
+					TEXT(";WhitelistCommandRoleId=\n")
+					TEXT("\n")
+					TEXT("; Prefix that triggers whitelist management commands when typed in the bridged\n")
+					TEXT("; Discord channel. Set to an empty string to disable Discord-based whitelist\n")
+					TEXT("; management entirely.\n")
+					TEXT("; Supported commands (type in the bridged Discord channel):\n")
+					TEXT(";   !whitelist on                       - enable the whitelist\n")
+					TEXT(";   !whitelist off                      - disable the whitelist (all players can join)\n")
+					TEXT(";   !whitelist add <name>               - add a player by in-game name\n")
+					TEXT(";   !whitelist remove <name>            - remove a player by in-game name\n")
+					TEXT(";   !whitelist list                     - list all whitelisted players\n")
+					TEXT(";   !whitelist status                   - show current whitelist and ban system state\n")
+					TEXT(";   !whitelist role add <discord_id>    - grant the WhitelistRoleId role to a Discord user\n")
+					TEXT(";   !whitelist role remove <discord_id> - revoke the WhitelistRoleId role from a Discord user\n")
+					TEXT("; Default: !whitelist\n")
+					TEXT(";WhitelistCommandPrefix=!whitelist\n")
+					TEXT("\n")
+					TEXT("; Snowflake ID of the Discord role used to identify whitelisted members.\n")
+					TEXT("; Leave empty to disable Discord role integration.\n")
+					TEXT("; How to get the role ID: Discord Settings -> Advanced -> Developer Mode, then\n")
+					TEXT("; right-click the role in Server Settings -> Roles -> Copy Role ID.\n")
+					TEXT("; Example: WhitelistRoleId=111222333444555666\n")
+					TEXT(";WhitelistRoleId=\n")
+					TEXT("\n")
+					TEXT("; Snowflake ID of a dedicated Discord channel for whitelisted members.\n")
+					TEXT("; Leave empty to disable the whitelist-only channel.\n")
+					TEXT("; How to get the channel ID: right-click the channel in Discord with Developer\n")
+					TEXT("; Mode enabled -> Copy Channel ID.\n")
+					TEXT("; Example: WhitelistChannelId=222333444555666777\n")
+					TEXT(";WhitelistChannelId=\n")
+					TEXT("\n")
+					TEXT("; Message posted to the main Discord channel whenever a non-whitelisted player\n")
+					TEXT("; tries to join and is kicked. Leave empty (delete the text after the =) to\n")
+					TEXT("; disable this notification.\n")
+					TEXT("; Available placeholder:\n")
+					TEXT(";   %PlayerName%  - the in-game name of the player who was kicked\n")
+					TEXT("; Example: WhitelistKickDiscordMessage=:no_entry: **%PlayerName%** is not whitelisted and was removed.\n")
+					TEXT(";WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n")
+					TEXT("\n")
+					TEXT("; Text shown in-game to the player in the disconnected / kicked screen when\n")
+					TEXT("; they are kicked because they are not on the whitelist.\n")
+					TEXT("; Default: You are not on this server's whitelist. Contact the server admin to be added.\n")
+					TEXT("; Example: WhitelistKickReason=You are not whitelisted. DM an admin on Discord to request access.\n")
+					TEXT(";WhitelistKickReason=\n")
+					TEXT("\n")
+					TEXT("; Prefix that triggers whitelist management commands when typed in the\n")
+					TEXT("; Satisfactory in-game chat. Lets server admins manage the whitelist from\n")
+					TEXT("; inside the game without needing Discord. Set to an empty string to disable\n")
+					TEXT("; in-game whitelist commands.\n")
+					TEXT("; Supported commands (type in the Satisfactory in-game chat):\n")
+					TEXT(";   !whitelist on            - enable the whitelist\n")
+					TEXT(";   !whitelist off           - disable the whitelist (all players can join)\n")
+					TEXT(";   !whitelist add <name>    - add a player by in-game name\n")
+					TEXT(";   !whitelist remove <name> - remove a player by in-game name\n")
+					TEXT(";   !whitelist list          - list all whitelisted players\n")
+					TEXT(";   !whitelist status        - show current whitelist and ban system state\n")
+					TEXT("; Note: in-game whitelist commands do not support role management\n")
+					TEXT("; (!whitelist role add/remove), which is available from Discord only.\n")
+					TEXT("; Default: !whitelist\n")
+					TEXT(";InGameWhitelistCommandPrefix=!whitelist\n");
+
+				if (FFileHelper::SaveStringToFile(WhitelistDefaultContent, *WhitelistFilePath))
+				{
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Wrote annotated whitelist template to '%s'. "
+					            "Uncomment and fill in settings you need, then restart the server."),
+					       *WhitelistFilePath);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Could not write annotated whitelist template to '%s'."),
+					       *WhitelistFilePath);
+				}
+			}
 		}
 
 		// ── Ban ───────────────────────────────────────────────────────────────
@@ -781,6 +910,131 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					UE_LOG(LogTemp, Warning,
 					       TEXT("DiscordBridge: Ban config was reset but could not restore from '%s'."),
 					       *BanBackupFilePath);
+				}
+			}
+			else
+			{
+				// File exists but has no user-set settings and no backup.
+				// This happens when Alpakit strips ';' comments during packaging,
+				// leaving a comment-free file with no setup instructions.
+				// Rewrite with the full annotated template so operators can see
+				// and understand all available settings.
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Ban config at '%s' has no settings "
+				            "(comments were stripped during packaging). "
+				            "Rewriting with annotated template."), *BanFilePath);
+
+				const FString BanDefaultContent =
+					TEXT("[DiscordBridge]\n")
+					TEXT("; DiscordBridge - Ban System Configuration (Optional Override File)\n")
+					TEXT("; =================================================================\n")
+					TEXT("; 1. Remove the leading ';' from each setting you want to enable below.\n")
+					TEXT("; 2. Fill in the value after the '='.\n")
+					TEXT("; 3. Restart the server. Settings here take priority over built-in defaults.\n")
+					TEXT("; Backup: <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeBan.ini (auto-saved)\n")
+					TEXT(";   The mod writes a backup of your ban settings here automatically so they\n")
+					TEXT(";   survive mod updates that reset this file. The backup is only written when at\n")
+					TEXT(";   least one setting below is uncommented (active).\n")
+					TEXT("; All other settings (connection, chat, whitelist, etc.) are in DefaultDiscordBridge.ini.\n")
+					TEXT("\n")
+					TEXT("; -- BAN SYSTEM ---------------------------------------------------------------\n")
+					TEXT("; Controls the built-in player ban system, manageable via Discord commands.\n")
+					TEXT("; Bans are stored in <ServerRoot>/FactoryGame/Saved/ServerBanlist.json and\n")
+					TEXT("; persist across server restarts automatically.\n")
+					TEXT("; Ban system and whitelist are INDEPENDENT (see DefaultDiscordBridgeWhitelist.ini).\n")
+					TEXT("; You can use either, both, or neither:\n")
+					TEXT(";   Ban only:  BanSystemEnabled=True,  WhitelistEnabled=False  (default)\n")
+					TEXT(";   Both:      BanSystemEnabled=True,  WhitelistEnabled=True\n")
+					TEXT(";   Neither:   BanSystemEnabled=False, WhitelistEnabled=False\n")
+					TEXT("\n")
+					TEXT("; Controls whether the ban system is active when the server starts.\n")
+					TEXT("; When True, players listed in ServerBanlist.json are kicked on join.\n")
+					TEXT("; When False, banned players can join freely (bans are not enforced).\n")
+					TEXT("; This value is applied on EVERY server restart - it is the authoritative\n")
+					TEXT("; toggle. Note: !ban on / !ban off Discord commands update the in-memory state\n")
+					TEXT("; for the current session only and do not override this config value.\n")
+					TEXT("; Default: True (ban list is enforced on every server start)\n")
+					TEXT(";BanSystemEnabled=True\n")
+					TEXT("\n")
+					TEXT("; Snowflake ID of the Discord role whose members are allowed to run !ban commands.\n")
+					TEXT("; When set, ONLY members who hold this role can issue !ban commands in the bridged\n")
+					TEXT("; Discord channel. When left empty, !ban commands are disabled for all Discord\n")
+					TEXT("; users (deny-by-default) until a role ID is provided.\n")
+					TEXT("; How to get the role ID: Discord Settings -> Advanced -> Developer Mode, then\n")
+					TEXT("; right-click the role in Server Settings -> Roles -> Copy Role ID.\n")
+					TEXT("; Example: BanCommandRoleId=987654321098765432\n")
+					TEXT(";BanCommandRoleId=\n")
+					TEXT("\n")
+					TEXT("; Prefix that triggers ban management commands when typed in the bridged Discord\n")
+					TEXT("; channel. Set to an empty string to disable Discord-based ban management.\n")
+					TEXT("; Supported commands (type in the bridged Discord channel):\n")
+					TEXT(";   !ban add <name>               - ban a player by in-game name\n")
+					TEXT(";   !ban remove <name>            - unban a player by in-game name\n")
+					TEXT(";   !ban list                     - list all banned players\n")
+					TEXT(";   !ban status                   - show current ban system and whitelist state\n")
+					TEXT(";   !ban on                       - enable the ban system for this session\n")
+					TEXT(";   !ban off                      - disable the ban system for this session\n")
+					TEXT(";   !ban role add <discord_id>    - grant the BanCommandRoleId role to a Discord user\n")
+					TEXT(";   !ban role remove <discord_id> - revoke the BanCommandRoleId role from a Discord user\n")
+					TEXT("; Default: !ban\n")
+					TEXT(";BanCommandPrefix=!ban\n")
+					TEXT("\n")
+					TEXT("; Snowflake ID of a dedicated Discord channel for ban management.\n")
+					TEXT("; Leave empty to disable the ban-only channel.\n")
+					TEXT("; How to get the channel ID: right-click the channel in Discord with Developer\n")
+					TEXT("; Mode enabled -> Copy Channel ID.\n")
+					TEXT("; Example: BanChannelId=567890123456789012\n")
+					TEXT(";BanChannelId=\n")
+					TEXT("\n")
+					TEXT("; Master on/off switch for the ban command interface.\n")
+					TEXT("; When True (default), !ban Discord and in-game commands are accepted (still\n")
+					TEXT("; gated by BanCommandRoleId). When False, all !ban commands are silently\n")
+					TEXT("; ignored while existing bans are STILL enforced on join (BanSystemEnabled is\n")
+					TEXT("; unaffected).\n")
+					TEXT("; Default: True\n")
+					TEXT(";BanCommandsEnabled=True\n")
+					TEXT("\n")
+					TEXT("; Message posted to the main Discord channel whenever a banned player tries to\n")
+					TEXT("; join and is kicked. Leave empty (delete the text after the =) to disable\n")
+					TEXT("; this notification.\n")
+					TEXT("; Available placeholder:\n")
+					TEXT(";   %PlayerName%  - the in-game name of the banned player who was kicked\n")
+					TEXT("; Example: BanKickDiscordMessage=:no_entry: **%PlayerName%** is banned and was removed.\n")
+					TEXT(";BanKickDiscordMessage=:hammer: **%PlayerName%** is banned from this server and was kicked.\n")
+					TEXT("\n")
+					TEXT("; Text shown in-game to the player in the disconnected / kicked screen when\n")
+					TEXT("; they are kicked because they are on the ban list.\n")
+					TEXT("; Default: You are banned from this server.\n")
+					TEXT("; Example: BanKickReason=You have been banned. Contact the server admin to appeal.\n")
+					TEXT(";BanKickReason=\n")
+					TEXT("\n")
+					TEXT("; Prefix that triggers ban management commands when typed in the Satisfactory\n")
+					TEXT("; in-game chat. Lets server admins manage bans from inside the game without\n")
+					TEXT("; needing Discord. Set to an empty string to disable in-game ban commands.\n")
+					TEXT("; Supported commands (type in the Satisfactory in-game chat):\n")
+					TEXT(";   !ban add <name>    - ban a player by in-game name\n")
+					TEXT(";   !ban remove <name> - unban a player by in-game name\n")
+					TEXT(";   !ban list          - list all banned players\n")
+					TEXT(";   !ban status        - show current ban system and whitelist state\n")
+					TEXT(";   !ban on            - enable the ban system for this session\n")
+					TEXT(";   !ban off           - disable the ban system for this session\n")
+					TEXT("; Note: in-game ban commands do not support role management (!ban role add/remove),\n")
+					TEXT("; which is available from Discord only.\n")
+					TEXT("; Default: !ban\n")
+					TEXT(";InGameBanCommandPrefix=!ban\n");
+
+				if (FFileHelper::SaveStringToFile(BanDefaultContent, *BanFilePath))
+				{
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Wrote annotated ban template to '%s'. "
+					            "Uncomment and fill in settings you need, then restart the server."),
+					       *BanFilePath);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Could not write annotated ban template to '%s'."),
+					       *BanFilePath);
 				}
 			}
 		}
