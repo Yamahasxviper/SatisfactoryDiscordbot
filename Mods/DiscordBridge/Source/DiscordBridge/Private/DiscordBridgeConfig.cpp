@@ -719,6 +719,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 				const FString WhitelistDefaultContent =
 					TEXT("[DiscordBridge]\n")
+					TEXT("Note=Uncomment settings below and restart the server. All settings are optional.\n")
 					TEXT("; DiscordBridge - Whitelist Configuration (Optional Override File)\n")
 					TEXT("; ================================================================\n")
 					TEXT("; 1. Remove the leading ';' from each setting you want to enable below.\n")
@@ -926,6 +927,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 				const FString BanDefaultContent =
 					TEXT("[DiscordBridge]\n")
+					TEXT("Note=Uncomment settings below and restart the server. All settings are optional.\n")
 					TEXT("; DiscordBridge - Ban System Configuration (Optional Override File)\n")
 					TEXT("; =================================================================\n")
 					TEXT("; 1. Remove the leading ';' from each setting you want to enable below.\n")
