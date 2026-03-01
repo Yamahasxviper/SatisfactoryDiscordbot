@@ -6,12 +6,19 @@
 #include "Async/Async.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
+#include "Math/UnrealMathUtility.h"
 #include "Misc/Base64.h"
+#include "Misc/SecureHash.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "IPAddress.h"
 
-// OpenSSL headers (available via the OpenSSL Unreal module)
+// OpenSSL headers are only available – and only needed – on the two
+// server platforms that Satisfactory supports (Win64 and Linux).  The SSL and
+// OpenSSL UBT modules are only added for those platforms in Build.cs, so the
+// headers and all OpenSSL API calls must be guarded by the same condition to
+// prevent compile errors on any other platform.
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 // UE's Slate/InputCore declares `namespace UI {}` at global scope.  OpenSSL's
 // ossl_typ.h (line 144) also declares `typedef struct ui_st UI` at global scope.
 // On MSVC this produces error C2365 ("redefinition; previous definition was
@@ -34,11 +41,11 @@ THIRD_PARTY_INCLUDES_START
 #define UI UI_OSSLRenamed
 #include "openssl/ssl.h"
 #include "openssl/err.h"
-#include "openssl/sha.h"
 #include "openssl/rand.h"
 #include "openssl/bio.h"
 #pragma pop_macro("UI")
 THIRD_PARTY_INCLUDES_END
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WebSocket opcodes (RFC 6455 §5.2)
@@ -284,11 +291,14 @@ uint32 FSMLWebSocketRunnable::Run()
 
 			// Poll for incoming data (short timeout keeps the loop responsive).
 			bool bDataAvailable = false;
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 			if (bUseSsl && SslInstance && SSL_pending(SslInstance) > 0)
 			{
 				bDataAvailable = true;
 			}
-			else if (Socket)
+			else
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
+			if (Socket)
 			{
 				bDataAvailable = Socket->Wait(ESocketWaitConditions::WaitForRead,
 				                              FTimespan::FromMilliseconds(PollIntervalMs));
@@ -453,8 +463,10 @@ bool FSMLWebSocketRunnable::ResolveAndConnect(const FString& Host, int32 Port)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OpenSSL helpers
+// OpenSSL helpers (Win64 and Linux only – guarded by PLATFORM_WINDOWS || PLATFORM_LINUX)
 // ─────────────────────────────────────────────────────────────────────────────
+
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 
 bool FSMLWebSocketRunnable::InitSslContext()
 {
@@ -692,6 +704,22 @@ bool FSMLWebSocketRunnable::SslWrite(const uint8* Data, int32 DataSize)
 	return true;
 }
 
+#else // PLATFORM_WINDOWS || PLATFORM_LINUX
+
+// ── Stub implementations for platforms without OpenSSL ───────────────────────
+// These are never called at runtime on such platforms (bUseSsl is always false),
+// but must exist so the translation unit compiles without errors.
+
+bool FSMLWebSocketRunnable::InitSslContext()         { return false; }
+void FSMLWebSocketRunnable::DestroySsl()             {}
+bool FSMLWebSocketRunnable::PerformSslHandshake(const FString&) { return false; }
+bool FSMLWebSocketRunnable::FlushSslWriteBio()       { return false; }
+bool FSMLWebSocketRunnable::FeedSslReadBio()         { return false; }
+int32 FSMLWebSocketRunnable::SslRead(uint8*, int32)  { return -1; }
+bool FSMLWebSocketRunnable::SslWrite(const uint8*, int32) { return false; }
+
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Raw socket helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -914,7 +942,17 @@ bool FSMLWebSocketRunnable::SendWsFrame(uint8 Opcode, const uint8* Data, int32 D
 
 	// Generate 4-byte masking key
 	uint8 MaskKey[4];
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	RAND_bytes(MaskKey, static_cast<int>(sizeof(MaskKey)));
+#else
+	// Use FMath::Rand() as a platform-independent fallback on non-SSL platforms.
+	// RFC 6455 recommends cryptographic randomness, but ws:// over non-SSL builds
+	// is not used in practice for Satisfactory.
+	{
+		const uint32 R = static_cast<uint32>(FMath::Rand());
+		FMemory::Memcpy(MaskKey, &R, sizeof(MaskKey));
+	}
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
 
 	// Byte 1+: payload length with mask bit set
 	if (DataSize <= 125)
@@ -1154,7 +1192,15 @@ void FSMLWebSocketRunnable::FlushOutboundQueue()
 FString FSMLWebSocketRunnable::GenerateWebSocketKey()
 {
 	uint8 RawKey[16];
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	RAND_bytes(RawKey, static_cast<int>(sizeof(RawKey)));
+#else
+	for (int32 i = 0; i < 4; ++i)
+	{
+		const uint32 R = static_cast<uint32>(FMath::Rand());
+		FMemory::Memcpy(RawKey + i * 4, &R, 4);
+	}
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
 	return FBase64::Encode(RawKey, static_cast<int32>(sizeof(RawKey)));
 }
 
@@ -1165,12 +1211,13 @@ FString FSMLWebSocketRunnable::ComputeAcceptKey(const FString& ClientKey)
 	const FString Concat = ClientKey + WsGuid;
 
 	const FTCHARToUTF8 Utf8(*Concat);
-	uint8 Hash[SHA_DIGEST_LENGTH];
-	SHA1(reinterpret_cast<const uint8*>(Utf8.Get()),
-	     static_cast<size_t>(Utf8.Length()),
-	     Hash);
+	// FSHA1::HashBuffer is Unreal's built-in, platform-independent SHA1 implementation.
+	// It avoids any direct OpenSSL dependency for this computation.
+	static constexpr int32 Sha1HashSize = 20; // SHA1 always produces a 20-byte digest
+	uint8 Hash[Sha1HashSize];
+	FSHA1::HashBuffer(Utf8.Get(), Utf8.Length(), Hash);
 
-	return FBase64::Encode(Hash, SHA_DIGEST_LENGTH);
+	return FBase64::Encode(Hash, Sha1HashSize);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
