@@ -18,6 +18,35 @@ server restarts automatically.
 
 ---
 
+## Separate ban config file (optional)
+
+All ban settings can be kept in their own dedicated file instead of (or in addition to)
+`DefaultDiscordBridge.ini`:
+
+```
+<ServerRoot>/FactoryGame/Mods/DiscordBridge/Config/DefaultDiscordBridgeBan.ini
+```
+
+This file ships with the mod as an all-commented-out template. To use it:
+
+1. Open `DefaultDiscordBridgeBan.ini`.
+2. Uncomment (remove the leading `;`) any setting you want to manage separately.
+3. Set the value.
+4. Restart the server.
+
+Any setting defined in `DefaultDiscordBridgeBan.ini` takes priority over the same setting
+in `DefaultDiscordBridge.ini`.
+
+**Do I still need the ban settings in `DefaultDiscordBridge.ini`?**
+
+No. When `DefaultDiscordBridgeBan.ini` exists, you can safely remove or comment out
+the entire `; -- BAN SYSTEM` section from `DefaultDiscordBridge.ini`. The mod will use
+the values in the separate file, falling back to built-in defaults for anything that is
+commented out in that file. The mod will also stop automatically re-adding those sections
+to `DefaultDiscordBridge.ini` during upgrades once it detects the separate file is present.
+
+---
+
 ## Settings
 
 ### `BanSystemEnabled`
