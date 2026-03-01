@@ -1107,38 +1107,29 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 	// primary files (DefaultDiscordBridgeWhitelist.ini / DefaultDiscordBridgeBan.ini).
 	{
 		// ── DiscordBridge.ini: connection, chat and presence only ─────────────
-		FString BackupContent = FString::Printf(
-			TEXT("[DiscordBridge]\n")
-			TEXT("; Auto-generated backup of %s\n")
-			TEXT("; This file is read automatically when the primary config is missing credentials.\n")
-			TEXT("; Whitelist and ban settings are in their own backup files:\n")
-			TEXT(";   DiscordBridgeWhitelist.ini  – whitelist settings\n")
-			TEXT(";   DiscordBridgeBan.ini         – ban system settings\n")
-			TEXT("BotToken=%s\n")
-			TEXT("ChannelId=%s\n")
-			TEXT("ServerName=%s\n")
-			TEXT("GameToDiscordFormat=%s\n")
-			TEXT("DiscordToGameFormat=%s\n")
-			TEXT("IgnoreBotMessages=%s\n")
-			TEXT("ServerOnlineMessage=%s\n")
-			TEXT("ServerOfflineMessage=%s\n")
-			TEXT("ShowPlayerCountInPresence=%s\n")
-			TEXT("PlayerCountPresenceFormat=%s\n")
-			TEXT("PlayerCountUpdateIntervalSeconds=%s\n")
-			TEXT("PlayerCountActivityType=%d\n"),
-			*ModFilePath,
-			*Config.BotToken,
-			*Config.ChannelId,
-			*Config.ServerName,
-			*Config.GameToDiscordFormat,
-			*Config.DiscordToGameFormat,
-			Config.bIgnoreBotMessages ? TEXT("True") : TEXT("False"),
-			*Config.ServerOnlineMessage,
-			*Config.ServerOfflineMessage,
-			Config.bShowPlayerCountInPresence ? TEXT("True") : TEXT("False"),
-			*Config.PlayerCountPresenceFormat,
-			*FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds),
-			Config.PlayerCountActivityType);
+		// NOTE: String concatenation is used intentionally instead of FString::Printf
+		// to prevent user-configured values that contain '%' characters (e.g.
+		// %PlayerName%, %Message%, %PlayerCount%) from being misinterpreted as
+		// printf format specifiers, which would corrupt the written file.
+		const FString BackupContent =
+			FString(TEXT("[DiscordBridge]\n"))
+			+ TEXT("; Auto-generated backup of ") + ModFilePath + TEXT("\n")
+			+ TEXT("; This file is read automatically when the primary config is missing credentials.\n")
+			+ TEXT("; Whitelist and ban settings are in their own backup files:\n")
+			+ TEXT(";   DiscordBridgeWhitelist.ini  - whitelist settings\n")
+			+ TEXT(";   DiscordBridgeBan.ini         - ban system settings\n")
+			+ TEXT("BotToken=") + Config.BotToken + TEXT("\n")
+			+ TEXT("ChannelId=") + Config.ChannelId + TEXT("\n")
+			+ TEXT("ServerName=") + Config.ServerName + TEXT("\n")
+			+ TEXT("GameToDiscordFormat=") + Config.GameToDiscordFormat + TEXT("\n")
+			+ TEXT("DiscordToGameFormat=") + Config.DiscordToGameFormat + TEXT("\n")
+			+ TEXT("IgnoreBotMessages=") + (Config.bIgnoreBotMessages ? TEXT("True") : TEXT("False")) + TEXT("\n")
+			+ TEXT("ServerOnlineMessage=") + Config.ServerOnlineMessage + TEXT("\n")
+			+ TEXT("ServerOfflineMessage=") + Config.ServerOfflineMessage + TEXT("\n")
+			+ TEXT("ShowPlayerCountInPresence=") + (Config.bShowPlayerCountInPresence ? TEXT("True") : TEXT("False")) + TEXT("\n")
+			+ TEXT("PlayerCountPresenceFormat=") + Config.PlayerCountPresenceFormat + TEXT("\n")
+			+ TEXT("PlayerCountUpdateIntervalSeconds=") + FString::SanitizeFloat(Config.PlayerCountUpdateIntervalSeconds) + TEXT("\n")
+			+ TEXT("PlayerCountActivityType=") + FString::FromInt(Config.PlayerCountActivityType) + TEXT("\n");
 
 		PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BackupFilePath));
 
@@ -1170,26 +1161,21 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		// and always have their own restorable backup for mod updates.
 		{
 			const FString WLBackupPath = GetWhitelistBackupConfigFilePath();
-			const FString WLBackupContent = FString::Printf(
-				TEXT("[DiscordBridge]\n")
-				TEXT("; Auto-generated backup of whitelist settings\n")
-				TEXT("; Restored automatically when DefaultDiscordBridgeWhitelist.ini is reset by a mod update.\n")
-				TEXT("WhitelistEnabled=%s\n")
-				TEXT("WhitelistCommandRoleId=%s\n")
-				TEXT("WhitelistCommandPrefix=%s\n")
-				TEXT("WhitelistRoleId=%s\n")
-				TEXT("WhitelistChannelId=%s\n")
-				TEXT("WhitelistKickDiscordMessage=%s\n")
-				TEXT("WhitelistKickReason=%s\n")
-				TEXT("InGameWhitelistCommandPrefix=%s\n"),
-				Config.bWhitelistEnabled ? TEXT("True") : TEXT("False"),
-				*Config.WhitelistCommandRoleId,
-				*Config.WhitelistCommandPrefix,
-				*Config.WhitelistRoleId,
-				*Config.WhitelistChannelId,
-				*Config.WhitelistKickDiscordMessage,
-				*Config.WhitelistKickReason,
-				*Config.InGameWhitelistCommandPrefix);
+			// NOTE: String concatenation used instead of FString::Printf to prevent
+			// '%' characters in user strings (e.g. %PlayerName%) from being treated
+			// as printf format specifiers and corrupting the written file.
+			const FString WLBackupContent =
+				FString(TEXT("[DiscordBridge]\n"))
+				+ TEXT("; Auto-generated backup of whitelist settings\n")
+				+ TEXT("; Restored automatically when DefaultDiscordBridgeWhitelist.ini is reset by a mod update.\n")
+				+ TEXT("WhitelistEnabled=") + (Config.bWhitelistEnabled ? TEXT("True") : TEXT("False")) + TEXT("\n")
+				+ TEXT("WhitelistCommandRoleId=") + Config.WhitelistCommandRoleId + TEXT("\n")
+				+ TEXT("WhitelistCommandPrefix=") + Config.WhitelistCommandPrefix + TEXT("\n")
+				+ TEXT("WhitelistRoleId=") + Config.WhitelistRoleId + TEXT("\n")
+				+ TEXT("WhitelistChannelId=") + Config.WhitelistChannelId + TEXT("\n")
+				+ TEXT("WhitelistKickDiscordMessage=") + Config.WhitelistKickDiscordMessage + TEXT("\n")
+				+ TEXT("WhitelistKickReason=") + Config.WhitelistKickReason + TEXT("\n")
+				+ TEXT("InGameWhitelistCommandPrefix=") + Config.InGameWhitelistCommandPrefix + TEXT("\n");
 
 			PlatformFile.CreateDirectoryTree(*FPaths::GetPath(WLBackupPath));
 			if (FFileHelper::SaveStringToFile(WLBackupContent, *WLBackupPath))
@@ -1211,26 +1197,21 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		// and always have their own restorable backup for mod updates.
 		{
 			const FString BanBackupPath = GetBanBackupConfigFilePath();
-			const FString BanBackupContent = FString::Printf(
-				TEXT("[DiscordBridge]\n")
-				TEXT("; Auto-generated backup of ban system settings\n")
-				TEXT("; Restored automatically when DefaultDiscordBridgeBan.ini is reset by a mod update.\n")
-				TEXT("BanSystemEnabled=%s\n")
-				TEXT("BanCommandRoleId=%s\n")
-				TEXT("BanCommandPrefix=%s\n")
-				TEXT("BanChannelId=%s\n")
-				TEXT("BanCommandsEnabled=%s\n")
-				TEXT("BanKickDiscordMessage=%s\n")
-				TEXT("BanKickReason=%s\n")
-				TEXT("InGameBanCommandPrefix=%s\n"),
-				Config.bBanSystemEnabled ? TEXT("True") : TEXT("False"),
-				*Config.BanCommandRoleId,
-				*Config.BanCommandPrefix,
-				*Config.BanChannelId,
-				Config.bBanCommandsEnabled ? TEXT("True") : TEXT("False"),
-				*Config.BanKickDiscordMessage,
-				*Config.BanKickReason,
-				*Config.InGameBanCommandPrefix);
+			// NOTE: String concatenation used instead of FString::Printf to prevent
+			// '%' characters in user strings (e.g. %PlayerName%) from being treated
+			// as printf format specifiers and corrupting the written file.
+			const FString BanBackupContent =
+				FString(TEXT("[DiscordBridge]\n"))
+				+ TEXT("; Auto-generated backup of ban system settings\n")
+				+ TEXT("; Restored automatically when DefaultDiscordBridgeBan.ini is reset by a mod update.\n")
+				+ TEXT("BanSystemEnabled=") + (Config.bBanSystemEnabled ? TEXT("True") : TEXT("False")) + TEXT("\n")
+				+ TEXT("BanCommandRoleId=") + Config.BanCommandRoleId + TEXT("\n")
+				+ TEXT("BanCommandPrefix=") + Config.BanCommandPrefix + TEXT("\n")
+				+ TEXT("BanChannelId=") + Config.BanChannelId + TEXT("\n")
+				+ TEXT("BanCommandsEnabled=") + (Config.bBanCommandsEnabled ? TEXT("True") : TEXT("False")) + TEXT("\n")
+				+ TEXT("BanKickDiscordMessage=") + Config.BanKickDiscordMessage + TEXT("\n")
+				+ TEXT("BanKickReason=") + Config.BanKickReason + TEXT("\n")
+				+ TEXT("InGameBanCommandPrefix=") + Config.InGameBanCommandPrefix + TEXT("\n");
 
 			PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BanBackupPath));
 			if (FFileHelper::SaveStringToFile(BanBackupContent, *BanBackupPath))
