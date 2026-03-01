@@ -653,19 +653,53 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			FConfigFile WhitelistConfigFile;
 			WhitelistConfigFile.Read(WhitelistFilePath);
 
-			// Detect whether the file has any user-set (uncommented) keys.
-			// The shipped template has all entries commented out, so if a mod
-			// update has reset the file none of these GetString calls succeed.
+			// Detect whether the file contains any setting that differs from the
+			// shipped default values.  The shipped template shows all settings as
+			// visible (uncommented) defaults so a simple key-presence check is no
+			// longer sufficient – a mod update that resets the file restores those
+			// same defaults, which would look identical to an uncustomised file.
+			// We therefore compare each value against the known shipped default and
+			// treat the file as "user customised" only when at least one value
+			// actually diverges.
 			FString TmpCheck;
-			const bool bWhitelistHasUserSettings =
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistEnabled"),             TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandRoleId"),       TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandPrefix"),       TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistRoleId"),              TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistChannelId"),           TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickDiscordMessage"),  TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickReason"),          TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("InGameWhitelistCommandPrefix"), TmpCheck);
+			bool bWhitelistHasUserSettings = false;
+
+			// WhitelistEnabled=True differs from the shipped default (False).
+			if (!bWhitelistHasUserSettings)
+			{
+				bool bVal = false;
+				if (WhitelistConfigFile.GetBool(ConfigSection, TEXT("WhitelistEnabled"), bVal) && bVal)
+					bWhitelistHasUserSettings = true;
+			}
+			// Non-empty IDs are always operator-supplied (shipped defaults are empty).
+			if (!bWhitelistHasUserSettings &&
+			    WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandRoleId"), TmpCheck) && !TmpCheck.IsEmpty())
+				bWhitelistHasUserSettings = true;
+			if (!bWhitelistHasUserSettings &&
+			    WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistRoleId"), TmpCheck) && !TmpCheck.IsEmpty())
+				bWhitelistHasUserSettings = true;
+			if (!bWhitelistHasUserSettings &&
+			    WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistChannelId"), TmpCheck) && !TmpCheck.IsEmpty())
+				bWhitelistHasUserSettings = true;
+			// Prefixes that differ from the shipped default are operator-set.
+			if (!bWhitelistHasUserSettings &&
+			    WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandPrefix"), TmpCheck) &&
+			    TmpCheck != TEXT("!whitelist"))
+				bWhitelistHasUserSettings = true;
+			if (!bWhitelistHasUserSettings &&
+			    WhitelistConfigFile.GetString(ConfigSection, TEXT("InGameWhitelistCommandPrefix"), TmpCheck) &&
+			    TmpCheck != TEXT("!whitelist"))
+				bWhitelistHasUserSettings = true;
+			// Non-empty kick reason means the operator supplied a custom message
+			// (shipped default is empty, which lets the C++ fallback message apply).
+			if (!bWhitelistHasUserSettings &&
+			    WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickReason"), TmpCheck) && !TmpCheck.IsEmpty())
+				bWhitelistHasUserSettings = true;
+			// Kick message that differs from the shipped default string.
+			if (!bWhitelistHasUserSettings &&
+			    WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickDiscordMessage"), TmpCheck) &&
+			    TmpCheck != TEXT(":boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked."))
+				bWhitelistHasUserSettings = true;
 
 			if (bWhitelistHasUserSettings)
 			{
@@ -715,13 +749,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			}
 			else
 			{
-				// File exists but has no user-set settings and no backup.
-				// This happens when Alpakit strips ';' comments during packaging,
-				// leaving a comment-free file with no setup instructions.
-				// Rewrite with the full annotated template so operators can see
-				// and understand all available settings.
+				// File exists but all settings are at their shipped defaults, and no
+			// backup exists.  This happens when Alpakit strips ';' comments during
+			// packaging, leaving a comment-free file with visible default values.
+			// Rewrite with the full annotated template (visible defaults + comments)
+			// so operators understand what each setting does.
 				UE_LOG(LogTemp, Log,
-				       TEXT("DiscordBridge: Whitelist config at '%s' has no settings "
+				       TEXT("DiscordBridge: Whitelist config at '%s' has no customised settings "
 				            "(comments were stripped during packaging). "
 				            "Rewriting with annotated template."), *WhitelistFilePath);
 
@@ -729,13 +763,12 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("[DiscordBridge]\n")
 					TEXT("; DiscordBridge - Whitelist Configuration (Optional Override File)\n")
 					TEXT("; ================================================================\n")
-					TEXT("; 1. Remove the leading ';' from each setting you want to enable below.\n")
-					TEXT("; 2. Fill in the value after the '='.\n")
-					TEXT("; 3. Restart the server. Settings here take priority over built-in defaults.\n")
+					TEXT("; 1. Change any values below to customise the whitelist settings.\n")
+					TEXT("; 2. Restart the server. Settings here take priority over built-in defaults.\n")
 					TEXT("; Backup: <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeWhitelist.ini (auto-saved)\n")
 					TEXT(";   The mod writes a backup of your whitelist settings here automatically so they\n")
-					TEXT(";   survive mod updates that reset this file. The backup is only written when at\n")
-					TEXT(";   least one setting below is uncommented (active).\n")
+					TEXT(";   survive mod updates that reset this file. A backup is only written when at\n")
+					TEXT(";   least one setting below differs from its default value.\n")
 					TEXT("; All other settings (connection, chat, ban system, etc.) are in DefaultDiscordBridge.ini.\n")
 					TEXT("\n")
 					TEXT("; -- WHITELIST ----------------------------------------------------------------\n")
@@ -756,7 +789,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; toggle. Note: !whitelist on / !whitelist off Discord commands update the\n")
 					TEXT("; in-memory state for the current session only and do not override this value.\n")
 					TEXT("; Default: False\n")
-					TEXT(";WhitelistEnabled=False\n")
+					TEXT("WhitelistEnabled=False\n")
 					TEXT("\n")
 					TEXT("; Snowflake ID of the Discord role whose members are allowed to run !whitelist\n")
 					TEXT("; commands. When set, ONLY members who hold this role can issue !whitelist\n")
@@ -767,7 +800,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; How to get the role ID: Discord Settings -> Advanced -> Developer Mode, then\n")
 					TEXT("; right-click the role in Server Settings -> Roles -> Copy Role ID.\n")
 					TEXT("; Example: WhitelistCommandRoleId=123456789012345678\n")
-					TEXT(";WhitelistCommandRoleId=\n")
+					TEXT("WhitelistCommandRoleId=\n")
 					TEXT("\n")
 					TEXT("; Prefix that triggers whitelist management commands when typed in the bridged\n")
 					TEXT("; Discord channel. Set to an empty string to disable Discord-based whitelist\n")
@@ -782,21 +815,21 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT(";   !whitelist role add <discord_id>    - grant the WhitelistRoleId role to a Discord user\n")
 					TEXT(";   !whitelist role remove <discord_id> - revoke the WhitelistRoleId role from a Discord user\n")
 					TEXT("; Default: !whitelist\n")
-					TEXT(";WhitelistCommandPrefix=!whitelist\n")
+					TEXT("WhitelistCommandPrefix=!whitelist\n")
 					TEXT("\n")
 					TEXT("; Snowflake ID of the Discord role used to identify whitelisted members.\n")
 					TEXT("; Leave empty to disable Discord role integration.\n")
 					TEXT("; How to get the role ID: Discord Settings -> Advanced -> Developer Mode, then\n")
 					TEXT("; right-click the role in Server Settings -> Roles -> Copy Role ID.\n")
 					TEXT("; Example: WhitelistRoleId=111222333444555666\n")
-					TEXT(";WhitelistRoleId=\n")
+					TEXT("WhitelistRoleId=\n")
 					TEXT("\n")
 					TEXT("; Snowflake ID of a dedicated Discord channel for whitelisted members.\n")
 					TEXT("; Leave empty to disable the whitelist-only channel.\n")
 					TEXT("; How to get the channel ID: right-click the channel in Discord with Developer\n")
 					TEXT("; Mode enabled -> Copy Channel ID.\n")
 					TEXT("; Example: WhitelistChannelId=222333444555666777\n")
-					TEXT(";WhitelistChannelId=\n")
+					TEXT("WhitelistChannelId=\n")
 					TEXT("\n")
 					TEXT("; Message posted to the main Discord channel whenever a non-whitelisted player\n")
 					TEXT("; tries to join and is kicked. Leave empty (delete the text after the =) to\n")
@@ -804,13 +837,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; Available placeholder:\n")
 					TEXT(";   %PlayerName%  - the in-game name of the player who was kicked\n")
 					TEXT("; Example: WhitelistKickDiscordMessage=:no_entry: **%PlayerName%** is not whitelisted and was removed.\n")
-					TEXT(";WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n")
+					TEXT("WhitelistKickDiscordMessage=:boot: **%PlayerName%** tried to join but is not on the whitelist and was kicked.\n")
 					TEXT("\n")
 					TEXT("; Text shown in-game to the player in the disconnected / kicked screen when\n")
 					TEXT("; they are kicked because they are not on the whitelist.\n")
 					TEXT("; Default: You are not on this server's whitelist. Contact the server admin to be added.\n")
 					TEXT("; Example: WhitelistKickReason=You are not whitelisted. DM an admin on Discord to request access.\n")
-					TEXT(";WhitelistKickReason=\n")
+					TEXT("WhitelistKickReason=\n")
 					TEXT("\n")
 					TEXT("; Prefix that triggers whitelist management commands when typed in the\n")
 					TEXT("; Satisfactory in-game chat. Lets server admins manage the whitelist from\n")
@@ -826,13 +859,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; Note: in-game whitelist commands do not support role management\n")
 					TEXT("; (!whitelist role add/remove), which is available from Discord only.\n")
 					TEXT("; Default: !whitelist\n")
-					TEXT(";InGameWhitelistCommandPrefix=!whitelist\n");
+					TEXT("InGameWhitelistCommandPrefix=!whitelist\n");
 
 				if (FFileHelper::SaveStringToFile(WhitelistDefaultContent, *WhitelistFilePath))
 				{
 					UE_LOG(LogTemp, Log,
 					       TEXT("DiscordBridge: Wrote annotated whitelist template to '%s'. "
-					            "Uncomment and fill in settings you need, then restart the server."),
+					            "Edit any values you need, then restart the server."),
 					       *WhitelistFilePath);
 				}
 				else
@@ -866,15 +899,48 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			BanConfigFile.Read(BanFilePath);
 
 			FString TmpCheck;
-			const bool bBanHasUserSettings =
-				BanConfigFile.GetString(ConfigSection, TEXT("BanSystemEnabled"),      TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandRoleId"),      TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandPrefix"),      TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanChannelId"),          TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandsEnabled"),    TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanKickDiscordMessage"), TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanKickReason"),         TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("InGameBanCommandPrefix"),TmpCheck);
+			bool bBanHasUserSettings = false;
+
+			// BanSystemEnabled=False differs from the shipped default (True).
+			if (!bBanHasUserSettings)
+			{
+				bool bVal = true;
+				if (BanConfigFile.GetBool(ConfigSection, TEXT("BanSystemEnabled"), bVal) && !bVal)
+					bBanHasUserSettings = true;
+			}
+			// BanCommandsEnabled=False differs from the shipped default (True).
+			if (!bBanHasUserSettings)
+			{
+				bool bVal = true;
+				if (BanConfigFile.GetBool(ConfigSection, TEXT("BanCommandsEnabled"), bVal) && !bVal)
+					bBanHasUserSettings = true;
+			}
+			// Non-empty IDs are always operator-supplied (shipped defaults are empty).
+			if (!bBanHasUserSettings &&
+			    BanConfigFile.GetString(ConfigSection, TEXT("BanCommandRoleId"), TmpCheck) && !TmpCheck.IsEmpty())
+				bBanHasUserSettings = true;
+			if (!bBanHasUserSettings &&
+			    BanConfigFile.GetString(ConfigSection, TEXT("BanChannelId"), TmpCheck) && !TmpCheck.IsEmpty())
+				bBanHasUserSettings = true;
+			// Prefixes that differ from the shipped default are operator-set.
+			if (!bBanHasUserSettings &&
+			    BanConfigFile.GetString(ConfigSection, TEXT("BanCommandPrefix"), TmpCheck) &&
+			    TmpCheck != TEXT("!ban"))
+				bBanHasUserSettings = true;
+			if (!bBanHasUserSettings &&
+			    BanConfigFile.GetString(ConfigSection, TEXT("InGameBanCommandPrefix"), TmpCheck) &&
+			    TmpCheck != TEXT("!ban"))
+				bBanHasUserSettings = true;
+			// Non-empty kick reason means the operator supplied a custom message
+			// (shipped default is empty, which lets the C++ fallback message apply).
+			if (!bBanHasUserSettings &&
+			    BanConfigFile.GetString(ConfigSection, TEXT("BanKickReason"), TmpCheck) && !TmpCheck.IsEmpty())
+				bBanHasUserSettings = true;
+			// Kick message that differs from the shipped default string.
+			if (!bBanHasUserSettings &&
+			    BanConfigFile.GetString(ConfigSection, TEXT("BanKickDiscordMessage"), TmpCheck) &&
+			    TmpCheck != TEXT(":hammer: **%PlayerName%** is banned from this server and was kicked."))
+				bBanHasUserSettings = true;
 
 			if (bBanHasUserSettings)
 			{
@@ -924,13 +990,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			}
 			else
 			{
-				// File exists but has no user-set settings and no backup.
-				// This happens when Alpakit strips ';' comments during packaging,
-				// leaving a comment-free file with no setup instructions.
-				// Rewrite with the full annotated template so operators can see
-				// and understand all available settings.
+				// File exists but all settings are at their shipped defaults, and no
+			// backup exists.  This happens when Alpakit strips ';' comments during
+			// packaging, leaving a comment-free file with visible default values.
+			// Rewrite with the full annotated template (visible defaults + comments)
+			// so operators understand what each setting does.
 				UE_LOG(LogTemp, Log,
-				       TEXT("DiscordBridge: Ban config at '%s' has no settings "
+				       TEXT("DiscordBridge: Ban config at '%s' has no customised settings "
 				            "(comments were stripped during packaging). "
 				            "Rewriting with annotated template."), *BanFilePath);
 
@@ -938,13 +1004,12 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("[DiscordBridge]\n")
 					TEXT("; DiscordBridge - Ban System Configuration (Optional Override File)\n")
 					TEXT("; =================================================================\n")
-					TEXT("; 1. Remove the leading ';' from each setting you want to enable below.\n")
-					TEXT("; 2. Fill in the value after the '='.\n")
-					TEXT("; 3. Restart the server. Settings here take priority over built-in defaults.\n")
+					TEXT("; 1. Change any values below to customise the ban system settings.\n")
+					TEXT("; 2. Restart the server. Settings here take priority over built-in defaults.\n")
 					TEXT("; Backup: <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeBan.ini (auto-saved)\n")
 					TEXT(";   The mod writes a backup of your ban settings here automatically so they\n")
-					TEXT(";   survive mod updates that reset this file. The backup is only written when at\n")
-					TEXT(";   least one setting below is uncommented (active).\n")
+					TEXT(";   survive mod updates that reset this file. A backup is only written when at\n")
+					TEXT(";   least one setting below differs from its default value.\n")
 					TEXT("; All other settings (connection, chat, whitelist, etc.) are in DefaultDiscordBridge.ini.\n")
 					TEXT("\n")
 					TEXT("; -- BAN SYSTEM ---------------------------------------------------------------\n")
@@ -964,7 +1029,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; toggle. Note: !ban on / !ban off Discord commands update the in-memory state\n")
 					TEXT("; for the current session only and do not override this config value.\n")
 					TEXT("; Default: True (ban list is enforced on every server start)\n")
-					TEXT(";BanSystemEnabled=True\n")
+					TEXT("BanSystemEnabled=True\n")
 					TEXT("\n")
 					TEXT("; Snowflake ID of the Discord role whose members are allowed to run !ban commands.\n")
 					TEXT("; When set, ONLY members who hold this role can issue !ban commands in the bridged\n")
@@ -973,7 +1038,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; How to get the role ID: Discord Settings -> Advanced -> Developer Mode, then\n")
 					TEXT("; right-click the role in Server Settings -> Roles -> Copy Role ID.\n")
 					TEXT("; Example: BanCommandRoleId=987654321098765432\n")
-					TEXT(";BanCommandRoleId=\n")
+					TEXT("BanCommandRoleId=\n")
 					TEXT("\n")
 					TEXT("; Prefix that triggers ban management commands when typed in the bridged Discord\n")
 					TEXT("; channel. Set to an empty string to disable Discord-based ban management.\n")
@@ -987,14 +1052,14 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT(";   !ban role add <discord_id>    - grant the BanCommandRoleId role to a Discord user\n")
 					TEXT(";   !ban role remove <discord_id> - revoke the BanCommandRoleId role from a Discord user\n")
 					TEXT("; Default: !ban\n")
-					TEXT(";BanCommandPrefix=!ban\n")
+					TEXT("BanCommandPrefix=!ban\n")
 					TEXT("\n")
 					TEXT("; Snowflake ID of a dedicated Discord channel for ban management.\n")
 					TEXT("; Leave empty to disable the ban-only channel.\n")
 					TEXT("; How to get the channel ID: right-click the channel in Discord with Developer\n")
 					TEXT("; Mode enabled -> Copy Channel ID.\n")
 					TEXT("; Example: BanChannelId=567890123456789012\n")
-					TEXT(";BanChannelId=\n")
+					TEXT("BanChannelId=\n")
 					TEXT("\n")
 					TEXT("; Master on/off switch for the ban command interface.\n")
 					TEXT("; When True (default), !ban Discord and in-game commands are accepted (still\n")
@@ -1002,7 +1067,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; ignored while existing bans are STILL enforced on join (BanSystemEnabled is\n")
 					TEXT("; unaffected).\n")
 					TEXT("; Default: True\n")
-					TEXT(";BanCommandsEnabled=True\n")
+					TEXT("BanCommandsEnabled=True\n")
 					TEXT("\n")
 					TEXT("; Message posted to the main Discord channel whenever a banned player tries to\n")
 					TEXT("; join and is kicked. Leave empty (delete the text after the =) to disable\n")
@@ -1010,13 +1075,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; Available placeholder:\n")
 					TEXT(";   %PlayerName%  - the in-game name of the banned player who was kicked\n")
 					TEXT("; Example: BanKickDiscordMessage=:no_entry: **%PlayerName%** is banned and was removed.\n")
-					TEXT(";BanKickDiscordMessage=:hammer: **%PlayerName%** is banned from this server and was kicked.\n")
+					TEXT("BanKickDiscordMessage=:hammer: **%PlayerName%** is banned from this server and was kicked.\n")
 					TEXT("\n")
 					TEXT("; Text shown in-game to the player in the disconnected / kicked screen when\n")
 					TEXT("; they are kicked because they are on the ban list.\n")
 					TEXT("; Default: You are banned from this server.\n")
 					TEXT("; Example: BanKickReason=You have been banned. Contact the server admin to appeal.\n")
-					TEXT(";BanKickReason=\n")
+					TEXT("BanKickReason=\n")
 					TEXT("\n")
 					TEXT("; Prefix that triggers ban management commands when typed in the Satisfactory\n")
 					TEXT("; in-game chat. Lets server admins manage bans from inside the game without\n")
@@ -1031,13 +1096,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					TEXT("; Note: in-game ban commands do not support role management (!ban role add/remove),\n")
 					TEXT("; which is available from Discord only.\n")
 					TEXT("; Default: !ban\n")
-					TEXT(";InGameBanCommandPrefix=!ban\n");
+					TEXT("InGameBanCommandPrefix=!ban\n");
 
 				if (FFileHelper::SaveStringToFile(BanDefaultContent, *BanFilePath))
 				{
 					UE_LOG(LogTemp, Log,
 					       TEXT("DiscordBridge: Wrote annotated ban template to '%s'. "
-					            "Uncomment and fill in settings you need, then restart the server."),
+					            "Edit any values you need, then restart the server."),
 					       *BanFilePath);
 				}
 				else
