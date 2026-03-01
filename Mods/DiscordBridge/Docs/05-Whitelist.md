@@ -50,13 +50,10 @@ to `DefaultDiscordBridge.ini` during upgrades once it detects the separate file 
 
 ### `WhitelistEnabled`
 
-Sets the initial whitelist state on the **first** server start (when
-`ServerWhitelist.json` does not yet exist). After the first start the
-enabled/disabled state is saved in `ServerWhitelist.json` and survives restarts
-automatically — so `!whitelist on` / `!whitelist off` changes made from Discord
-truly persist.
+Controls whether the whitelist is active when the server starts.
+This setting is applied on **every** server restart — change it and restart the server to enable or disable the whitelist.
 
-To force-reset back to this config value: delete `ServerWhitelist.json` and restart the server.
+`!whitelist on` / `!whitelist off` Discord commands update the in-memory state for the current session only; the config setting takes effect again on the next restart.
 
 **Default:** `False` (all players can join)
 

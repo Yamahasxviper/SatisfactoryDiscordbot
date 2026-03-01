@@ -154,9 +154,39 @@ persist across server restarts automatically.
 Controls whether the ban system is active when the server starts.
 This setting is applied on **every** server restart — change it and restart the server to enable or disable ban enforcement.
 
-`!ban on` / `!ban off` Discord commands update the state for the current session but the config setting takes effect again on the next restart.
+`!ban on` / `!ban off` Discord commands update the in-memory state for the current session only; the config setting takes effect again on the next restart.
 
 **Default:** `True` (banned players are kicked on join)
+
+---
+
+#### `BanCommandRoleId`
+
+The snowflake ID of the Discord role whose members are allowed to run `!ban` management commands.
+
+**Default:** *(empty — !ban commands are disabled for all Discord users)*
+
+When set, **only members who hold this role** can run `!ban` commands. When left empty, `!ban` commands are fully disabled (deny-by-default).
+
+This role is also the one granted or revoked by `!ban role add/remove <discord_id>`. The bot must have the **Manage Roles** permission for those commands to work.
+
+**Example:**
+```ini
+BanCommandRoleId=987654321098765432
+```
+
+---
+
+#### `BanCommandsEnabled`
+
+Master on/off switch for the **ban command interface** — controls whether `!ban` Discord and in-game commands are accepted at all.
+
+**Default:** `True`
+
+| Value | Effect |
+|-------|--------|
+| `True` | `!ban` commands work normally (still gated by `BanCommandRoleId`) |
+| `False` | All `!ban` commands are silently ignored; existing bans are **still enforced** on join |
 
 ---
 
@@ -171,12 +201,30 @@ Set to an **empty string** to disable Discord-based ban management entirely.
 
 | Command | Effect |
 |---------|--------|
-| `!ban on` | Enable the ban system — kicked on join (persists across restarts) |
-| `!ban off` | Disable the ban system — banned players can join freely (persists across restarts) |
+| `!ban on` | Enable the ban system — kicked on join |
+| `!ban off` | Disable the ban system — banned players can join freely |
 | `!ban add <name>` | Ban a player by in-game name |
 | `!ban remove <name>` | Unban a player by in-game name |
 | `!ban list` | List all banned players and current enabled/disabled state |
-| `!ban status` | Show whether the ban system is currently enabled or disabled |
+| `!ban status` | Show the current enabled/disabled state of **both** the ban system and the whitelist |
+| `!ban role add <discord_id>` | Grant the `BanCommandRoleId` role to a Discord user |
+| `!ban role remove <discord_id>` | Revoke the `BanCommandRoleId` role from a Discord user |
+
+---
+
+#### `BanChannelId`
+
+The snowflake ID of a **dedicated Discord channel** for ban management.
+Leave **empty** to disable the ban-only channel.
+
+**Default:** *(empty)*
+
+When set, `!ban` commands issued from this channel are accepted and responses are sent back to this channel. Ban-kick notifications are also posted here in addition to the main `ChannelId`.
+
+**Example:**
+```ini
+BanChannelId=567890123456789012
+```
 
 ---
 
@@ -220,16 +268,27 @@ Controls the built-in server whitelist that can be managed from Discord.
 
 #### `WhitelistEnabled`
 
-Sets the initial whitelist state on the **first** server start (when
-`ServerWhitelist.json` does not yet exist).  After the first start the
-enabled/disabled state is saved in `ServerWhitelist.json` and survives restarts
-automatically — so `!whitelist on` / `!whitelist off` changes made from Discord
-truly persist.
+Controls whether the whitelist is active when the server starts.
+This setting is applied on **every** server restart — change it and restart the server to enable or disable the whitelist.
 
-To force-reset back to this config value: delete `ServerWhitelist.json` and
-restart the server.
+`!whitelist on` / `!whitelist off` Discord commands update the in-memory state for the current session only; the config setting takes effect again on the next restart.
 
 **Default:** `False` (all players can join)
+
+---
+
+#### `WhitelistCommandRoleId`
+
+The snowflake ID of the Discord role whose members are allowed to run `!whitelist` management commands.
+
+**Default:** *(empty — !whitelist commands are disabled for all Discord users)*
+
+When set, **only members who hold this role** can run `!whitelist` commands. When left empty, `!whitelist` commands are fully disabled (deny-by-default).
+
+**Example:**
+```ini
+WhitelistCommandRoleId=123456789012345678
+```
 
 ---
 
@@ -249,7 +308,7 @@ Set to an **empty string** to disable Discord-based whitelist management entirel
 | `!whitelist add <name>` | Add a player by in-game name |
 | `!whitelist remove <name>` | Remove a player by in-game name |
 | `!whitelist list` | List all whitelisted players |
-| `!whitelist status` | Show whether the whitelist is currently enabled or disabled |
+| `!whitelist status` | Show the current enabled/disabled state of **both** the whitelist and the ban system |
 | `!whitelist role add <discord_id>` | Grant the `WhitelistRoleId` Discord role to a user |
 | `!whitelist role remove <discord_id>` | Revoke the `WhitelistRoleId` Discord role from a user |
 
@@ -340,7 +399,7 @@ Set to an **empty string** to disable in-game whitelist commands.
 | `!whitelist add <name>` | Add a player by in-game name |
 | `!whitelist remove <name>` | Remove a player by in-game name |
 | `!whitelist list` | List all whitelisted players |
-| `!whitelist status` | Show whether the whitelist is currently enabled or disabled |
+| `!whitelist status` | Show the current enabled/disabled state of **both** the whitelist and the ban system |
 
 > **Note:** In-game whitelist commands do not support `!whitelist role add/remove` (that is Discord-only).
 
@@ -362,7 +421,7 @@ Set to an **empty string** to disable in-game ban commands.
 | `!ban add <name>` | Ban a player by in-game name |
 | `!ban remove <name>` | Unban a player by in-game name |
 | `!ban list` | List all banned players |
-| `!ban status` | Show whether the ban system is currently enabled or disabled |
+| `!ban status` | Show the current enabled/disabled state of **both** the ban system and the whitelist |
 
 ---
 
@@ -405,7 +464,7 @@ bot's profile).
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `ShowPlayerCountInPresence` | bool | `True` | When `True`, the bot's Discord status is refreshed periodically to show the current player count. Set to `False` to leave the bot status blank. |
-| `PlayerCountPresenceFormat` | string | *(empty)* | Text shown in the bot's Discord presence. Use `%PlayerCount%` for the live player count and `%ServerName%` for the server name. Leave empty to show nothing. |
+| `PlayerCountPresenceFormat` | string | `Satisfactory with %PlayerCount% players` | Text shown in the bot's Discord presence. Use `%PlayerCount%` for the live player count and `%ServerName%` for the server name. Leave empty to show nothing. |
 | `PlayerCountUpdateIntervalSeconds` | float | `60.0` | How often (in seconds) the presence is refreshed. **Minimum is 15 seconds.** Values below 15 are clamped to 15 to respect Discord's rate limits. |
 | `PlayerCountActivityType` | int | `0` | Controls the activity verb shown before the presence text in Discord. See table below. |
 
