@@ -3,7 +3,7 @@
 #include "SMLWebSocket.h"
 #include "Modules/ModuleManager.h"
 
-// OpenSSL global init/cleanup
+// OpenSSL global init/cleanup — only on the two Satisfactory dedicated-server platforms.
 // UE's Slate/InputCore declares `namespace UI {}` at global scope.  OpenSSL's
 // ossl_typ.h (line 144) also declares `typedef struct ui_st UI` at global scope.
 // On MSVC this produces error C2365 ("redefinition; previous definition was
@@ -21,6 +21,7 @@
 // THIRD_PARTY_INCLUDES_START/END suppress MSVC warnings (e.g. C4191, C4996)
 // that are emitted by OpenSSL's own headers and would otherwise be treated as
 // errors under UBT's /WX flag.
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 THIRD_PARTY_INCLUDES_START
 #pragma push_macro("UI")
 #define UI UI_OSSLRenamed
@@ -29,9 +30,11 @@ THIRD_PARTY_INCLUDES_START
 #include "openssl/crypto.h"
 #pragma pop_macro("UI")
 THIRD_PARTY_INCLUDES_END
+#endif
 
 void FSMLWebSocketModule::StartupModule()
 {
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	// OpenSSL 1.1.0+ auto-initializes; for older versions we call the explicit init.
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSL_library_init();
@@ -41,15 +44,18 @@ void FSMLWebSocketModule::StartupModule()
 	// Explicit opt-in init (safe to call multiple times; reference-counted internally).
 	OPENSSL_init_ssl(OPENSSL_INIT_LOAD_SSL_STRINGS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS, nullptr);
 #endif
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
 }
 
 void FSMLWebSocketModule::ShutdownModule()
 {
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	// OpenSSL 1.1.0+ handles cleanup automatically; nothing to do here.
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 	ERR_free_strings();
 	EVP_cleanup();
 #endif
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
 }
 
 IMPLEMENT_MODULE(FSMLWebSocketModule, SMLWebSocket)

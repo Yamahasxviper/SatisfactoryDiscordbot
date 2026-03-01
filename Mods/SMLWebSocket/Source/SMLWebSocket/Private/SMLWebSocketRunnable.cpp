@@ -11,7 +11,7 @@
 #include "SocketSubsystem.h"
 #include "IPAddress.h"
 
-// OpenSSL headers (available via the OpenSSL Unreal module)
+// OpenSSL headers — only available on the two Satisfactory dedicated-server platforms.
 // UE's Slate/InputCore declares `namespace UI {}` at global scope.  OpenSSL's
 // ossl_typ.h (line 144) also declares `typedef struct ui_st UI` at global scope.
 // On MSVC this produces error C2365 ("redefinition; previous definition was
@@ -29,6 +29,7 @@
 // THIRD_PARTY_INCLUDES_START/END suppress MSVC warnings (e.g. C4191, C4996)
 // that are emitted by OpenSSL's own headers and would otherwise be treated as
 // errors under UBT's /WX flag.
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 THIRD_PARTY_INCLUDES_START
 #pragma push_macro("UI")
 #define UI UI_OSSLRenamed
@@ -39,6 +40,7 @@ THIRD_PARTY_INCLUDES_START
 #include "openssl/bio.h"
 #pragma pop_macro("UI")
 THIRD_PARTY_INCLUDES_END
+#endif
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WebSocket opcodes (RFC 6455 §5.2)
@@ -120,7 +122,9 @@ FSMLWebSocketRunnable::FSMLWebSocketRunnable(USMLWebSocketClient* InOwner,
 
 FSMLWebSocketRunnable::~FSMLWebSocketRunnable()
 {
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	DestroySsl();
+#endif
 
 	if (Socket)
 	{
@@ -202,7 +206,13 @@ uint32 FSMLWebSocketRunnable::Run()
 		if (bUseSsl)
 		{
 			State.store(ESMLWebSocketRunnableState::SslHandshake);
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 			if (!PerformSslHandshake(ParsedHost))
+#else
+			// SSL is not available on this platform; reject wss:// connections.
+			UE_LOG(LogTemp, Error, TEXT("SMLWebSocket: wss:// is not supported on this platform"));
+			if (true)
+#endif
 			{
 				NotifyError(TEXT("SMLWebSocket: SSL handshake failed"));
 				if (!ReconnectCfg.bAutoReconnect) break;
@@ -284,11 +294,14 @@ uint32 FSMLWebSocketRunnable::Run()
 
 			// Poll for incoming data (short timeout keeps the loop responsive).
 			bool bDataAvailable = false;
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 			if (bUseSsl && SslInstance && SSL_pending(SslInstance) > 0)
 			{
 				bDataAvailable = true;
 			}
-			else if (Socket)
+			else
+#endif
+			if (Socket)
 			{
 				bDataAvailable = Socket->Wait(ESocketWaitConditions::WaitForRead,
 				                              FTimespan::FromMilliseconds(PollIntervalMs));
@@ -347,13 +360,17 @@ void FSMLWebSocketRunnable::Stop()
 
 void FSMLWebSocketRunnable::Exit()
 {
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	DestroySsl();
+#endif
 }
 
 void FSMLWebSocketRunnable::CleanupConnection()
 {
 	// Destroy SSL objects before the socket so any pending records are dropped cleanly.
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	DestroySsl();
+#endif
 
 	if (Socket)
 	{
@@ -453,8 +470,9 @@ bool FSMLWebSocketRunnable::ResolveAndConnect(const FString& Host, int32 Port)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OpenSSL helpers
+// OpenSSL helpers — only compiled on the two Satisfactory server platforms
 // ─────────────────────────────────────────────────────────────────────────────
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 
 bool FSMLWebSocketRunnable::InitSslContext()
 {
@@ -692,6 +710,8 @@ bool FSMLWebSocketRunnable::SslWrite(const uint8* Data, int32 DataSize)
 	return true;
 }
 
+#endif // PLATFORM_WINDOWS || PLATFORM_LINUX
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Raw socket helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -760,20 +780,29 @@ bool FSMLWebSocketRunnable::RawRecvExact(uint8* Buffer, int32 BytesRequired)
 
 bool FSMLWebSocketRunnable::NetSend(const uint8* Data, int32 DataSize)
 {
-	return bUseSsl ? SslWrite(Data, DataSize) : RawSend(Data, DataSize);
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	if (bUseSsl)
+	{
+		return SslWrite(Data, DataSize);
+	}
+#endif
+	return RawSend(Data, DataSize);
 }
 
 int32 FSMLWebSocketRunnable::NetRecv(uint8* Buffer, int32 BufferSize)
 {
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	if (bUseSsl)
 	{
 		return SslRead(Buffer, BufferSize);
 	}
+#endif
 	return RawRecvAvailable(Buffer, BufferSize);
 }
 
 bool FSMLWebSocketRunnable::NetRecvExact(uint8* Buffer, int32 BytesRequired)
 {
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	if (bUseSsl)
 	{
 		int32 Total = 0;
@@ -786,6 +815,7 @@ bool FSMLWebSocketRunnable::NetRecvExact(uint8* Buffer, int32 BytesRequired)
 		}
 		return true;
 	}
+#endif
 	return RawRecvExact(Buffer, BytesRequired);
 }
 
@@ -912,9 +942,19 @@ bool FSMLWebSocketRunnable::SendWsFrame(uint8 Opcode, const uint8* Data, int32 D
 	// Byte 0: FIN + opcode
 	Frame.Add(static_cast<uint8>((bFinal ? 0x80 : 0x00) | (Opcode & 0x0F)));
 
-	// Generate 4-byte masking key
+	// Generate 4-byte masking key (RFC 6455 §5.3 — client frames must be masked).
+	// Use OpenSSL's CSPRNG on the two Satisfactory server platforms; fall back to
+	// FMath::Rand() elsewhere.  The mask is sent alongside the frame in plaintext
+	// and therefore provides no cryptographic security — any source of random bytes works.
 	uint8 MaskKey[4];
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	RAND_bytes(MaskKey, static_cast<int>(sizeof(MaskKey)));
+#else
+	for (int32 i = 0; i < 4; ++i)
+	{
+		MaskKey[i] = static_cast<uint8>(FMath::Rand() & 0xFF);
+	}
+#endif
 
 	// Byte 1+: payload length with mask bit set
 	if (DataSize <= 125)
@@ -1153,8 +1193,20 @@ void FSMLWebSocketRunnable::FlushOutboundQueue()
 
 FString FSMLWebSocketRunnable::GenerateWebSocketKey()
 {
+	// Generate a random 16-byte nonce and Base64-encode it (Sec-WebSocket-Key).
+	// RFC 6455 §4.1 requires a random value; the key is a nonce, not a secret.
 	uint8 RawKey[16];
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	// Use OpenSSL's CSPRNG when available (both Satisfactory server platforms).
 	RAND_bytes(RawKey, static_cast<int>(sizeof(RawKey)));
+#else
+	// Fallback for non-SSL platforms: pseudo-random bytes via FMath.
+	// The nonce is not security-critical (it just needs to be unique per connection).
+	for (int32 i = 0; i < 16; ++i)
+	{
+		RawKey[i] = static_cast<uint8>(FMath::Rand() & 0xFF);
+	}
+#endif
 	return FBase64::Encode(RawKey, static_cast<int32>(sizeof(RawKey)));
 }
 
@@ -1165,12 +1217,23 @@ FString FSMLWebSocketRunnable::ComputeAcceptKey(const FString& ClientKey)
 	const FString Concat = ClientKey + WsGuid;
 
 	const FTCHARToUTF8 Utf8(*Concat);
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	// Use OpenSSL's SHA1 (available on both Satisfactory dedicated-server platforms).
 	uint8 Hash[SHA_DIGEST_LENGTH];
 	SHA1(reinterpret_cast<const uint8*>(Utf8.Get()),
 	     static_cast<size_t>(Utf8.Length()),
 	     Hash);
-
 	return FBase64::Encode(Hash, SHA_DIGEST_LENGTH);
+#else
+	// SHA1 requires OpenSSL which is not available on this platform.
+	// Satisfactory dedicated servers only run on Win64 and Linux, where OpenSSL is
+	// always present, so this branch is dead code in all supported configurations.
+	UE_LOG(LogTemp, Error,
+	       TEXT("SMLWebSocket: SHA1 is not available on this platform. "
+	            "WebSocket handshake will fail. "
+	            "Satisfactory dedicated servers require Win64 or Linux."));
+	return FString();
+#endif
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

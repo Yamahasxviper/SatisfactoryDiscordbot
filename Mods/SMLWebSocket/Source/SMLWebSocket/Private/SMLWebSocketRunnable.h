@@ -9,9 +9,12 @@
 #include <atomic>
 
 // Forward-declare OpenSSL types so consumers don't need to include openssl headers.
+// Guarded because OpenSSL is only available on the two Satisfactory server platforms.
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 struct ssl_ctx_st;
 struct ssl_st;
 struct bio_st;
+#endif
 class FSocket;
 class USMLWebSocketClient;
 
@@ -105,7 +108,6 @@ private:
 	// ── Connection setup ──────────────────────────────────────────────────────
 
 	bool ResolveAndConnect(const FString& Host, int32 Port);
-	bool PerformSslHandshake(const FString& Host);
 	bool SendHttpUpgradeRequest(const FString& Host, int32 Port, const FString& Path, const FString& Key);
 	bool ReadHttpUpgradeResponse(const FString& ExpectedAcceptKey);
 
@@ -113,7 +115,9 @@ private:
 	void CleanupConnection();
 
 	// ── OpenSSL helpers ───────────────────────────────────────────────────────
-
+	// Only available on the two Satisfactory dedicated-server platforms.
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	bool PerformSslHandshake(const FString& Host);
 	bool InitSslContext();
 	void DestroySsl();
 
@@ -128,6 +132,7 @@ private:
 
 	/** Feed available TCP bytes into the SSL read-BIO. */
 	bool FeedSslReadBio();
+#endif
 
 	// ── Raw socket helpers ────────────────────────────────────────────────────
 
@@ -202,11 +207,13 @@ private:
 	// Unreal TCP socket (blocking mode)
 	FSocket* Socket{nullptr};
 
-	// OpenSSL objects (only valid when bUseSsl == true)
+	// OpenSSL objects (only valid when bUseSsl == true, and only on SSL-capable platforms)
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	ssl_ctx_st* SslCtx{nullptr};
 	ssl_st*     SslInstance{nullptr};
 	bio_st*     ReadBio{nullptr};  // network → SSL
 	bio_st*     WriteBio{nullptr}; // SSL → network
+#endif
 
 	// Shared state between game thread and I/O thread
 	std::atomic<ESMLWebSocketRunnableState> State{ESMLWebSocketRunnableState::Idle};
