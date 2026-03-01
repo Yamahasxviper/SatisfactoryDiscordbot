@@ -609,7 +609,13 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.InGameWhitelistCommandPrefix     = GetIniStringOrDefault(BackupFile, TEXT("InGameWhitelistCommandPrefix"),     Config.InGameWhitelistCommandPrefix);
 		Config.InGameBanCommandPrefix           = GetIniStringOrDefault(BackupFile, TEXT("InGameBanCommandPrefix"),           Config.InGameBanCommandPrefix);
 
-		if (!bHadToken || !bHadChannel)
+		// Only log the "restored from backup" message when credentials were
+		// actually recovered (i.e. previously blank in primary but now non-empty
+		// from the backup). Avoid a misleading message when the backup also has
+		// blank credentials (e.g. first server start before credentials are set).
+		const bool bRestoredToken   = !bHadToken   && !Config.BotToken.IsEmpty();
+		const bool bRestoredChannel = !bHadChannel && !Config.ChannelId.IsEmpty();
+		if (bRestoredToken || bRestoredChannel)
 		{
 			UE_LOG(LogTemp, Log,
 			       TEXT("DiscordBridge: Credentials not set in primary config '%s'. "
@@ -1050,9 +1056,11 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 	}
 
 	// ── Step 3: keep backups up to date ──────────────────────────────────────
-	// Whenever valid credentials are available (whether loaded from the primary
-	// config or restored from the backup after a mod update), write up-to-date
-	// backups so all settings survive the next mod update.
+	// Write up-to-date backups on every server start so all settings survive
+	// the next mod update.  The backup is written even when BotToken/ChannelId
+	// are still blank (e.g. fresh Alpakit install before credentials are set):
+	// this ensures the file exists from the very first start and that settings
+	// such as message formats are preserved regardless of credential state.
 	//
 	// Each logical group of settings has its OWN dedicated backup file in
 	// Saved/Config/ so settings are never mixed across files:
@@ -1064,7 +1072,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 	// They always have their own dedicated backup files (written below), which
 	// are restored automatically by Step 2b when a mod update resets their
 	// primary files (DefaultDiscordBridgeWhitelist.ini / DefaultDiscordBridgeBan.ini).
-	if (!Config.BotToken.IsEmpty() && !Config.ChannelId.IsEmpty())
 	{
 		// ── DiscordBridge.ini: connection, chat and presence only ─────────────
 		FString BackupContent = FString::Printf(
@@ -1104,8 +1111,17 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 		if (FFileHelper::SaveStringToFile(BackupContent, *BackupFilePath))
 		{
-			UE_LOG(LogTemp, Log,
-			       TEXT("DiscordBridge: Updated backup config at '%s'."), *BackupFilePath);
+			if (Config.BotToken.IsEmpty())
+			{
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Wrote backup config at '%s' (credentials not yet configured)."),
+				       *BackupFilePath);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log,
+				       TEXT("DiscordBridge: Updated backup config at '%s'."), *BackupFilePath);
+			}
 		}
 		else
 		{
