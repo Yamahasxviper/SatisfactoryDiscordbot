@@ -57,16 +57,14 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/** Format for game → Discord messages. Placeholders: %ServerName%, %PlayerName%, %Message%. */
 	FString GameToDiscordFormat{ TEXT("**%PlayerName%**: %Message%") };
 
-	/** Format for Discord → game messages. Placeholders: %Username%, %PlayerName% (alias for %Username%), %Message%.
-	 *  This string is used as the in-game chat message body.
-	 *  Default: just the raw Discord message text. */
-	FString DiscordToGameFormat{ TEXT("%Message%") };
-
-	/** Format for the sender name column in the in-game chat for Discord messages.
-	 *  Available placeholders: %Username%, %PlayerName% (alias for %Username%).
-	 *  Default: "[Discord] %Username%".
-	 *  Example (Satisfactory-branded): "[Satisfactory] %PlayerName%" */
-	FString DiscordSenderFormat{ TEXT("[Discord] %Username%") };
+	/** Format for Discord → game messages.  This single string controls the complete
+	 *  line of text shown in the Satisfactory in-game chat whenever a Discord message
+	 *  is relayed.  Available placeholders:
+	 *    %Username%   – the Discord display name of the sender
+	 *    %PlayerName% – alias for %Username%
+	 *    %Message%    – the Discord message text
+	 *  Default: "[Discord] %Username%: %Message%" */
+	FString DiscordToGameFormat{ TEXT("[Discord] %Username%: %Message%") };
 
 	// ── Behaviour ─────────────────────────────────────────────────────────────
 

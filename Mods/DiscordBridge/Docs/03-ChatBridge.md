@@ -36,8 +36,8 @@ GameToDiscordFormat=`[%PlayerName%]` %Message%
 
 ## `DiscordToGameFormat`
 
-Format string used as the **message body** shown in the Satisfactory in-game chat
-when a Discord message is relayed into the game.
+Format string that controls the **complete line** shown in the Satisfactory in-game
+chat when a Discord message is relayed into the game.
 
 | Placeholder | Replaced with |
 |-------------|---------------|
@@ -45,46 +45,22 @@ when a Discord message is relayed into the game.
 | `%PlayerName%` | Alias for `%Username%` |
 | `%Message%` | The Discord message text |
 
-**Default:** `%Message%` *(just the raw message)*
-
-**Examples:**
-
-```ini
-; Raw message only (default)
-DiscordToGameFormat=%Message%
-
-; Prepend the sender name
-DiscordToGameFormat=%Username%: %Message%
-
-; Tag Discord messages
-DiscordToGameFormat=[Discord] %Message%
-```
-
----
-
-## `DiscordSenderFormat`
-
-Format string used for the **sender name column** displayed in the Satisfactory chat
-UI when a Discord message arrives.
-
-| Placeholder | Replaced with |
-|-------------|---------------|
-| `%Username%` | The Discord display name of the sender |
-| `%PlayerName%` | Alias for `%Username%` |
-
-**Default:** `[Discord] %Username%`
+**Default:** `[Discord] %Username%: %Message%`
 
 **Examples:**
 
 ```ini
 ; Default – prefixed with [Discord]
-DiscordSenderFormat=[Discord] %Username%
+DiscordToGameFormat=[Discord] %Username%: %Message%
 
 ; Name only, no prefix
-DiscordSenderFormat=%Username%
+DiscordToGameFormat=%Username%: %Message%
 
 ; Branded prefix
-DiscordSenderFormat=[Satisfactory] %Username%
+DiscordToGameFormat=[Satisfactory] %PlayerName%: %Message%
+
+; Message only, no username shown
+DiscordToGameFormat=%Message%
 ```
 
 ---
