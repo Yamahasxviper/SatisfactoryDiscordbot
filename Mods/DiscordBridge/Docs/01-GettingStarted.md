@@ -19,6 +19,13 @@ The easiest way to install DiscordBridge is through the **Satisfactory Mod Manag
 > Copy the extracted mod folder (`DiscordBridge/`) into
 > `<ServerRoot>/FactoryGame/Mods/` manually.
 > Ensure SML and SMLWebSocket are present in that same `Mods/` directory.
+>
+> **Why do I need SMLWebSocket?**
+> DiscordBridge communicates with Discord over a secure WebSocket connection (WSS /
+> RFC 6455). Unreal Engine's built-in WebSocket module is not available in
+> Alpakit-packaged mods, so SMLWebSocket supplies a custom WebSocket + SSL/OpenSSL
+> client that DiscordBridge depends on. The bridge cannot connect to Discord without
+> it — you will see connection errors in `FactoryGame.log` if it is missing.
 
 ---
 

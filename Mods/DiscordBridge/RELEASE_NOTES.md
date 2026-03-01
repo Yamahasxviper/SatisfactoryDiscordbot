@@ -122,6 +122,16 @@ supported, excluding role management which is Discord-only.
 | SML | ≥ 3.11.3 |
 | SMLWebSocket | ≥ 1.0.0 |
 
+> **Why is SMLWebSocket required?**
+> DiscordBridge connects to Discord's gateway over a secure WebSocket connection (WSS).
+> Unreal Engine's built-in WebSocket module is not available in Alpakit-packaged mods,
+> so SMLWebSocket provides the custom RFC 6455 WebSocket client with SSL/OpenSSL
+> support that the bridge relies on. Without it the bot cannot connect to Discord at
+> all and the bridge will not start. When installing via **Satisfactory Mod Manager
+> (SMM)** this dependency is installed automatically alongside DiscordBridge. For
+> manual installs, copy the `SMLWebSocket/` folder into
+> `<ServerRoot>/FactoryGame/Mods/` the same way you do for `DiscordBridge/`.
+
 The Discord bot must have the following **Privileged Gateway Intents** enabled in the
 Discord Developer Portal:
 - Presence Intent

@@ -16,6 +16,26 @@
 
 ---
 
+## SMLWebSocket is missing / the bridge fails to connect to Discord
+
+DiscordBridge uses SMLWebSocket to establish the secure WebSocket connection (WSS)
+to Discord's gateway. If SMLWebSocket is not installed the bridge cannot connect and
+you will see errors in `FactoryGame.log` similar to:
+
+```
+LogDiscordBridge: Error: Failed to create WebSocket – SMLWebSocket module not found
+```
+
+**Fix:**
+
+- **Using SMM:** re-install DiscordBridge through the Satisfactory Mod Manager;
+  it will detect and install the missing SMLWebSocket dependency automatically.
+- **Manual install:** download SMLWebSocket from ficsit.app and copy the
+  `SMLWebSocket/` folder into `<ServerRoot>/FactoryGame/Mods/` alongside
+  `DiscordBridge/`. Restart the server afterwards.
+
+---
+
 ## Messages go one way only (game → Discord works, Discord → game doesn't)
 
 - Verify **Message Content Intent** is enabled. Without it Discord does not send
