@@ -659,78 +659,50 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 		if (PlatformFile.FileExists(*WhitelistFilePath))
 		{
-			FConfigFile WhitelistConfigFile;
-			WhitelistConfigFile.Read(WhitelistFilePath);
+			// Use the presence of ';' in the raw file as the indicator of whether
+			// this file still has its comment lines.  Alpakit strips every line that
+			// begins with ';' during packaging, so a file with no ';' characters has
+			// been packaged and stripped.  This is more reliable than checking for
+			// active keys, because the shipped file may contain active default values
+			// (e.g. WhitelistEnabled=False) that would otherwise be misread as
+			// user-configured settings.
+			FString WhitelistFileRaw;
+			FFileHelper::LoadFileToString(WhitelistFileRaw, *WhitelistFilePath);
+			const bool bWhitelistFileHasComments = WhitelistFileRaw.Contains(TEXT(";"));
 
-			// Detect whether the file has any user-set (uncommented) keys.
-			// The shipped template has all entries commented out, so if a mod
-			// update has reset the file none of these GetString calls succeed.
-			FString TmpCheck;
-			const bool bWhitelistHasUserSettings =
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistEnabled"),             TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandRoleId"),       TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandPrefix"),       TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistRoleId"),              TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistChannelId"),           TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickDiscordMessage"),  TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickReason"),          TmpCheck) ||
-				WhitelistConfigFile.GetString(ConfigSection, TEXT("InGameWhitelistCommandPrefix"), TmpCheck);
-
-			if (bWhitelistHasUserSettings)
+			if (!bWhitelistFileHasComments)
 			{
-				ApplyWhitelistSettings(WhitelistConfigFile);
-				UE_LOG(LogTemp, Log,
-				       TEXT("DiscordBridge: Applied whitelist overrides from '%s'."), *WhitelistFilePath);
-
-				// Back up verbatim to Saved/Config/ so settings survive mod updates.
-				PlatformFile.CreateDirectoryTree(*FPaths::GetPath(WhitelistBackupFilePath));
-				FString RawContent;
-				if (FFileHelper::LoadFileToString(RawContent, *WhitelistFilePath) &&
-				    FFileHelper::SaveStringToFile(RawContent, *WhitelistBackupFilePath))
+				// File has no ';' characters – Alpakit stripped comment lines.
+				if (PlatformFile.FileExists(*WhitelistBackupFilePath))
 				{
-					UE_LOG(LogTemp, Log,
-					       TEXT("DiscordBridge: Backed up whitelist config to '%s'."), *WhitelistBackupFilePath);
+					// User had previously configured settings → restore from backup.
+					FString BackupRaw;
+					if (FFileHelper::LoadFileToString(BackupRaw, *WhitelistBackupFilePath) &&
+					    FFileHelper::SaveStringToFile(BackupRaw, *WhitelistFilePath))
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: Whitelist config was reset by a mod update. "
+						            "Restored from backup at '%s'."), *WhitelistBackupFilePath);
+						FConfigFile RestoredFile;
+						RestoredFile.Read(WhitelistFilePath);
+						ApplyWhitelistSettings(RestoredFile);
+						UE_LOG(LogTemp, Log,
+						       TEXT("DiscordBridge: Applied restored whitelist settings."));
+					}
+					else
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: Whitelist config was reset but could not restore from '%s'."),
+						       *WhitelistBackupFilePath);
+					}
 				}
 				else
 				{
-					UE_LOG(LogTemp, Warning,
-					       TEXT("DiscordBridge: Could not back up whitelist config to '%s'."), *WhitelistBackupFilePath);
-				}
-			}
-			else if (PlatformFile.FileExists(*WhitelistBackupFilePath))
-			{
-				// File was reset to the shipped template by a mod update – restore.
-				FString BackupRaw;
-				if (FFileHelper::LoadFileToString(BackupRaw, *WhitelistBackupFilePath) &&
-				    FFileHelper::SaveStringToFile(BackupRaw, *WhitelistFilePath))
-				{
-					UE_LOG(LogTemp, Warning,
-					       TEXT("DiscordBridge: Whitelist config was reset by a mod update. "
-					            "Restored from backup at '%s'."), *WhitelistBackupFilePath);
-					FConfigFile RestoredFile;
-					RestoredFile.Read(WhitelistFilePath);
-					ApplyWhitelistSettings(RestoredFile);
+					// Fresh install – write annotated template so operators see setup instructions.
 					UE_LOG(LogTemp, Log,
-					       TEXT("DiscordBridge: Applied restored whitelist settings."));
-				}
-				else
-				{
-					UE_LOG(LogTemp, Warning,
-					       TEXT("DiscordBridge: Whitelist config was reset but could not restore from '%s'."),
-					       *WhitelistBackupFilePath);
-				}
-			}
-			else
-			{
-				// File exists but has no user-set settings and no backup.
-				// This happens when Alpakit strips ';' comments during packaging,
-				// leaving a comment-free file with no setup instructions.
-				// Rewrite with the full annotated template so operators can see
-				// and understand all available settings.
-				UE_LOG(LogTemp, Log,
-				       TEXT("DiscordBridge: Whitelist config at '%s' has no settings "
-				            "(comments were stripped during packaging). "
-				            "Rewriting with annotated template."), *WhitelistFilePath);
+					       TEXT("DiscordBridge: Whitelist config at '%s' has no comments "
+					            "(stripped during packaging). "
+					            "Rewriting with annotated template."), *WhitelistFilePath);
 
 				const FString WhitelistDefaultContent =
 					TEXT("[DiscordBridge]\n")
@@ -848,6 +820,49 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					       TEXT("DiscordBridge: Could not write annotated whitelist template to '%s'."),
 					       *WhitelistFilePath);
 				}
+				}  // end fresh-install branch
+			}  // end !bWhitelistFileHasComments
+			else
+			{
+				// File has ';' comment characters – it is an annotated template written
+				// by the mod at runtime, or the developer's unpackaged source copy.
+				// Check for user-set (uncommented) keys and apply them.
+				FConfigFile WhitelistConfigFile;
+				WhitelistConfigFile.Read(WhitelistFilePath);
+
+				FString TmpCheck;
+				const bool bWhitelistHasUserSettings =
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistEnabled"),             TmpCheck) ||
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandRoleId"),       TmpCheck) ||
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistCommandPrefix"),       TmpCheck) ||
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistRoleId"),              TmpCheck) ||
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistChannelId"),           TmpCheck) ||
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickDiscordMessage"),  TmpCheck) ||
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("WhitelistKickReason"),          TmpCheck) ||
+					WhitelistConfigFile.GetString(ConfigSection, TEXT("InGameWhitelistCommandPrefix"), TmpCheck);
+
+				if (bWhitelistHasUserSettings)
+				{
+					ApplyWhitelistSettings(WhitelistConfigFile);
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Applied whitelist overrides from '%s'."), *WhitelistFilePath);
+
+					// Back up verbatim to Saved/Config/ so settings survive mod updates.
+					PlatformFile.CreateDirectoryTree(*FPaths::GetPath(WhitelistBackupFilePath));
+					FString RawContent;
+					if (FFileHelper::LoadFileToString(RawContent, *WhitelistFilePath) &&
+					    FFileHelper::SaveStringToFile(RawContent, *WhitelistBackupFilePath))
+					{
+						UE_LOG(LogTemp, Log,
+						       TEXT("DiscordBridge: Backed up whitelist config to '%s'."), *WhitelistBackupFilePath);
+					}
+					else
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: Could not back up whitelist config to '%s'."), *WhitelistBackupFilePath);
+					}
+				}
+				// else: annotated template present but no settings configured yet – use hardcoded defaults.
 			}
 		}
 
@@ -869,75 +884,50 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 		if (PlatformFile.FileExists(*BanFilePath))
 		{
-			FConfigFile BanConfigFile;
-			BanConfigFile.Read(BanFilePath);
+			// Use the presence of ';' in the raw file as the indicator of whether
+			// this file still has its comment lines.  Alpakit strips every line that
+			// begins with ';' during packaging, so a file with no ';' characters has
+			// been packaged and stripped.  This is more reliable than checking for
+			// active keys, because the shipped file may contain active default values
+			// (e.g. BanSystemEnabled=True) that would otherwise be misread as
+			// user-configured settings.
+			FString BanFileRaw;
+			FFileHelper::LoadFileToString(BanFileRaw, *BanFilePath);
+			const bool bBanFileHasComments = BanFileRaw.Contains(TEXT(";"));
 
-			FString TmpCheck;
-			const bool bBanHasUserSettings =
-				BanConfigFile.GetString(ConfigSection, TEXT("BanSystemEnabled"),      TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandRoleId"),      TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandPrefix"),      TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanChannelId"),          TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanCommandsEnabled"),    TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanKickDiscordMessage"), TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("BanKickReason"),         TmpCheck) ||
-				BanConfigFile.GetString(ConfigSection, TEXT("InGameBanCommandPrefix"),TmpCheck);
-
-			if (bBanHasUserSettings)
+			if (!bBanFileHasComments)
 			{
-				ApplyBanSettings(BanConfigFile);
-				UE_LOG(LogTemp, Log,
-				       TEXT("DiscordBridge: Applied ban overrides from '%s'."), *BanFilePath);
-
-				// Back up verbatim to Saved/Config/ so settings survive mod updates.
-				PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BanBackupFilePath));
-				FString RawContent;
-				if (FFileHelper::LoadFileToString(RawContent, *BanFilePath) &&
-				    FFileHelper::SaveStringToFile(RawContent, *BanBackupFilePath))
+				// File has no ';' characters – Alpakit stripped comment lines.
+				if (PlatformFile.FileExists(*BanBackupFilePath))
 				{
-					UE_LOG(LogTemp, Log,
-					       TEXT("DiscordBridge: Backed up ban config to '%s'."), *BanBackupFilePath);
+					// User had previously configured settings → restore from backup.
+					FString BackupRaw;
+					if (FFileHelper::LoadFileToString(BackupRaw, *BanBackupFilePath) &&
+					    FFileHelper::SaveStringToFile(BackupRaw, *BanFilePath))
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: Ban config was reset by a mod update. "
+						            "Restored from backup at '%s'."), *BanBackupFilePath);
+						FConfigFile RestoredFile;
+						RestoredFile.Read(BanFilePath);
+						ApplyBanSettings(RestoredFile);
+						UE_LOG(LogTemp, Log,
+						       TEXT("DiscordBridge: Applied restored ban settings."));
+					}
+					else
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: Ban config was reset but could not restore from '%s'."),
+						       *BanBackupFilePath);
+					}
 				}
 				else
 				{
-					UE_LOG(LogTemp, Warning,
-					       TEXT("DiscordBridge: Could not back up ban config to '%s'."), *BanBackupFilePath);
-				}
-			}
-			else if (PlatformFile.FileExists(*BanBackupFilePath))
-			{
-				// File was reset to the shipped template by a mod update – restore.
-				FString BackupRaw;
-				if (FFileHelper::LoadFileToString(BackupRaw, *BanBackupFilePath) &&
-				    FFileHelper::SaveStringToFile(BackupRaw, *BanFilePath))
-				{
-					UE_LOG(LogTemp, Warning,
-					       TEXT("DiscordBridge: Ban config was reset by a mod update. "
-					            "Restored from backup at '%s'."), *BanBackupFilePath);
-					FConfigFile RestoredFile;
-					RestoredFile.Read(BanFilePath);
-					ApplyBanSettings(RestoredFile);
+					// Fresh install – write annotated template so operators see setup instructions.
 					UE_LOG(LogTemp, Log,
-					       TEXT("DiscordBridge: Applied restored ban settings."));
-				}
-				else
-				{
-					UE_LOG(LogTemp, Warning,
-					       TEXT("DiscordBridge: Ban config was reset but could not restore from '%s'."),
-					       *BanBackupFilePath);
-				}
-			}
-			else
-			{
-				// File exists but has no user-set settings and no backup.
-				// This happens when Alpakit strips ';' comments during packaging,
-				// leaving a comment-free file with no setup instructions.
-				// Rewrite with the full annotated template so operators can see
-				// and understand all available settings.
-				UE_LOG(LogTemp, Log,
-				       TEXT("DiscordBridge: Ban config at '%s' has no settings "
-				            "(comments were stripped during packaging). "
-				            "Rewriting with annotated template."), *BanFilePath);
+					       TEXT("DiscordBridge: Ban config at '%s' has no comments "
+					            "(stripped during packaging). "
+					            "Rewriting with annotated template."), *BanFilePath);
 
 				const FString BanDefaultContent =
 					TEXT("[DiscordBridge]\n")
@@ -1051,6 +1041,49 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 					       TEXT("DiscordBridge: Could not write annotated ban template to '%s'."),
 					       *BanFilePath);
 				}
+				}  // end fresh-install branch
+			}  // end !bBanFileHasComments
+			else
+			{
+				// File has ';' comment characters – it is an annotated template written
+				// by the mod at runtime, or the developer's unpackaged source copy.
+				// Check for user-set (uncommented) keys and apply them.
+				FConfigFile BanConfigFile;
+				BanConfigFile.Read(BanFilePath);
+
+				FString TmpCheck;
+				const bool bBanHasUserSettings =
+					BanConfigFile.GetString(ConfigSection, TEXT("BanSystemEnabled"),      TmpCheck) ||
+					BanConfigFile.GetString(ConfigSection, TEXT("BanCommandRoleId"),      TmpCheck) ||
+					BanConfigFile.GetString(ConfigSection, TEXT("BanCommandPrefix"),      TmpCheck) ||
+					BanConfigFile.GetString(ConfigSection, TEXT("BanChannelId"),          TmpCheck) ||
+					BanConfigFile.GetString(ConfigSection, TEXT("BanCommandsEnabled"),    TmpCheck) ||
+					BanConfigFile.GetString(ConfigSection, TEXT("BanKickDiscordMessage"), TmpCheck) ||
+					BanConfigFile.GetString(ConfigSection, TEXT("BanKickReason"),         TmpCheck) ||
+					BanConfigFile.GetString(ConfigSection, TEXT("InGameBanCommandPrefix"),TmpCheck);
+
+				if (bBanHasUserSettings)
+				{
+					ApplyBanSettings(BanConfigFile);
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Applied ban overrides from '%s'."), *BanFilePath);
+
+					// Back up verbatim to Saved/Config/ so settings survive mod updates.
+					PlatformFile.CreateDirectoryTree(*FPaths::GetPath(BanBackupFilePath));
+					FString RawContent;
+					if (FFileHelper::LoadFileToString(RawContent, *BanFilePath) &&
+					    FFileHelper::SaveStringToFile(RawContent, *BanBackupFilePath))
+					{
+						UE_LOG(LogTemp, Log,
+						       TEXT("DiscordBridge: Backed up ban config to '%s'."), *BanBackupFilePath);
+					}
+					else
+					{
+						UE_LOG(LogTemp, Warning,
+						       TEXT("DiscordBridge: Could not back up ban config to '%s'."), *BanBackupFilePath);
+					}
+				}
+				// else: annotated template present but no settings configured yet – use hardcoded defaults.
 			}
 		}
 	}
