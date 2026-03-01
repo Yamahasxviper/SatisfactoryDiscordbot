@@ -96,8 +96,8 @@ Set to an **empty string** to disable Discord-based ban management entirely.
 
 | Command | Effect |
 |---------|--------|
-| `!ban on` | Enable the ban system — kicked on join (persists across restarts) |
-| `!ban off` | Disable the ban system — banned players can join freely (persists across restarts) |
+| `!ban on` | Enable the ban system — kicked on join |
+| `!ban off` | Disable the ban system — banned players can join freely |
 | `!ban add <name>` | Ban a player by in-game name |
 | `!ban remove <name>` | Unban a player by in-game name |
 | `!ban list` | List all banned players and current enabled/disabled state |
