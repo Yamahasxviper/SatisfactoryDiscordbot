@@ -480,6 +480,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; 1. Set BotToken and ChannelId below.\n")
 			TEXT("; 2. Restart the server. The bridge starts automatically.\n")
 			TEXT("; Backup: <ServerRoot>/FactoryGame/Saved/Config/DiscordBridge.ini (auto-saved)\n")
+			TEXT(";   The mod backs up your credentials automatically. After a mod update that\n")
+			TEXT(";   resets this file, credentials are restored here on the next server start.\n")
 			TEXT("; Optional separate files (settings there override what is set below):\n")
 			TEXT(";   DefaultDiscordBridgeWhitelist.ini  – whitelist settings only\n")
 			TEXT(";   DefaultDiscordBridgeBan.ini         – ban system settings only\n")
@@ -618,11 +620,48 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		if (bRestoredToken || bRestoredChannel)
 		{
 			UE_LOG(LogTemp, Log,
-			       TEXT("DiscordBridge: Credentials not set in primary config '%s'. "
-			            "Loaded from backup at '%s'. "
-			            "Copy your BotToken and ChannelId back into the primary config "
-			            "to silence this message."),
+			       TEXT("DiscordBridge: Primary config '%s' had no credentials – "
+			            "restored from backup at '%s'. "
+			            "Writing credentials back to the primary config so they persist there."),
 			       *ModFilePath, *BackupFilePath);
+
+			// Write the restored credentials back into the primary config file so
+			// operators always see their current settings there and do not have to
+			// re-enter them manually after every mod update.
+			// The primary file was just written as an annotated template with empty
+			// BotToken/ChannelId lines; patch those lines in-place.
+			FString PrimaryContent;
+			if (FFileHelper::LoadFileToString(PrimaryContent, *ModFilePath))
+			{
+				// Replace the bare "Key=\n" produced by the template writer with
+				// "Key=Value\n". Handle both Unix (\n) and Windows (\r\n) endings.
+				auto PatchEmptyLine = [&](const TCHAR* Key, const FString& Value)
+				{
+					const FString WinEmpty  = FString::Printf(TEXT("%s=\r\n"), Key);
+					const FString WinFilled = FString::Printf(TEXT("%s=%s\r\n"), Key, *Value);
+					const FString UnixEmpty  = FString::Printf(TEXT("%s=\n"), Key);
+					const FString UnixFilled = FString::Printf(TEXT("%s=%s\n"), Key, *Value);
+					PrimaryContent = PrimaryContent.Replace(*WinEmpty,  *WinFilled);
+					PrimaryContent = PrimaryContent.Replace(*UnixEmpty, *UnixFilled);
+				};
+
+				if (bRestoredToken)   PatchEmptyLine(TEXT("BotToken"),  Config.BotToken);
+				if (bRestoredChannel) PatchEmptyLine(TEXT("ChannelId"), Config.ChannelId);
+
+				if (FFileHelper::SaveStringToFile(PrimaryContent, *ModFilePath))
+				{
+					UE_LOG(LogTemp, Log,
+					       TEXT("DiscordBridge: Updated primary config at '%s' with restored credentials."),
+					       *ModFilePath);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning,
+					       TEXT("DiscordBridge: Could not write restored credentials back to '%s'. "
+					            "The bridge will still function using the backup."),
+					       *ModFilePath);
+				}
+			}
 		}
 	}
 

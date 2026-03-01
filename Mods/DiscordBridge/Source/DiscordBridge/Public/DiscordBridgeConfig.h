@@ -336,6 +336,11 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * successfully loaded from the primary, an up-to-date backup is written to
 	 * the Saved/Config location so they survive the next mod update.
 	 *
+	 * When credentials are absent from the primary (e.g. after a mod update
+	 * resets DefaultDiscordBridge.ini) but present in the backup, they are
+	 * restored from the backup and also written back into the primary config file
+	 * so operators can always see and manage their settings there.
+	 *
 	 * Backup files written on every successful load (located in Saved/Config/,
 	 * which Alpakit/SMM mod updates never touch):
 	 *   DiscordBridge.ini          – connection, chat and presence settings only
