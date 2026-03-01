@@ -95,8 +95,6 @@ void UDiscordBridgeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	       TEXT("DiscordBridge: GameToDiscordFormat  = \"%s\""), *Config.GameToDiscordFormat);
 	UE_LOG(LogTemp, Log,
 	       TEXT("DiscordBridge: DiscordToGameFormat  = \"%s\""), *Config.DiscordToGameFormat);
-	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: DiscordSenderFormat  = \"%s\""), *Config.DiscordSenderFormat);
 
 	Connect();
 }
@@ -1280,11 +1278,10 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 		return;
 	}
 
-	// Apply the configurable format string (DiscordToGameFormat) to the message body.
+	// Apply the configurable DiscordToGameFormat string to produce the full
+	// in-game chat line.  Placeholders: %Username% / %PlayerName% (alias), %Message%.
 	// Use a fallback if the format is empty so the message is never silently
 	// dropped due to a misconfigured INI.
-	// %PlayerName% is accepted as an alias for %Username% so operators can use
-	// a consistent placeholder name across both directions.
 	FString FormattedMessage = Config.DiscordToGameFormat;
 	FormattedMessage = FormattedMessage.Replace(TEXT("%Username%"),   *Username);
 	FormattedMessage = FormattedMessage.Replace(TEXT("%PlayerName%"), *Username);
@@ -1297,38 +1294,22 @@ void UDiscordBridgeSubsystem::RelayDiscordMessageToGame(const FString& Username,
 		FormattedMessage = Message;
 	}
 
-	// Build the sender label that will appear in the chat name column using
-	// the configurable DiscordSenderFormat. Falls back to "[Discord] %Username%"
-	// if the format produces an empty string.
-	// %PlayerName% is accepted as an alias for %Username% so operators can use
-	// a consistent placeholder name across both directions.
-	FString SenderLabel = Config.DiscordSenderFormat;
-	SenderLabel = SenderLabel.Replace(TEXT("%Username%"),   *Username);
-	SenderLabel = SenderLabel.Replace(TEXT("%PlayerName%"), *Username);
-	if (SenderLabel.IsEmpty())
-	{
-		SenderLabel = FString::Printf(TEXT("[Discord] %s"), *Username);
-	}
-
 	FChatMessageStruct ChatMsg;
-	// Use CMT_CustomMessage so the game's chat widget renders both the sender
-	// name (MessageSender) and the message body (MessageText) without requiring
-	// a real player controller.  CMT_PlayerMessage expects an instigatorPlayerController
-	// to derive the sender identity, and passing nullptr causes the sender name to be
-	// dropped or overridden by the engine.  CMT_CustomMessage is the correct type for
-	// mod-injected messages that are not from an actual connected player.
-	// Using CMT_CustomMessage also means the Game→Discord diff loop (which only
-	// processes CMT_PlayerMessage entries) will naturally ignore these relay messages,
-	// eliminating the need for any echo-prevention bookkeeping.
+	// Use CMT_CustomMessage so the game's chat widget renders the message body
+	// (MessageText) without requiring a real player controller.  The sender column
+	// (MessageSender) is left blank because DiscordToGameFormat now controls the
+	// full line of text, including the Discord username prefix.
+	// CMT_CustomMessage also means the Game→Discord diff loop (which only processes
+	// CMT_PlayerMessage entries) will naturally ignore these relay messages.
 	ChatMsg.MessageType   = EFGChatMessageType::CMT_CustomMessage;
-	ChatMsg.MessageSender = FText::FromString(SenderLabel);
+	ChatMsg.MessageSender = FText::GetEmpty();
 	ChatMsg.MessageText   = FText::FromString(FormattedMessage);
 
 	ChatManager->BroadcastChatMessage(ChatMsg);
 
 	UE_LOG(LogTemp, Log,
-	       TEXT("DiscordBridge: Relayed to game chat – sender: '%s', text: '%s'"),
-	       *SenderLabel, *FormattedMessage);
+	       TEXT("DiscordBridge: Relayed to game chat – text: '%s'"),
+	       *FormattedMessage);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

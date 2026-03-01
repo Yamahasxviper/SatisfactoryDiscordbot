@@ -159,7 +159,27 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.ServerName           = GetIniStringOrDefault(ConfigFile, TEXT("ServerName"),           Config.ServerName);
 		Config.GameToDiscordFormat  = GetIniStringOrFallback(ConfigFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrFallback(ConfigFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
-		Config.DiscordSenderFormat  = GetIniStringOrFallback(ConfigFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
+
+		// Backward compatibility: if the old separate DiscordSenderFormat key is
+		// present and the operator has not overridden DiscordToGameFormat to a value
+		// that already mentions %Message%, synthesise a combined format so existing
+		// configs continue to render as before.
+		{
+			FString OldSenderFmt;
+			if (ConfigFile.GetString(ConfigSection, TEXT("DiscordSenderFormat"), OldSenderFmt) && !OldSenderFmt.IsEmpty())
+			{
+				// Only auto-combine when DiscordToGameFormat is still the default
+				// (i.e. the operator has not explicitly customised it).
+				if (Config.DiscordToGameFormat == TEXT("[Discord] %Username%: %Message%"))
+				{
+					Config.DiscordToGameFormat = OldSenderFmt + TEXT(": %Message%");
+				}
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: 'DiscordSenderFormat' is deprecated. "
+				            "Use 'DiscordToGameFormat' to control the full in-game line. "
+				            "Effective format is now: \"%s\""), *Config.DiscordToGameFormat);
+			}
+		}
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (ConfigFile, TEXT("IgnoreBotMessages"),
 		                              GetIniBoolOrDefault  (ConfigFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages));
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(ConfigFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
@@ -480,12 +500,9 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; Format for game -> Discord. Placeholders: %ServerName%, %PlayerName%, %Message%\n")
 			TEXT("; Default: **%PlayerName%**: %Message%\n")
 			TEXT("GameToDiscordFormat=\n")
-			TEXT("; Format for Discord -> game (message body). Placeholders: %Username%, %Message%\n")
-			TEXT("; Default: %Message%\n")
+			TEXT("; Format for Discord -> game. Placeholders: %Username%, %PlayerName%, %Message%\n")
+			TEXT("; Default: [Discord] %Username%: %Message%\n")
 			TEXT("DiscordToGameFormat=\n")
-			TEXT("; Format for Discord -> game (sender name column). Placeholders: %Username%\n")
-			TEXT("; Default: [Discord] %Username%\n")
-			TEXT("DiscordSenderFormat=\n")
 			TEXT("\n")
 			TEXT("; -- BEHAVIOUR ----------------------------------------------------------------\n")
 			TEXT("; When True, messages from bot accounts are ignored (prevents echo loops).\n")
@@ -561,7 +578,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 		Config.ServerName           = GetIniStringOrDefault(BackupFile, TEXT("ServerName"),           Config.ServerName);
 		Config.GameToDiscordFormat  = GetIniStringOrFallback(BackupFile, TEXT("GameToDiscordFormat"),  Config.GameToDiscordFormat);
 		Config.DiscordToGameFormat  = GetIniStringOrFallback(BackupFile, TEXT("DiscordToGameFormat"),  Config.DiscordToGameFormat);
-		Config.DiscordSenderFormat  = GetIniStringOrFallback(BackupFile, TEXT("DiscordSenderFormat"),  Config.DiscordSenderFormat);
 		Config.bIgnoreBotMessages   = GetIniBoolOrDefault  (BackupFile, TEXT("IgnoreBotMessages"),
 	                              GetIniBoolOrDefault  (BackupFile, TEXT("bIgnoreBotMessages"),   Config.bIgnoreBotMessages));
 		Config.ServerOnlineMessage  = GetIniStringOrDefault(BackupFile, TEXT("ServerOnlineMessage"),  Config.ServerOnlineMessage);
@@ -784,7 +800,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("ServerName=%s\n")
 			TEXT("GameToDiscordFormat=%s\n")
 			TEXT("DiscordToGameFormat=%s\n")
-			TEXT("DiscordSenderFormat=%s\n")
 			TEXT("IgnoreBotMessages=%s\n")
 			TEXT("ServerOnlineMessage=%s\n")
 			TEXT("ServerOfflineMessage=%s\n")
@@ -814,7 +829,6 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			*Config.ServerName,
 			*Config.GameToDiscordFormat,
 			*Config.DiscordToGameFormat,
-			*Config.DiscordSenderFormat,
 			Config.bIgnoreBotMessages ? TEXT("True") : TEXT("False"),
 			*Config.ServerOnlineMessage,
 			*Config.ServerOfflineMessage,
