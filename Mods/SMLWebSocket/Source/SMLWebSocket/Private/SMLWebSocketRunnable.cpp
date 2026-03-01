@@ -206,13 +206,16 @@ uint32 FSMLWebSocketRunnable::Run()
 		if (bUseSsl)
 		{
 			State.store(ESMLWebSocketRunnableState::SslHandshake);
+			bool bSslOk = false;
 #if PLATFORM_WINDOWS || PLATFORM_LINUX
-			if (!PerformSslHandshake(ParsedHost))
+			bSslOk = PerformSslHandshake(ParsedHost);
 #else
-			// SSL is not available on this platform; reject wss:// connections.
-			UE_LOG(LogTemp, Error, TEXT("SMLWebSocket: wss:// is not supported on this platform"));
-			if (true)
+			// SSL is not available on this platform; wss:// connections are unsupported.
+			// Satisfactory dedicated servers only run on Win64 and Linux where OpenSSL is present.
+			UE_LOG(LogTemp, Error, TEXT("SMLWebSocket: wss:// is not supported on this platform. "
+			                           "Satisfactory dedicated servers require Win64 or Linux."));
 #endif
+			if (!bSslOk)
 			{
 				NotifyError(TEXT("SMLWebSocket: SSL handshake failed"));
 				if (!ReconnectCfg.bAutoReconnect) break;
