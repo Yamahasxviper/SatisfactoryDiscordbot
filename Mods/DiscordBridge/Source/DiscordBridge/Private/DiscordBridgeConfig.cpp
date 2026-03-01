@@ -192,11 +192,18 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			// (upgrade scenario).  If either section's key-value pair is absent
 			// from the file, append the missing sections so server operators can
 			// see and configure the new settings without losing their existing ones.
+			// Exception: if a dedicated separate file exists for that subsystem,
+			// the operator has intentionally moved those settings there – do not
+			// re-add them to the primary config file.
 			FString TmpVal;
 			const bool bFileHasWhitelist = ConfigFile.GetString(ConfigSection, TEXT("WhitelistEnabled"), TmpVal);
 			const bool bFileHasBan       = ConfigFile.GetString(ConfigSection, TEXT("BanSystemEnabled"), TmpVal);
 
-			if (!bFileHasWhitelist || !bFileHasBan)
+			const bool bHasSeparateWhitelistFile = PlatformFile.FileExists(*GetWhitelistConfigFilePath());
+			const bool bHasSeparateBanFile       = PlatformFile.FileExists(*GetBanConfigFilePath());
+
+			if ((!bFileHasWhitelist && !bHasSeparateWhitelistFile) ||
+			    (!bFileHasBan       && !bHasSeparateBanFile))
 			{
 				UE_LOG(LogTemp, Log,
 				       TEXT("DiscordBridge: Config at '%s' is missing whitelist/ban settings "
@@ -208,7 +215,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 
 				FString AppendContent;
 
-				if (!bFileHasWhitelist)
+				if (!bFileHasWhitelist && !bHasSeparateWhitelistFile)
 				{
 					AppendContent +=
 						TEXT("\n")
@@ -256,7 +263,7 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 						TEXT("InGameWhitelistCommandPrefix=!whitelist\n");
 				}
 
-				if (!bFileHasBan)
+				if (!bFileHasBan && !bHasSeparateBanFile)
 				{
 					AppendContent +=
 						TEXT("\n")
@@ -485,6 +492,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("\n")
 			TEXT("; -- WHITELIST ----------------------------------------------------------------\n")
 			TEXT("; Controls the built-in server whitelist, manageable via Discord commands.\n")
+			TEXT("; OPTIONAL if you are using DefaultDiscordBridgeWhitelist.ini – you can remove\n")
+			TEXT("; or comment out this entire section and configure it there instead.\n")
 			TEXT("; Whitelist and ban system are INDEPENDENT - use either, both, or neither:\n")
 			TEXT(";   Whitelist only:  WhitelistEnabled=True,  BanSystemEnabled=False\n")
 			TEXT(";   Ban only:        WhitelistEnabled=False, BanSystemEnabled=True\n")
@@ -510,6 +519,8 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 			TEXT("; -- BAN SYSTEM ---------------------------------------------------------------\n")
 			TEXT("; Controls the built-in player ban system, manageable via Discord commands.\n")
 			TEXT("; Bans are stored in <ServerRoot>/FactoryGame/Saved/ServerBanlist.json.\n")
+			TEXT("; OPTIONAL if you are using DefaultDiscordBridgeBan.ini – you can remove\n")
+			TEXT("; or comment out this entire section and configure it there instead.\n")
 			TEXT("; Ban system and whitelist are INDEPENDENT (see WHITELIST section above).\n")
 			TEXT("; Whether the ban system is active on startup. Applied on every server restart.\n")
 			TEXT("; Default: True (ban enforcement is on by default)\n")

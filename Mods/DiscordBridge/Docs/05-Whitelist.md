@@ -34,9 +34,15 @@ This file ships with the mod as an all-commented-out template. To use it:
 4. Restart the server.
 
 Any setting defined in `DefaultDiscordBridgeWhitelist.ini` takes priority over the same
-setting in `DefaultDiscordBridge.ini`. Settings left commented out in the separate file
-continue to use whatever is in the primary config. This lets you, for example, keep your
-bot token and chat settings in the main file while whitelist configuration lives in its own file.
+setting in `DefaultDiscordBridge.ini`.
+
+**Do I still need the whitelist settings in `DefaultDiscordBridge.ini`?**
+
+No. When `DefaultDiscordBridgeWhitelist.ini` exists, you can safely remove or comment out
+the entire `; -- WHITELIST` section from `DefaultDiscordBridge.ini`. The mod will use
+the values in the separate file, falling back to built-in defaults for anything that is
+commented out in that file. The mod will also stop automatically re-adding those sections
+to `DefaultDiscordBridge.ini` during upgrades once it detects the separate file is present.
 
 ---
 
