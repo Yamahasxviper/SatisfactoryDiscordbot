@@ -787,9 +787,12 @@ FDiscordBridgeConfig FDiscordBridgeConfig::LoadOrCreate()
 	}
 
 	// ── Step 3: keep the backup up to date ────────────────────────────────────
-	// Whenever the primary config has valid credentials, write an up-to-date
-	// backup so they survive the next mod update.
-	if (!Config.BotToken.IsEmpty() && !Config.ChannelId.IsEmpty() && bLoadedFromMod)
+	// Whenever valid credentials are available (whether loaded from the primary
+	// config or restored from the backup after a mod update), write an up-to-date
+	// backup so they survive the next mod update.  Refreshing the backup even when
+	// credentials came from the backup itself ensures it always reflects the full
+	// current configuration (including any settings applied from separate files).
+	if (!Config.BotToken.IsEmpty() && !Config.ChannelId.IsEmpty())
 	{
 		const FString BackupContent = FString::Printf(
 			TEXT("[DiscordBridge]\n")
