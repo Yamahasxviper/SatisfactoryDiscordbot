@@ -335,6 +335,16 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 * not exist it is created with default values.  When credentials are
 	 * successfully loaded from the primary, an up-to-date backup is written to
 	 * the Saved/Config location so they survive the next mod update.
+	 *
+	 * Backup files written on every successful load (located in Saved/Config/,
+	 * which Alpakit/SMM mod updates never touch):
+	 *   DiscordBridge.ini          – connection, chat and presence settings only
+	 *   DiscordBridgeWhitelist.ini – all whitelist settings (always separate)
+	 *   DiscordBridgeBan.ini        – all ban settings       (always separate)
+	 *
+	 * Whitelist and ban settings are NEVER written to DiscordBridge.ini; they
+	 * always have their own dedicated backup files so settings from different
+	 * logical groups are never mixed together.
 	 */
 	static FDiscordBridgeConfig LoadOrCreate();
 
@@ -347,10 +357,13 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/**
 	 * Returns the absolute path to the whitelist-only backup INI (Saved/Config/).
 	 *
-	 * Written automatically whenever DefaultDiscordBridgeWhitelist.ini contains
-	 * at least one user-set (uncommented) key.  If a mod update resets that
-	 * file to the all-commented-out shipped template, the mod restores it from
-	 * this backup so whitelist settings survive upgrades.
+	 * Written automatically on every server start (whenever credentials are
+	 * configured) with the current whitelist settings, regardless of whether those
+	 * settings came from DefaultDiscordBridgeWhitelist.ini or DefaultDiscordBridge.ini.
+	 * If a mod update resets DefaultDiscordBridgeWhitelist.ini, the mod restores it
+	 * from this backup so whitelist settings survive upgrades.
+	 * Whitelist settings are NEVER written to DiscordBridge.ini; this file is
+	 * always their dedicated home.
 	 * On a deployed server:
 	 *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeWhitelist.ini
 	 */
@@ -359,10 +372,13 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	/**
 	 * Returns the absolute path to the ban-system-only backup INI (Saved/Config/).
 	 *
-	 * Written automatically whenever DefaultDiscordBridgeBan.ini contains at
-	 * least one user-set (uncommented) key.  If a mod update resets that file
-	 * to the all-commented-out shipped template, the mod restores it from this
-	 * backup so ban settings survive upgrades.
+	 * Written automatically on every server start (whenever credentials are
+	 * configured) with the current ban settings, regardless of whether those
+	 * settings came from DefaultDiscordBridgeBan.ini or DefaultDiscordBridge.ini.
+	 * If a mod update resets DefaultDiscordBridgeBan.ini, the mod restores it
+	 * from this backup so ban settings survive upgrades.
+	 * Ban settings are NEVER written to DiscordBridge.ini; this file is
+	 * always their dedicated home.
 	 * On a deployed server:
 	 *   <ServerRoot>/FactoryGame/Saved/Config/DiscordBridgeBan.ini
 	 */
