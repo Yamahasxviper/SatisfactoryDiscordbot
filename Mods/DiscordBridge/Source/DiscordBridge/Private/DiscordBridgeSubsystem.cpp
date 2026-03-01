@@ -427,8 +427,26 @@ void UDiscordBridgeSubsystem::HandleDispatch(const FString& EventType, int32 Seq
 	{
 		HandleMessageCreate(DataObj);
 	}
-	// Other events (PRESENCE_UPDATE, GUILD_MEMBER_ADD, …) are received because of
-	// the intents we request but are not processed by this bridge.
+	else if (EventType == TEXT("GUILD_MEMBER_ADD") ||
+	         EventType == TEXT("GUILD_MEMBER_UPDATE"))
+	{
+		// Keep the Discord role member cache up to date so the whitelist
+		// check in OnPostLogin stays accurate without a full re-fetch.
+		if (!Config.WhitelistRoleId.IsEmpty())
+		{
+			UpdateWhitelistRoleMemberEntry(DataObj);
+		}
+	}
+	else if (EventType == TEXT("GUILD_MEMBER_REMOVE"))
+	{
+		// Member left the guild – remove from cache unconditionally.
+		if (!Config.WhitelistRoleId.IsEmpty())
+		{
+			UpdateWhitelistRoleMemberEntry(DataObj, /*bRemoved=*/true);
+		}
+	}
+	// Other events (PRESENCE_UPDATE, …) are received because of the intents
+	// we request but are not processed by this bridge.
 }
 
 void UDiscordBridgeSubsystem::HandleHeartbeatAck()
@@ -534,6 +552,14 @@ void UDiscordBridgeSubsystem::HandleReady(const TSharedPtr<FJsonObject>& DataObj
 	{
 		SendStatusMessageToDiscord(Config.ServerOnlineMessage);
 		bServerOnlineMessageSent = true;
+	}
+
+	// Populate the Discord role member cache so that players who hold
+	// WhitelistRoleId are not kicked by the game-server whitelist even when
+	// they are not listed in ServerWhitelist.json.
+	if (!Config.WhitelistRoleId.IsEmpty())
+	{
+		FetchWhitelistRoleMembers();
 	}
 
 	OnDiscordConnected.Broadcast();
@@ -655,9 +681,9 @@ void UDiscordBridgeSubsystem::HandleMessageCreate(const TSharedPtr<FJsonObject>&
 
 	// Helper: returns true if the Discord member holds the given required role.
 	// When RequiredRoleId is empty the command is disabled entirely – nobody
-	// can run it until a role ID is configured.  Holding a command role does NOT
-	// grant any game-join bypass; whitelist and ban checks in OnPostLogin apply
-	// to everyone without exception.
+	// can run it until a role ID is configured.  Note: WhitelistCommandRoleId
+	// does NOT grant game-join bypass; only WhitelistRoleId holders receive that
+	// via the role-member cache checked in OnPostLogin.
 	auto HasRequiredRole = [&](const FString& RequiredRoleId) -> bool
 	{
 		if (RequiredRoleId.IsEmpty())
@@ -1457,6 +1483,20 @@ void UDiscordBridgeSubsystem::OnPostLogin(AGameModeBase* GameMode, APlayerContro
 		return;
 	}
 
+	// Secondary pass: if WhitelistRoleId is configured, also allow any player
+	// whose in-game name matches a Discord display name (nick / global_name /
+	// username) of a guild member who holds the whitelist role.  The cache is
+	// populated asynchronously after the bot connects; players who join before
+	// it is ready follow the JSON-only path above.
+	if (!Config.WhitelistRoleId.IsEmpty() &&
+	    WhitelistRoleMemberNames.Contains(PlayerName.ToLower()))
+	{
+		UE_LOG(LogTemp, Log,
+		       TEXT("DiscordBridge Whitelist: allowing '%s' – matches a Discord member with WhitelistRoleId."),
+		       *PlayerName);
+		return;
+	}
+
 	UE_LOG(LogTemp, Warning,
 	       TEXT("DiscordBridge Whitelist: kicking non-whitelisted player '%s'"), *PlayerName);
 
@@ -1682,6 +1722,178 @@ void UDiscordBridgeSubsystem::ModifyDiscordRole(const FString& UserId, const FSt
 				       TEXT("DiscordBridge: Role %s succeeded for user '%s'."),
 				       bGrantCopy ? TEXT("grant") : TEXT("revoke"), *UserIdCopy);
 			}
+		});
+
+	Request->ProcessRequest();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Discord role member cache helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+void UDiscordBridgeSubsystem::RebuildWhitelistRoleNameSet()
+{
+	WhitelistRoleMemberNames.Empty();
+	for (const TPair<FString, TArray<FString>>& Pair : RoleMemberIdToNames)
+	{
+		for (const FString& Name : Pair.Value)
+		{
+			WhitelistRoleMemberNames.Add(Name);
+		}
+	}
+}
+
+void UDiscordBridgeSubsystem::UpdateWhitelistRoleMemberEntry(
+	const TSharedPtr<FJsonObject>& MemberObj, bool bRemoved)
+{
+	if (!MemberObj.IsValid())
+	{
+		return;
+	}
+
+	// Extract Discord user ID – present in both member objects and remove events.
+	const TSharedPtr<FJsonObject>* UserPtr = nullptr;
+	if (!MemberObj->TryGetObjectField(TEXT("user"), UserPtr) || !UserPtr)
+	{
+		return;
+	}
+	FString UserId;
+	if (!(*UserPtr)->TryGetStringField(TEXT("id"), UserId) || UserId.IsEmpty())
+	{
+		return;
+	}
+
+	if (bRemoved)
+	{
+		// Member left the guild – remove any cached entry and rebuild.
+		if (RoleMemberIdToNames.Remove(UserId) > 0)
+		{
+			RebuildWhitelistRoleNameSet();
+		}
+		return;
+	}
+
+	// Determine whether this member currently holds WhitelistRoleId.
+	bool bHasRole = false;
+	const TArray<TSharedPtr<FJsonValue>>* Roles = nullptr;
+	if (MemberObj->TryGetArrayField(TEXT("roles"), Roles) && Roles)
+	{
+		for (const TSharedPtr<FJsonValue>& RoleVal : *Roles)
+		{
+			FString RoleId;
+			if (RoleVal->TryGetString(RoleId) && RoleId == Config.WhitelistRoleId)
+			{
+				bHasRole = true;
+				break;
+			}
+		}
+	}
+
+	if (!bHasRole)
+	{
+		// Member no longer holds the role – remove from cache if present.
+		if (RoleMemberIdToNames.Remove(UserId) > 0)
+		{
+			RebuildWhitelistRoleNameSet();
+		}
+		return;
+	}
+
+	// Collect all display names for this member (server nick, global name, username).
+	TArray<FString> Names;
+	FString Nick;
+	if (MemberObj->TryGetStringField(TEXT("nick"), Nick) && !Nick.IsEmpty())
+	{
+		Names.AddUnique(Nick.ToLower());
+	}
+	FString GlobalName;
+	if ((*UserPtr)->TryGetStringField(TEXT("global_name"), GlobalName) && !GlobalName.IsEmpty())
+	{
+		Names.AddUnique(GlobalName.ToLower());
+	}
+	FString Username;
+	if ((*UserPtr)->TryGetStringField(TEXT("username"), Username) && !Username.IsEmpty())
+	{
+		Names.AddUnique(Username.ToLower());
+	}
+
+	if (Names.Num() == 0)
+	{
+		return;
+	}
+
+	RoleMemberIdToNames.FindOrAdd(UserId) = Names;
+	RebuildWhitelistRoleNameSet();
+
+	UE_LOG(LogTemp, Verbose,
+	       TEXT("DiscordBridge: Whitelist role cache updated for user '%s' (%s)."),
+	       *UserId, *FString::Join(Names, TEXT(", ")));
+}
+
+void UDiscordBridgeSubsystem::FetchWhitelistRoleMembers()
+{
+	if (Config.WhitelistRoleId.IsEmpty() || GuildId.IsEmpty() || Config.BotToken.IsEmpty())
+	{
+		return;
+	}
+
+	// Fetch up to 1000 guild members; sufficient for most gaming communities.
+	// Discord's maximum per-request limit for this endpoint is 1000.
+	const FString Url = FString::Printf(
+		TEXT("%s/guilds/%s/members?limit=1000"),
+		*DiscordApiBase, *GuildId);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
+		FHttpModule::Get().CreateRequest();
+
+	Request->SetURL(Url);
+	Request->SetVerb(TEXT("GET"));
+	Request->SetHeader(TEXT("Authorization"),
+	                   FString::Printf(TEXT("Bot %s"), *Config.BotToken));
+
+	Request->OnProcessRequestComplete().BindWeakLambda(
+		this,
+		[this](FHttpRequestPtr /*Req*/, FHttpResponsePtr Resp, bool bConnected)
+		{
+			if (!bConnected || !Resp.IsValid())
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: FetchWhitelistRoleMembers request failed."));
+				return;
+			}
+			if (Resp->GetResponseCode() != 200)
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: FetchWhitelistRoleMembers returned HTTP %d: %s"),
+				       Resp->GetResponseCode(), *Resp->GetContentAsString());
+				return;
+			}
+
+			// Parse the JSON array of member objects.
+			TArray<TSharedPtr<FJsonValue>> Members;
+			const TSharedRef<TJsonReader<>> Reader =
+				TJsonReaderFactory<>::Create(Resp->GetContentAsString());
+			if (!FJsonSerializer::Deserialize(Reader, Members))
+			{
+				UE_LOG(LogTemp, Warning,
+				       TEXT("DiscordBridge: FetchWhitelistRoleMembers – failed to parse JSON."));
+				return;
+			}
+
+			// Clear the cache and rebuild it from the full member list.
+			RoleMemberIdToNames.Empty();
+			for (const TSharedPtr<FJsonValue>& Val : Members)
+			{
+				const TSharedPtr<FJsonObject>* MemberPtr = nullptr;
+				if (Val->TryGetObject(MemberPtr) && MemberPtr)
+				{
+					UpdateWhitelistRoleMemberEntry(*MemberPtr);
+				}
+			}
+
+			UE_LOG(LogTemp, Log,
+			       TEXT("DiscordBridge: Whitelist role cache built – %d member(s) hold WhitelistRoleId (%d name(s) cached)."),
+			       RoleMemberIdToNames.Num(), WhitelistRoleMemberNames.Num());
 		});
 
 	Request->ProcessRequest();

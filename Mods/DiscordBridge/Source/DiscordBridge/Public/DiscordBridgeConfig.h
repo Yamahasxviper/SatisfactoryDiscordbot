@@ -154,6 +154,11 @@ struct DISCORDBRIDGE_API FDiscordBridgeConfig
 	 *    when the sender holds this role.
 	 *  • The `!whitelist role add/remove <user_id>` commands assign or revoke
 	 *    this role via the Discord REST API (bot must have Manage Roles permission).
+	 *  • At bot startup the member list is fetched from Discord and cached.
+	 *    Any player whose in-game name matches a cached Discord display name
+	 *    (server nickname, global name, or username) is allowed through the
+	 *    whitelist check without needing an explicit entry in ServerWhitelist.json.
+	 *    The cache is kept up to date by GUILD_MEMBER_ADD/UPDATE/REMOVE events.
 	 */
 	FString WhitelistRoleId;
 

@@ -87,6 +87,9 @@ Leave **empty** to disable Discord role integration.
 When set:
 - Discord messages sent to `WhitelistChannelId` are relayed to the game **only when the sender holds this role**.
 - The `!whitelist role add/remove <discord_id>` commands assign or revoke this role via the Discord REST API (the bot must have the **Manage Roles** permission on your server).
+- **Players whose in-game name matches a Discord display name (server nickname, global name, or username) of a member who holds this role are automatically allowed through the whitelist, even if they are not listed in `ServerWhitelist.json`.** The bot fetches and caches the role-member list when it connects, and keeps it up to date as members gain or lose the role.
+
+> **Tip:** For reliable matching, set each player's Discord server nickname to their exact in-game (Steam/Epic) name before granting them the whitelist role.
 
 **How to get the role ID:**
 Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then right-click the role in Server Settings → Roles and choose **Copy Role ID**.

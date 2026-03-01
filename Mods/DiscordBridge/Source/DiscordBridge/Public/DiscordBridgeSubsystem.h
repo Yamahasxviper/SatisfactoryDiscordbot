@@ -359,6 +359,32 @@ private:
 	 */
 	void OnPostLogin(AGameModeBase* GameMode, APlayerController* Controller);
 
+	/**
+	 * Fetch all guild members who hold WhitelistRoleId via the Discord REST API
+	 * and populate RoleMemberIdToNames / WhitelistRoleMemberNames.
+	 * Called from HandleReady whenever WhitelistRoleId is configured.
+	 */
+	void FetchWhitelistRoleMembers();
+
+	/**
+	 * Add or remove a single member's display names in the Discord role member
+	 * cache based on whether they currently hold WhitelistRoleId.
+	 * Called from GUILD_MEMBER_ADD, GUILD_MEMBER_UPDATE and GUILD_MEMBER_REMOVE
+	 * Gateway events.
+	 *
+	 * @param MemberObj  The member object from the Gateway event payload.
+	 * @param bRemoved   When true the member left the guild; purge them unconditionally.
+	 */
+	void UpdateWhitelistRoleMemberEntry(const TSharedPtr<FJsonObject>& MemberObj,
+	                                    bool bRemoved = false);
+
+	/**
+	 * Rebuild WhitelistRoleMemberNames (the flat name-lookup set) from the
+	 * authoritative RoleMemberIdToNames map.  Must be called after any mutation
+	 * of RoleMemberIdToNames.
+	 */
+	void RebuildWhitelistRoleNameSet();
+
 	/** Handle a whitelist management command received from Discord. */
 	void HandleWhitelistCommand(const FString& SubCommand, const FString& DiscordUsername,
 	                            const FString& AuthorId);
@@ -403,4 +429,25 @@ private:
 	 *  Populated from the first entry in the READY event's guilds array.
 	 *  Required for Discord REST role-management calls. */
 	FString GuildId;
+
+	// ── Discord role member cache (WhitelistRoleId) ───────────────────────────
+
+	/**
+	 * Authoritative store: maps each Discord user ID to the set of lowercased
+	 * display names associated with that member (nick, global_name, username).
+	 * Only members who currently hold WhitelistRoleId are present.
+	 * Written from the game thread only (HTTP callbacks + Gateway event handlers).
+	 */
+	TMap<FString, TArray<FString>> RoleMemberIdToNames;
+
+	/**
+	 * Flat lookup set derived from RoleMemberIdToNames.
+	 * Contains every lowercased display name of every member who holds
+	 * WhitelistRoleId.  Rebuilt via RebuildWhitelistRoleNameSet() after
+	 * any change to RoleMemberIdToNames.
+	 * Checked in OnPostLogin as a secondary whitelist pass-through so that
+	 * players whose in-game name matches a Discord role-member name are not
+	 * kicked even if they are not listed in ServerWhitelist.json.
+	 */
+	TSet<FString> WhitelistRoleMemberNames;
 };
